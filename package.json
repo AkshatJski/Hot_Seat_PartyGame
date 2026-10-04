@@ -1,7 +1,7 @@
 {
   "name": "truth-or-swipe",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A pass-the-phone party game. Swipe right to answer, left to face a dare, and let the group Call You Out.",
   "author": "AkshatJski",
   "license": "UNLICENSED",
