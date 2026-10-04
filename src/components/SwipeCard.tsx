@@ -172,10 +172,18 @@ export function SwipeCard({
         onDragEnd={handleDragEnd}
         style={{ x, y, rotate, rotateY, transformPerspective: 1400 }}
         data-card={cardKey}
-        className="relative h-[min(62vh,520px)] w-full touch-pan-y rounded-[28px] border border-white/10 bg-coal shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)]"
+        // transform-3d (preserve-3d) is REQUIRED, not decorative. Without a 3D
+        // rendering context the two faces get flattened into the parent's plane:
+        // backface-visibility stops working, and the back face's pre-mirrored
+        // rotateY(180deg) renders as literal reversed text on top of the front.
+        // Also note nothing on this element may set overflow:hidden — that
+        // flattens the context again and re-breaks the flip.
+        className="relative h-[min(62vh,520px)] w-full touch-pan-y rounded-[28px] border border-white/10 bg-coal shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)] transform-3d"
       >
-        {/* FRONT — the question, or a Called Out notice when there is none */}
-        <div className="absolute inset-0 flex flex-col rounded-[28px] bg-linear-to-b from-slate-panel to-coal p-6 [backface-visibility:hidden]">
+        {/* FRONT — the question, or a Called Out notice when there is none.
+            The webkit prefix is not redundant: older iOS Safari is a real
+            target here and silently ignores the unprefixed property. */}
+        <div className="absolute inset-0 flex flex-col rounded-[28px] bg-linear-to-b from-slate-panel to-coal p-6 [backface-visibility:hidden] [-webkit-backface-visibility:hidden]">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2 rounded-full bg-white/8 px-3 py-1.5 text-xs font-semibold tracking-wide">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-neon-purple text-[10px] font-black text-void">
@@ -250,8 +258,11 @@ export function SwipeCard({
           )}
         </div>
 
-        {/* BACK — the dare, revealed by the 3D flip */}
-        <div className="absolute inset-0 flex flex-col justify-between rounded-[28px] bg-linear-to-b from-neon-red/25 to-coal p-6 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+        {/* BACK — the dare, revealed by the 3D flip.
+            The rotateY(180deg) pre-mirrors this face so that once the parent
+            reaches 180deg the two cancel and the text reads forwards. It only
+            works because the parent sets preserve-3d. */}
+        <div className="absolute inset-0 flex flex-col justify-between rounded-[28px] bg-linear-to-b from-neon-red/25 to-coal p-6 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)]">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full bg-neon-red px-3 py-1.5 text-[11px] font-black tracking-widest text-void uppercase">
               <Flame size={13} /> Dare

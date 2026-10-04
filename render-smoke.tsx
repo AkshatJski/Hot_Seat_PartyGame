@@ -105,6 +105,36 @@ check('dare button rendered', playHtml.includes('Dare'))
 check('player rail shows both players', playHtml.includes('Aksha') && playHtml.includes('Robin'))
 check('call out button NOT visible yet', !playHtml.includes('Call Out'))
 
+// jsdom does no 3D rendering, so this cannot test that the flip *looks* right.
+// It can test the CSS invariants that caused it to look wrong: without
+// `preserve-3d` on the card there is no 3D context, `backface-visibility` is
+// inert, and the pre-mirrored back face renders as reversed text over the front.
+// That shipped as a real bug, so it gets a permanent assertion.
+console.log('\ncard 3D flip invariants (the reversed-dare bug)')
+const cardEl = container.querySelector('[data-card]')
+check('card element found', Boolean(cardEl))
+const cardClasses = cardEl?.getAttribute('class') ?? ''
+check('card has preserve-3d (transform-3d)', cardClasses.includes('transform-3d'))
+check(
+  'card does NOT set overflow-hidden (would re-flatten the 3D context)',
+  !cardClasses.includes('overflow-hidden'),
+)
+const faces = Array.from(cardEl?.children ?? [])
+check('card has exactly two faces', faces.length === 2, `found ${faces.length}`)
+for (const [i, face] of faces.entries()) {
+  const cls = face.getAttribute('class') ?? ''
+  check(`face ${i} hides its backface`, cls.includes('backface-visibility:hidden'))
+  check(
+    `face ${i} includes -webkit-backface-visibility (older iOS Safari)`,
+    cls.includes('-webkit-backface-visibility:hidden'),
+  )
+}
+const backFaceClasses = faces[1]?.getAttribute('class') ?? ''
+check(
+  'back face is pre-mirrored with rotateY(180deg)',
+  backFaceClasses.includes('rotateY(180deg)'),
+)
+
 console.log('\nswipe right -> answered, Call Out window opens')
 await act(async () => {
   store().answer()
