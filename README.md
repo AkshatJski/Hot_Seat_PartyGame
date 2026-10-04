@@ -29,6 +29,8 @@ something? The group can **Call You Out**.
 
 ## Play it
 
+**Live now → [akshatjski.github.io/Hot_Seat_PartyGame](https://akshatjski.github.io/Hot_Seat_PartyGame/)**
+
 1. Open the app on one phone and hand it around. That's the whole setup.
 2. Add 2–10 players and pick your decks.
 3. Play until the cards run out — **497 questions** means the game decides how
