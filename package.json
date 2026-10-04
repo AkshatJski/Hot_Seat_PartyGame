@@ -1,0 +1,60 @@
+{
+  "name": "truth-or-swipe",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A pass-the-phone party game. Swipe right to answer, left to face a dare, and let the group Call You Out.",
+  "author": "AkshatJski",
+  "license": "UNLICENSED",
+  "homepage": "https://github.com/AkshatJski/Hot_Seat_PartyGame#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AkshatJski/Hot_Seat_PartyGame.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AkshatJski/Hot_Seat_PartyGame/issues"
+  },
+  "keywords": [
+    "party-game",
+    "pass-the-phone",
+    "truth-or-dare",
+    "swipe",
+    "pwa",
+    "react",
+    "vite",
+    "zustand"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --force && tsc -p tsconfig.scripts.json --noEmit",
+    "test": "tsx --tsconfig tsconfig.scripts.json smoke.ts",
+    "test:render": "tsx --tsconfig tsconfig.scripts.json render-smoke.tsx",
+    "icons": "tsx --tsconfig tsconfig.scripts.json scripts/make-icons.ts",
+    "check": "npm run lint && npm run typecheck && npm test && npm run test:render && npm run build"
+  },
+  "dependencies": {
+    "lucide-react": "^1.52.0",
+    "motion": "^14.0.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/jsdom": "^30.0.0",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "jsdom": "^30.1.2",
+    "oxlint": "^1.81.0",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
+}

@@ -1,0 +1,43 @@
+<!--
+  Icon master — this SVG is the editable source of truth.
+  The committed PNGs are rasterized from it. Regenerate with:
+    npm run icons
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#16161f" />
+      <stop offset="100%" stop-color="#08080d" />
+    </linearGradient>
+    <linearGradient id="hot" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff2d6f" />
+      <stop offset="100%" stop-color="#a855f7" />
+    </linearGradient>
+    <linearGradient id="cold" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00e5a0" />
+      <stop offset="100%" stop-color="#00b3ff" />
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)" />
+
+  <!-- card stack, sold with two static cards behind the front one -->
+  <rect x="150" y="120" width="212" height="272" rx="44" fill="#ffffff" opacity="0.05" transform="rotate(-9 256 256)" />
+  <rect x="150" y="120" width="212" height="272" rx="44" fill="#ffffff" opacity="0.08" transform="rotate(9 256 256)" />
+
+  <!-- front card: split into the two answers, hot on the right, cold on the left -->
+  <defs>
+    <clipPath id="card">
+      <rect x="150" y="120" width="212" height="272" rx="44" />
+    </clipPath>
+  </defs>
+  <g clip-path="url(#card)">
+    <rect x="150" y="120" width="106" height="272" fill="url(#cold)" />
+    <rect x="256" y="120" width="106" height="272" fill="url(#hot)" />
+  </g>
+  <rect x="150" y="120" width="212" height="272" rx="44" fill="none" stroke="#ffffff" stroke-opacity="0.22" stroke-width="4" />
+
+  <!-- the swipe itself: opposing chevrons -->
+  <path d="M232 214 L188 256 L232 298" fill="none" stroke="#08080d" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M280 214 L324 256 L280 298" fill="none" stroke="#08080d" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

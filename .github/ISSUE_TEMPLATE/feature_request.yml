@@ -1,0 +1,41 @@
+name: Feature request
+description: Suggest a new mechanic, deck, or capability
+title: "[Feature] "
+labels: ["enhancement", "needs triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do that you can't?
+      description: Start from the situation, not the solution. This usually leads somewhere better.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Your idea
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: How big is this?
+      options:
+        - Small — content, copy, a tweak to existing behaviour
+        - Medium — new screen or a new mechanic
+        - Large — offline support, multiplayer, accounts, backend
+    validations:
+      required: true
+
+  - type: textarea
+    id: mobile
+    attributes:
+      label: How would this work on a phone at a party?
+      description: Important filter. If it needs a second screen or a stable connection, say so.

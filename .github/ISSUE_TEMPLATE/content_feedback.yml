@@ -1,0 +1,57 @@
+name: Content feedback
+description: A question or dare landed badly, or you have a better one
+title: "[Content] "
+labels: ["content", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project is only as good as its content, so this is the most useful
+        kind of report. Card IDs look like `ice-0042` and are shown in the URL
+        when you report via the in-app feedback flow.
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is this about?
+      options:
+        - A card is bad / unsafe / shouldn't be there
+        - A card is badly worded or has a typo
+        - I have a new card to propose
+        - The balance of a deck feels off
+    validations:
+      required: true
+
+  - type: input
+    id: card-id
+    attributes:
+      label: Which card? (if applicable)
+      placeholder: ice-0042
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is the issue
+      description: Be blunt. This is the part that matters.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Your suggestion
+      description: A rewrite, or the new card. Include the deck and the intensity you think it is.
+      placeholder: |
+        deck: spicy
+        intensity: 2
+        text: ...
+      render: markdown
+
+  - type: checkboxes
+    id: confirmed
+    attributes:
+      label: Content rules
+      options:
+        - label: My card has no physical risk, involves nobody outside the room, and targets no one by name, identity, health, body, trauma, or finances.
+          required: true
+        - label: Anything sexual goes in the Spicy 18+ deck only.

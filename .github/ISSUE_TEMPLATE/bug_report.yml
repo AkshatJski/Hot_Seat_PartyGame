@@ -1,0 +1,71 @@
+name: Bug report
+description: Something is broken or wrong
+title: "[Bug] "
+labels: ["bug", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Reproducing this is most of the work, so the
+        device/browser details below matter a lot — this is a touch-first app.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, including any text on screen.
+      placeholder: The card flipped halfway and stopped, and the Dare button did nothing.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the app
+        2. Start a game with 3 players, Icebreakers + Destroyers
+        3. Swipe left on the first card
+        4. ...
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      placeholder: Pixel 9
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser / version
+      placeholder: Chrome 141, Safari 18.2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: access
+    attributes:
+      label: How were you running it?
+      options:
+        - Live deployment
+        - Local dev server
+        - Installed from the home screen
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Console errors, a screenshot, whether it happens every time.

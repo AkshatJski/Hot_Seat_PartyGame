@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/AkshatJski/Hot_Seat_PartyGame/security/advisories/new
+    about: Please report privately. Do not open a public issue.
+  - name: Content feedback
+    url: https://github.com/AkshatJski/Hot_Seat_PartyGame/issues/new?template=content_feedback.yml
+    about: The highest-value contribution. Questions/dares are the product.
+  - name: Contributing guide
+    url: https://github.com/AkshatJski/Hot_Seat_PartyGame/blob/main/CONTRIBUTING.md
+    about: Read this before opening a PR.

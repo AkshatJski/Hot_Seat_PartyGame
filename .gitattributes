@@ -1,0 +1,32 @@
+# Normalize everything to LF in the repo and in the working tree.
+#
+# This repo is built on Windows but tested on Linux CI, so relying on each
+# machine's `core.autocrlf` would give different checkouts to different people.
+# `.gitattributes` takes precedence over that setting, which is what we want.
+
+* text=auto eol=lf
+
+# Images are already compressed; don't let git try to diff or normalize them.
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.webp   binary
+*.ico    binary
+*.woff   binary
+*.woff2  binary
+*.pdf    binary
+
+# Batch files genuinely need CRLF to execute on Windows.
+*.bat    text eol=crlf
+*.cmd    text eol=crlf
+
+# Keep lockfiles and generated manifests out of language/formatting stats.
+package-lock.json linguist-generated=true -diff
+dist/** linguist-generated=true
+
+# Mark the vendored, minified artifact of the build.
+dist/**/*.js linguist-generated=true
+
+# These are documentation for humans, not code.
+*.md linguist-documentation=true

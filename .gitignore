@@ -1,0 +1,28 @@
+dist
+node_modules
+.vite
+
+# Engineering documentation — local-only, intentionally not pushed.
+decision.md
+Flow.md
+learn.md
+
+# Generated icon PNGs are committed on purpose (see scripts/make-icons.ts).
+# Only the rasteriser itself is ignored.
+scripts/**/*.node
+
+*.local
+*.log
+npm-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+~$*

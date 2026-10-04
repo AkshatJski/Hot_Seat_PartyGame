@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#08080b" />
+    <meta
+      name="description"
+      content="Truth or Swipe - a pass-the-phone party game. Swipe right to answer, left to face a dare, and let the group Call You Out."
+    />
+
+    <!-- Installable / standalone. iOS ignores the manifest for these, so the
+         apple-* tags are what actually give a home-screen launch without
+         browser chrome. This is the difference between "a website" and "an app
+         you pull out at a party". -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Truth or Swipe" />
+    <meta name="application-name" content="Truth or Swipe" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Truth or Swipe" />
+    <meta
+      property="og:description"
+      content="A pass-the-phone party game. Swipe right to answer, left to face a dare, and let the group Call You Out."
+    />
+    <meta property="og:image" content="/icon-512.png" />
+    <meta name="twitter:card" content="summary" />
+
+    <title>Truth or Swipe</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
