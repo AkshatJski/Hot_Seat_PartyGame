@@ -30,6 +30,11 @@ something? The group can **Call You Out**.
 ## Play it
 
 **Live now → [akshatjski.github.io/Hot_Seat_PartyGame](https://akshatjski.github.io/Hot_Seat_PartyGame/)**
+— also on [Vercel](https://hot-seat-party-game.vercel.app)
+
+> Using **v1.0.0**? The dare card renders as reversed text there. Take
+> [v1.0.1](https://github.com/AkshatJski/Hot_Seat_PartyGame/releases/tag/v1.0.1)
+> instead — or just use the live links above, which are current.
 
 1. Open the app on one phone and hand it around. That's the whole setup.
 2. Add 2–10 players and pick your decks.
@@ -252,6 +257,10 @@ Being straight about these:
 - **The physics have never been felt on a real device.** Every spring constant and
   threshold was written without a browser. Expect to want to retune
   `commitAnswer` / `commitSkip`.
+- **`preserve-3d` on the card is load-bearing.** Anything that flattens the 3D
+  rendering context — a missing `transform-style`, or `overflow: hidden` on the
+  card — makes the dare render mirrored. There is an assertion in
+  `render-smoke.tsx` guarding both, because it shipped broken once already.
 - **Haptics don't work on iOS.** `navigator.vibrate` is unsupported on iOS Safari
   everywhere. The visual stamps are the real feedback channel.
 - **The 18+ blur marker isn't DRM.** It stops accidental exposure when someone picks
