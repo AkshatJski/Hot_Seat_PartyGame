@@ -135,6 +135,42 @@ check(
   backFaceClasses.includes('rotateY(180deg)'),
 )
 
+// Reproduces the reported "4 players, starts auto-skipping and gets stuck" bug.
+// The rest of this file drives the store directly, which is exactly why the bug
+// survived: it lives entirely in the BUTTON/keyboard path, which nothing here
+// touched. So this section clicks the real buttons instead of calling actions.
+console.log('\nBUG REPRO: buttons must not auto-swipe the following card')
+const buttonByText = (re: RegExp) =>
+  Array.from(container.querySelectorAll('button')).find((b) => re.test(b.textContent ?? ''))
+
+const answerBtn = buttonByText(/Answer/)
+check('found the real Answer button', Boolean(answerBtn))
+
+await act(async () => {
+  answerBtn!.click()
+})
+await flush(900)
+check('tapping Answer resolved the current card', store().stage === 'answered')
+const poolAfterTap = store().poolIndex
+
+// Let the 4s Call Out window elapse, which advances the turn and deals a new card.
+await flush(4200)
+check(
+  'exactly one card consumed by the turn',
+  store().poolIndex === poolAfterTap + 1,
+  `poolIndex=${store().poolIndex} expected=${poolAfterTap + 1}`,
+)
+check(
+  'the NEW card is not already answered (no stale signal)',
+  store().stage === 'question',
+  `stage=${store().stage}`,
+)
+
+// The cascade: a stale signal re-fires on every subsequent card, and each
+// auto-answer restarts the 4s window, so the game plays itself hands-free.
+await flush(4200)
+check('and it does not cascade on later turns', store().stage === 'question', `stage=${store().stage}`)
+
 console.log('\nswipe right -> answered, Call Out window opens')
 await act(async () => {
   store().answer()
@@ -168,11 +204,20 @@ check('caller picker shown', verdictHtml.includes('Wrong call'))
 
 console.log('\npick a wrong caller -> turn advances')
 const callerId = store().players.find((p) => p.name === 'Robin')!.id
+const turnBeforePenalty = store().turnIndex
+const seats = store().players.length
 await act(async () => {
   store().penalizeCaller(callerId)
 })
 await flush()
-check('turn advanced to Robin', store().turnIndex === 1)
+// Relative, not `=== 1`: an absolute index silently couples this test to how
+// many turns earlier sections happen to consume.
+check(
+  'turn advanced exactly one seat',
+  store().turnIndex === (turnBeforePenalty + 1) % seats,
+  `turnIndex=${store().turnIndex} from=${turnBeforePenalty}`,
+)
+check('turn did not land back on the caller', store().players[store().turnIndex]!.id !== callerId)
 check('Robin got a coward point', store().players.find((p) => p.name === 'Robin')!.coward === 1)
 
 // Regression: during the verdict the action bar used to fall through to the

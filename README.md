@@ -32,9 +32,13 @@ something? The group can **Call You Out**.
 **Live now → [akshatjski.github.io/Hot_Seat_PartyGame](https://akshatjski.github.io/Hot_Seat_PartyGame/)**
 — also on [Vercel](https://hot-seat-party-game.vercel.app)
 
-> Using **v1.0.0**? The dare card renders as reversed text there. Take
-> [v1.0.1](https://github.com/AkshatJski/Hot_Seat_PartyGame/releases/tag/v1.0.1)
-> instead — or just use the live links above, which are current.
+> **Always take the newest release.** Two published artifacts are known-bad:
+>
+> - **v1.0.0** — the dare card renders as reversed/mirrored text.
+> - **v1.0.1** — tapping the Dare/Answer buttons auto-swipes the *following*
+>   card, and can cascade into the game playing itself.
+>
+> Both are fixed in the current release. The live links above are always current.
 
 1. Open the app on one phone and hand it around. That's the whole setup.
 2. Add 2–10 players and pick your decks.

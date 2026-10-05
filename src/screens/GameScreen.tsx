@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import {
   ArrowLeft,
@@ -98,7 +98,25 @@ export function GameScreen() {
   const awaitingDare = useGameStore(selectAwaitingDare)
   const showVerdict = useGameStore(selectShowVerdict)
 
-  const [signal, setSignal] = useState<SwipeSignal | null>(null)
+  /**
+   * A pending swipe signal is scoped to exactly one card in exactly one stage.
+   *
+   * This is deliberately DERIVED rather than cleared in an effect. `SwipeCard`
+   * is remounted per question with a fresh dedupe counter, so a signal left in
+   * state after its card unmounted got consumed by the NEXT card on mount,
+   * auto-swiping a fresh question. Because each auto-answer restarts the 4s Call
+   * Out window, that cascaded hands-free until the deck ran dry — reported as
+   * "starts auto-skipping and then gets stuck".
+   *
+   * Clearing it in a useEffect does NOT work: child effects run before parent
+   * effects, so the incoming card would consume the stale signal before the
+   * parent could null it. Comparing tokens during render cannot have that
+   * ordering problem, so a mismatched signal is simply never handed down.
+   */
+  const cardToken = `${currentQuestion?.id ?? 'callout'}:${stage}:${turnIndex}`
+  const [raised, setRaised] = useState<{ token: string; signal: SwipeSignal } | null>(null)
+  const signalSeq = useRef(0)
+  const signal = raised?.token === cardToken ? raised.signal : null
 
   /**
    * Rehydrate safety net: after a page refresh mid-game the scores come back
@@ -110,8 +128,12 @@ export function GameScreen() {
     }
   }, [phase, currentQuestion, stage, cardsLeft, drawQuestion])
 
-  const fire = (direction: 'left' | 'right') =>
-    setSignal({ direction, id: Date.now() })
+  // A monotonic counter, not Date.now(): two taps inside the same millisecond
+  // would produce identical ids and SwipeCard's dedupe would swallow the second.
+  const fire = (direction: 'left' | 'right') => {
+    signalSeq.current += 1
+    setRaised({ token: cardToken, signal: { direction, id: signalSeq.current } })
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
