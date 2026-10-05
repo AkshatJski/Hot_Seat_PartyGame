@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200" role="img" aria-label="Eye roll">
+  <rect width="320" height="200" fill="#0d1524"/>
+  <ellipse cx="160" cy="96" rx="120" ry="58" fill="#f4f7ff"/>
+  <circle cx="200" cy="96" r="30" fill="#2f6fd0"/>
+  <circle cx="200" cy="96" r="14" fill="#0d1524"/>
+  <circle cx="192" cy="88" r="6" fill="#ffffff"/>
+  <path d="M40 44 L280 148" stroke="#0d1524" stroke-width="6" fill="none" opacity="0.35"/>
+  <text x="160" y="182" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="26" fill="#8fb6ff" letter-spacing="4">UNBELIEVABLE</text>
+</svg>

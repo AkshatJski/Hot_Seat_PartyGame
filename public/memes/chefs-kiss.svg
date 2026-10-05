@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200" role="img" aria-label="Chef's kiss">
+  <rect width="320" height="200" fill="#0b1d17"/>
+  <circle cx="52" cy="42" r="20" fill="#2dd4a7"/>
+  <circle cx="286" cy="160" r="26" fill="#0f7f63"/>
+  <text x="160" y="96" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="44" fill="#ffffff" stroke="#000000" stroke-width="7" paint-order="stroke">CHEF'S</text>
+  <text x="160" y="152" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="56" fill="#2dd4a7" stroke="#000000" stroke-width="7" paint-order="stroke">KISS</text>
+  <text x="160" y="182" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="16" fill="#9ff5df" letter-spacing="5">PERFECT ANSWER</text>
+</svg>

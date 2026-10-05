@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200" role="img" aria-label="Cringe">
+  <rect width="320" height="200" fill="#1a0b0b"/>
+  <path d="M0 200 L0 60 L320 110 L320 200 Z" fill="#3d1414"/>
+  <text x="160" y="112" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="66" fill="#ff8c1a" stroke="#000000" stroke-width="8" paint-order="stroke">CRINGE</text>
+  <text x="160" y="152" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="17" fill="#ffd166" letter-spacing="5">SAY NOTHING</text>
+  <text x="160" y="178" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="13" fill="#ffb703" letter-spacing="3">BURN BOOK MATERIAL</text>
+</svg>

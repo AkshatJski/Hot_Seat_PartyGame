@@ -7,6 +7,8 @@ import {
   type PanInfo,
 } from 'motion/react'
 import { Eye, Flame, ShieldAlert, Zap } from 'lucide-react'
+import { memeForCard } from '../data/memes'
+import { MemeBadge } from './MemeBadge'
 import type { Dare, Intensity, Question, SwipeDirection } from '../types'
 
 /** Past this horizontal offset the gesture counts as a real swipe. */
@@ -158,6 +160,11 @@ export function SwipeCard({
   const blurred = Boolean(question?.sensitive) && !revealed
   const cardKey = question?.id ?? 'callout'
 
+  // Reactions hang off the question's id, so they are stable for the life of the
+  // card and never re-roll under the player's thumb. Null while the question is
+  // still blurred — no spoiling the punchline behind the 18+ cover.
+  const meme = question && !blurred ? memeForCard(question.id, question.deck) : null
+
   return (
     <div className="relative mx-auto w-[min(88vw,380px)]">
       <div className="absolute inset-0 translate-y-3 rounded-[32px] bg-neon-purple/10 blur-2xl" />
@@ -224,6 +231,8 @@ export function SwipeCard({
               </span>
             )}
           </button>
+
+          {meme && <MemeBadge meme={meme} />}
 
           <div className="mt-4 flex items-center justify-between text-[11px] font-bold tracking-widest uppercase">
             <span className="flex items-center gap-1.5 text-neon-red/80">

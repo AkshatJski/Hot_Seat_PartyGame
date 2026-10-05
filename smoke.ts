@@ -1,5 +1,7 @@
 import { useGameStore } from './src/store/gameStore'
-import { dareTier, contentCounts } from './src/data/decks'
+import { DECKS, dareTier, contentCounts, questionsFor, daresFor, callOutDaresFor } from './src/data/decks'
+import { MEMES, memeForCard } from './src/data/memes'
+import type { DeckId } from './src/types'
 
 const S = () => useGameStore.getState()
 let failures = 0
@@ -13,12 +15,62 @@ function check(label: string, cond: boolean, extra = '') {
   }
 }
 
+const ALL: DeckId[] = ['icebreakers', 'destroyers', 'spicy', 'unhinged']
+
 console.log('content volumes')
-for (const decks of [['icebreakers'], ['destroyers'], ['spicy'], ['icebreakers', 'destroyers', 'spicy']] as const) {
+for (const decks of [['icebreakers'], ['destroyers'], ['spicy'], ['unhinged'], ['icebreakers', 'destroyers', 'spicy', 'unhinged']] as const) {
   const c = contentCounts([...decks])
-  console.log(`   ${decks.join('+').padEnd(32)} q=${c.questions} d=${c.dares} c=${c.callOuts}`)
+  console.log(`   ${decks.join('+').padEnd(38)} q=${c.questions} d=${c.dares} c=${c.callOuts}`)
 }
-check('all decks together has > 400 questions', contentCounts(['icebreakers', 'destroyers', 'spicy']).questions > 400)
+check('all four decks together has > 500 questions', contentCounts(ALL).questions > 500)
+for (const deck of ALL) {
+  const c = contentCounts([deck])
+  check(`${deck} has enough of each pool`, c.questions >= 50 && c.dares >= 20 && c.callOuts >= 10,
+    `q=${c.questions} d=${c.dares} c=${c.callOuts}`)
+}
+check('every registered deck id is coverable', DECKS.every((d) => contentCounts([d.id]).questions > 0),
+  DECKS.map((d) => d.id).join(','))
+
+console.log('\ncontent integrity')
+function duplicates(items: { id: string; text: string }[]): string[] {
+  const seen = new Map<string, string[]>()
+  for (const item of items) {
+    const key = item.text.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim()
+    seen.set(key, [...(seen.get(key) ?? []), item.id])
+  }
+  return [...seen.values()].filter((ids) => ids.length > 1).map((ids) => ids.join(' | '))
+}
+const allQ = questionsFor(ALL)
+const allD = daresFor(ALL)
+const allC = callOutDaresFor(ALL)
+const qDupes = duplicates(allQ)
+const dDupes = duplicates(allD)
+const cDupes = duplicates(allC)
+check('no duplicate question text', qDupes.length === 0, qDupes.slice(0, 5).join(' / '))
+check('no duplicate dare text', dDupes.length === 0, dDupes.slice(0, 5).join(' / '))
+check('no duplicate call-out text', cDupes.length === 0, cDupes.slice(0, 5).join(' / '))
+const allIds = [...allQ, ...allD, ...allC].map((x) => x.id)
+check('no duplicate ids', new Set(allIds).size === allIds.length, `total=${allIds.length} unique=${new Set(allIds).size}`)
+check('every card has text', [...allQ, ...allD, ...allC].every((x) => x.text.trim().length > 0))
+check('intensity is always 1..3', [...allD, ...allC].every((x) => x.intensity >= 1 && x.intensity <= 3))
+check('every card is tagged to its deck', [...allQ, ...allD, ...allC].every((x) => ALL.includes(x.deck)))
+
+console.log('\nmeme reactions')
+check('every meme has a caption and alt', MEMES.every((m) => m.caption.length > 0 && m.alt.length > 0))
+check('every meme src is a local /memes asset', MEMES.every((m) => m.src.startsWith('/memes/') && m.src.endsWith('.svg')))
+check('meme ids are unique', new Set(MEMES.map((m) => m.id)).size === MEMES.length)
+check(
+  'memes are deterministic per card',
+  allQ.every((q) => memeForCard(q.id, q.deck)?.id === memeForCard(q.id, q.deck)?.id),
+)
+const withMeme = allQ.filter((q) => memeForCard(q.id, q.deck) !== null).length
+check('a minority of cards get a reaction', withMeme > 0 && withMeme < allQ.length * 0.8, `${withMeme}/${allQ.length}`)
+check('reaction coverage is not tiny', withMeme > allQ.length * 0.4, `${withMeme}/${allQ.length}`)
+check(
+  'spicy deck never draws a wholesome reaction',
+  allQ.filter((q) => q.deck === 'spicy').every((q) => memeForCard(q.id, q.deck)?.id !== 'chefs-kiss'),
+)
+check('unknown deck yields no meme, no throw', memeForCard('x', 'nope' as DeckId) === null)
 
 console.log('\ndare tier ladder')
 check('0 cowards -> tier 1', dareTier(0) === 1)

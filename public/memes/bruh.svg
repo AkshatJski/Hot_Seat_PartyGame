@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200" role="img" aria-label="Bruh">
+  <rect width="320" height="200" fill="#151515"/>
+  <circle cx="46" cy="30" r="14" fill="#ff2e63"/>
+  <circle cx="276" cy="172" r="18" fill="#ff2e63"/>
+  <text x="160" y="130" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="84" fill="#ff2e63" stroke="#000000" stroke-width="8" paint-order="stroke">BRUH</text>
+  <text x="160" y="168" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="18" fill="#ffffff" letter-spacing="6">THAT WAS DEVASTATING</text>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200" role="img" aria-label="This is fine">
+  <rect width="320" height="200" fill="#1b1206"/>
+  <circle cx="248" cy="52" r="26" fill="#ff5c1a"/>
+  <path d="M0 150 L60 96 L120 150 Z" fill="#ff5c1a"/>
+  <path d="M40 200 L110 118 L180 200 Z" fill="#ffb703"/>
+  <path d="M150 200 L215 126 L280 200 Z" fill="#ff5c1a"/>
+  <path d="M120 200 Q170 140 200 200 Z" fill="#ffd166"/>
+  <text x="160" y="86" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="52" fill="#ffffff" stroke="#000000" stroke-width="8" paint-order="stroke" letter-spacing="1">THIS IS FINE</text>
+  <text x="160" y="188" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="18" fill="#ffb703" letter-spacing="4">EVERYTHING IS NORMAL</text>
+</svg>

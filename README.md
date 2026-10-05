@@ -42,7 +42,7 @@ something? The group can **Call You Out**.
 
 1. Open the app on one phone and hand it around. That's the whole setup.
 2. Add 2–10 players and pick your decks.
-3. Play until the cards run out — **497 questions** means the game decides how
+3. Play until the cards run out — **561 questions** means the game decides how
    long it lasts.
 4. Survive the Burn Book.
 
@@ -52,7 +52,7 @@ chrome, like a real app:
 - **iOS Safari** — Share → *Add to Home Screen*
 - **Android Chrome** — ⋮ → *Install app* / *Add to Home screen*
 
-> ⚠️ **18+ content warning.** One of the three decks is explicitly sexual and
+> ⚠️ **18+ content warning.** One of the four decks is explicitly sexual and
 > gated behind an age confirmation. It is opt-in and off by default. The game is
 > intended for adults who know each other; see
 > [Content policy](#content-policy) for the rules the content follows.
@@ -112,17 +112,38 @@ Share the whole thing to the group chat.
 
 ## Content
 
-Three decks, freely mixable. **497 questions, 148 dares, 81 Call Out dares.**
+Four decks, freely mixable. **561 questions, 168 dares, 91 Call Out dares.**
 
 | Deck | Questions | Dares | Call Out dares | Vibe |
 | --- | ---: | ---: | ---: | --- |
 | **Icebreakers** | 191 | 53 | 28 | Safe-ish, warm-up, works with anyone |
-| **Friendship Destroyers** | 176 | 54 | 28 | The nasty one. Relationships will suffer |
-| **Spicy 18+** | 130 | 41 | 25 | Explicit. Opt-in, age-gated, blur-marked |
+| **Friendship Destroyers** | 185 | 54 | 28 | Playful, chaotic, room-based roasting |
+| **Spicy 18+** | 135 | 41 | 25 | Explicit. Opt-in, age-gated, blur-marked |
+| **Unhinged** | 50 | 20 | 10 | Peak cursed energy. Pure chaos |
 
 Because the whole set is shuffled into one queue and dealt without replacement,
-**no question repeats** in a session. Pick two decks or all three; the length of
+**no question repeats** in a session. Pick two decks or all four; the length of
 the game follows from your choice.
+
+### Reaction memes
+
+Roughly two-thirds of cards carry a reaction image under the question — the
+"chef's kiss", the "ratio", the "this is fine". They're **original SVGs shipped
+in the bundle** (`public/memes/`, 6.7 KB total), not scraped and not fetched:
+
+- **No external API.** Nothing to rate-limit, nothing to break mid-party, and no
+  random NSFW image arriving on your phone unannounced.
+- **Deterministic per card.** The reaction is picked by hashing the card id, so it
+  never flickers to a different image while the player is holding the phone
+  still.
+- **Curated per deck.** Spicy and Unhinged cards draw from their own pools, so a
+  spicy card never gets a wholesome "chef's kiss".
+- **Sprinkled, not sprayed.** Roughly 35% of cards get *no* reaction at all — a
+  reaction on every card is just wallpaper.
+- **Never spoils the reveal.** An 18+ card stays reaction-free until it's tapped
+  open.
+- The badge is `pointer-events-none` on purpose: it sits over a drag-to-swipe card,
+  and anything that captures a pointer there eats the gesture.
 
 ### Content policy
 
@@ -233,6 +254,7 @@ A few decisions worth knowing about if you read the source:
 ```
 src/
 ├─ components/SwipeCard.tsx      the whole mechanic: physics, 3D flip, haptics
+├─ components/MemeBadge.tsx      the reaction image pinned under a card
 ├─ store/gameStore.ts            turn machine, scoring, persistence
 ├─ screens/
 │  ├─ SetupScreen.tsx            players, deck mixing, 18+ gate
@@ -242,11 +264,14 @@ src/
 │  ├─ icebreakers.ts             content
 │  ├─ destroyers.ts              content
 │  ├─ spicy.ts                   content
+│  ├─ unhinged.ts                content
+│  ├─ memes.ts                   reaction catalogue + deterministic picker
 │  └─ decks.ts                   aggregation, Coward ladder, dare picker
 ├─ types.ts                      the vocabulary
 ├─ App.tsx                       phase router
 └─ index.css                     Tailwind @theme — the neon palette
 
+public/memes/*.svg               9 original reaction images, 6.7 KB total
 smoke.ts                         store suite
 render-smoke.tsx                 jsdom DOM suite
 scripts/make-icons.ts            icon.svg → PNGs
@@ -261,6 +286,9 @@ Being straight about these:
 - **The physics have never been felt on a real device.** Every spring constant and
   threshold was written without a browser. Expect to want to retune
   `commitAnswer` / `commitSkip`.
+- **The reaction memes are unstyled-by-design.** They're flat SVGs with no
+  animation beyond a single spring pop-in, and they have never been seen on a real
+  phone. Worth a pass on contrast and size against a real card.
 - **`preserve-3d` on the card is load-bearing.** Anything that flattens the 3D
   rendering context — a missing `transform-style`, or `overflow: hidden` on the
   card — makes the dare render mirrored. There is an assertion in

@@ -47,7 +47,8 @@ const { act } = await import('react')
 const React = await import('react')
 const { default: App } = await import('./src/App')
 const { useGameStore } = await import('./src/store/gameStore')
-const { contentCounts } = await import('./src/data/decks')
+const { contentCounts, questionsFor } = await import('./src/data/decks')
+const { memeForCard } = await import('./src/data/memes')
 
 // lowercase name so oxlint doesn't mistake this for a component
 const store = () => useGameStore.getState()
@@ -84,6 +85,7 @@ check('#root has content', setupHtml.length > 500)
 check('title rendered', setupHtml.includes('Truth or') && setupHtml.includes('Swipe'))
 check('deck labels rendered', setupHtml.includes('Icebreakers') && setupHtml.includes('Friendship Destroyers'))
 check('18+ deck present', setupHtml.includes('Spicy'))
+check('unhinged deck present', setupHtml.includes('Unhinged'))
 check('start button present', setupHtml.includes('Start the game'))
 check('no duplicate deck typo', setupHtml.includes('Friendship Destroyers'))
 
@@ -134,6 +136,48 @@ check(
   'back face is pre-mirrored with rotateY(180deg)',
   backFaceClasses.includes('rotateY(180deg)'),
 )
+
+console.log('\nmeme reaction badge')
+// Drive a card whose id hashes to a meme, so this asserts the real render path
+// rather than "no meme happened to be assigned".
+const memeCard = questionsFor(['icebreakers', 'destroyers', 'spicy', 'unhinged']).find(
+  (q) => memeForCard(q.id, q.deck) !== null,
+)
+check('found a card that gets a reaction', Boolean(memeCard))
+if (memeCard) {
+  const expected = memeForCard(memeCard.id, memeCard.deck)!
+  await act(async () => {
+    useGameStore.setState({ currentQuestion: memeCard, stage: 'question', flipped: false })
+  })
+  await flush()
+  const img = container.querySelector(`img[src="${expected.src}"]`)
+  check('reaction image rendered on the card', Boolean(img), `expected ${expected.src}`)
+  check('reaction has alt text', (img?.getAttribute('alt') ?? '').length > 0)
+  check('reaction caption rendered', container.innerHTML.includes(expected.caption))
+  check(
+    'reaction badge does not intercept the swipe gesture',
+    (img?.closest('figure')?.getAttribute('class') ?? '').includes('pointer-events-none'),
+  )
+
+  // A blurred 18+ card must not leak its punchline before the tap-to-reveal.
+  const spicyCard = questionsFor(['spicy']).find((q) => q.sensitive && memeForCard(q.id, q.deck) !== null)
+  check('found a sensitive card with a reaction', Boolean(spicyCard))
+  if (spicyCard) {
+    const hidden = memeForCard(spicyCard.id, spicyCard.deck)!
+    await act(async () => {
+      useGameStore.setState({ currentQuestion: spicyCard, stage: 'question', flipped: false })
+    })
+    await flush()
+    check(
+      'reaction hidden while an 18+ card is still blurred',
+      !container.innerHTML.includes(hidden.src),
+    )
+  }
+  await act(async () => {
+    useGameStore.setState({ currentQuestion: null })
+  })
+  await flush()
+}
 
 // Reproduces the reported "4 players, starts auto-skipping and gets stuck" bug.
 // The rest of this file drives the store directly, which is exactly why the bug
@@ -281,7 +325,7 @@ check('Menace to Society award', burnHtml.includes('Menace to Society'))
 check('Straightest Shooter award', burnHtml.includes('Straightest Shooter'))
 check('Share button', burnHtml.includes('Share'))
 check('Rematch button', burnHtml.includes('Rematch'))
-check('total cards is large', contentCounts(['icebreakers', 'destroyers', 'spicy']).questions > 400)
+check('total cards is large', contentCounts(['icebreakers', 'destroyers', 'spicy', 'unhinged']).questions > 500)
 
 console.log('\nrematch -> back to setup')
 await act(async () => {

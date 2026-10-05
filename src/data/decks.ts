@@ -9,6 +9,7 @@ import type {
 import { destroyerCallOuts, destroyerDares, destroyerQuestions } from './destroyers'
 import { icebreakerCallOuts, icebreakerDares, icebreakerQuestions } from './icebreakers'
 import { spicyCallOuts, spicyDares, spicyQuestions } from './spicy'
+import { unhingedCallOuts, unhingedDares, unhingedQuestions } from './unhinged'
 
 /**
  * CONTENT POLICY (agreed 2026-10-04)
@@ -28,7 +29,7 @@ export const DECKS: Deck[] = [
   {
     id: 'destroyers',
     label: 'Friendship Destroyers',
-    blurb: 'Philosophical, uncomfortable, no-go-there-deep.',
+    blurb: 'Playful, chaotic, room-based roasting.',
     minAge: 0,
   },
   {
@@ -37,20 +38,28 @@ export const DECKS: Deck[] = [
     blurb: 'The questions get real. Dares stay harmless.',
     minAge: 18,
   },
+  {
+    id: 'unhinged',
+    label: 'Unhinged',
+    blurb: 'Peak cursed energy. Pure unadulterated chaos.',
+    minAge: 0,
+  },
 ]
 
 export const QUESTIONS: Question[] = [
   ...icebreakerQuestions,
   ...destroyerQuestions,
   ...spicyQuestions,
+  ...unhingedQuestions,
 ]
 
-export const DARES: Dare[] = [...icebreakerDares, ...destroyerDares, ...spicyDares]
+export const DARES: Dare[] = [...icebreakerDares, ...destroyerDares, ...spicyDares, ...unhingedDares]
 
 export const CALL_OUT_DARES: CallOutDare[] = [
   ...icebreakerCallOuts,
   ...destroyerCallOuts,
   ...spicyCallOuts,
+  ...unhingedCallOuts,
 ]
 
 export function getDeck(id: DeckId): Deck {

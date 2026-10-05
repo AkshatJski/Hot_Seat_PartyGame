@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200" role="img" aria-label="Big brain">
+  <rect width="320" height="200" fill="#071a12"/>
+  <path d="M132 26 q-40 0 -40 38 q-34 4 -34 40 q0 30 26 40 q4 32 36 32 h28 v-150 z" fill="#3ddc84"/>
+  <path d="M188 26 q40 0 40 38 q34 4 34 40 q0 30 -26 40 q-4 32 -36 32 h-28 v-150 z" fill="#9be8b8"/>
+  <path d="M160 26 v150" stroke="#0b3a24" stroke-width="6"/>
+  <text x="160" y="66" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="22" fill="#0b3a24" letter-spacing="2">BIG</text>
+  <text x="160" y="112" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="26" fill="#0b3a24" letter-spacing="1">BRAIN</text>
+  <text x="160" y="150" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="13" fill="#0b3a24">ANSWER OF THE NIGHT</text>
+</svg>

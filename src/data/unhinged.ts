@@ -1,0 +1,116 @@
+import type { CallOutDare, Dare, Intensity, Question } from '../types'
+
+let seq = 0
+const q = (text: string, intensity: Intensity = 1): Question => ({
+  id: `unh-q${++seq}`,
+  deck: 'unhinged',
+  text,
+  intensity,
+  sensitive: false,
+})
+
+let dseq = 0
+const d = (text: string, intensity: Intensity = 1): Dare => ({
+  id: `unh-d${++dseq}`,
+  deck: 'unhinged',
+  text,
+  intensity,
+})
+
+let cseq = 0
+const c = (text: string, intensity: Intensity = 2): CallOutDare => ({
+  id: `unh-c${++cseq}`,
+  deck: 'unhinged',
+  text,
+  intensity,
+  callOut: true,
+})
+
+export const unhingedQuestions: Question[] = [
+  q('If you had to replace your legs with something cursed, what would you pick?', 1),
+  q('Describe the current energy of this room as a sentient eldritch bean.', 1),
+  q('If this group was a breakfast cereal, what would be the warning label?', 1),
+  q('What would your theme song be if it was made by a kazoo orchestra?', 1),
+  q('If you could communicate only in animal noises for 60 seconds, what animal would you abuse?', 1),
+  q('Which object in this room would commit the most crimes if it gained sentience?', 1),
+  q('If you were a villain in a kid cartoon, what is your evil catchphrase?', 1),
+  q('Describe your entire personality as a cursed Yelp review.', 1),
+  q('If you had to be reincarnated as a household appliance, which one and why?', 1),
+  q('What lore would your left sock have?', 1),
+  q('If the group chat was a WWE wrestler, what would its finishing move be?', 1),
+  q('What is your big-brain cursed take that you refuse to elaborate on?', 1),
+  q('If you could merge two animals into one abomination, what would you create?', 1),
+  q('Rate the room on a scale of "normal" to "unwell feral goblins".', 1),
+  q('If you had to pick a battle cry for this group right now, what would it be?', 1),
+  q('What cursed superpower would you want purely for chaos?', 1),
+  q('If your thoughts were live subtitles right now, the chat would be...', 1),
+  q('What would this room look like if it was rendered in MS Paint?', 1),
+  q('If you were forced to narrate your life like a nature documentary, what would you say?', 1),
+  q('What would the Wikipedia page for this exact moment be titled?', 1),
+  q('If you had to give the ceiling a villain backstory, what would it be?', 1),
+  q('Which meme would you canonize as a religion?', 1),
+  q('If you could rename the group rn to something diabolically stupid, what would it be?', 1),
+  q('What would the local news headline be if this room was left unsupervised for an hour?', 1),
+  q('If every word you said was autotuned to polka for the next 60s, how cooked would you be?', 1),
+  q('What cursed item would you add to a party starter pack?', 1),
+  q('If you were a bug in this room, what bug would you be plotting?', 1),
+  q('Describe the vibes as a rejected Magic: The Gathering card.', 1),
+  q('What is peak unhinged behavior in your expert opinion?', 1),
+  q('If your soul was represented by a jpeg, what jpeg would it be?', 1),
+  q('If this group formed a cult, what would the one rule be?', 1),
+  q('What would your walk cycle look like if you were a goofy NPC?', 1),
+  q('If you had to fight one shopping cart for your honor, how would it go?', 1),
+  q('If you could bestow one completely useless title onto someone here, who and what?', 1),
+  q('What would a horror movie set entirely in this room be called?', 1),
+  q('If you were turned into a lawn ornament, what cursed lawn ornament would you be?', 1),
+  q('Describe this moment in the style of a 2008-era forum post.', 1),
+  q('What sound effect should play every time someone here speaks?', 1),
+  q('If you had to pick a cursed emoji to represent your soul, which one?', 1),
+  q('What is your Roman Empire of the most unhinged thing ever?', 1),
+  q('If you could make one inanimate object here gain the ability to roast people, which one wins?', 1),
+  q('What would the loading screen text for this game be?', 1),
+  q('If this room was a dungeon in DnD, what loot would it drop?', 1),
+  q('If you had to communicate in haikus for the rest of this round, how cooked are we?', 1),
+  q('What cursed conspiracy theory would you invent about this game?', 1),
+  q('If someone made a Funko Pop of you rn, what accessory would it come with?', 1),
+  q('What is the most diabolically stupid idea we should 100% not do?', 1),
+  q('If you were a potato with godlike powers, what would you abuse them for?', 1),
+  q('Describe the group as a recipe with one cursed ingredient.', 1),
+  q('If this moment was a reaction gif, what would the caption be?', 1),
+]
+
+export const unhingedDares: Dare[] = [
+  d('Do your best NPC idle animation for 10 seconds.', 1),
+  d('Narrate everything you do in a David Attenborough voice for 30 seconds.', 1),
+  d('Say your next sentence in the most cursed pirate accent imaginable.', 1),
+  d('Make up a theme song for the person to your left on the spot.', 1),
+  d('Do the most goblin-like squat you can hold for 5 seconds.', 1),
+  d('Improvise a dramatic death monologue for a dropped chip.', 1),
+  d('Talk like a Shakespearian wizard for 20 seconds.', 1),
+  d('Act like a confused Roomba for 10 seconds.', 1),
+  d('Give the nearest wall an Oscar-worthy acceptance speech.', 1),
+  d('Invent a new dance move and name it after the group.', 1),
+  d('Say everything for the next 15s in rhyme.', 1),
+  d('Do your best impression of a Windows XP error sound.', 1),
+  d('Pretend youre a nature documentary narrator describing your own hand.', 1),
+  d('Hype up an imaginary baguette like its the champion of the world.', 1),
+  d('Do a slow-motion dramatic turn for no reason.', 1),
+  d('Speak in all caps like an ancient internet gremlin for 20s.', 1),
+  d('Pretend youre buffering and freeze in place for 5 seconds.', 1),
+  d('Make up a chant for this group and perform it once.', 1),
+  d('Imitate a goose having an identity crisis for 5 seconds.', 1),
+  d('Declare yourself Supreme Overlord of this couch with full conviction.', 1),
+]
+
+export const unhingedCallOuts: CallOutDare[] = [
+  c('Narrate the person to your left like theyre a legendary cryptid for 15s.', 2),
+  c('Do your best cursed kazoo solo for 10 seconds.', 2),
+  c('Give an unhinged TED Talk about why spoons are evil for 20s.', 2),
+  c('Act out the trailer for a movie called "This Group Should Not Be Allowed Together".', 2),
+  c('Improvise a battle cry and scream it with full goblin energy.', 2),
+  c('Describe this exact moment in the voice of a discount sports commentator.', 2),
+  c('Do the worm. No excuses. Full commitment.', 2),
+  c('Invent a cursed jingle for this game and perform it.', 2),
+  c('Act like youve just been hit with 4 years of forum trauma for 10s.', 2),
+  c('Roast an inanimate object here with unrestrained passion for 15s.', 2),
+]
