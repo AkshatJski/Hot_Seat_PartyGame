@@ -28,8 +28,6 @@ interface Card {
   text: string
 }
 
-const ALL: DeckId[] = DECKS.map((d) => d.id)
-
 const violations: string[] = []
 const stats: string[] = []
 
