@@ -11,5 +11,5 @@
     "types": ["node", "vite/client"],
     "noEmit": true
   },
-  "include": ["smoke.ts", "render-smoke.tsx", "src"]
+  "include": ["smoke.ts", "render-smoke.tsx", "src", "scripts/lint-content.ts"]
 }

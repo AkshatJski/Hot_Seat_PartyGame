@@ -42,7 +42,7 @@ something? The group can **Call You Out**.
 
 1. Open the app on one phone and hand it around. That's the whole setup.
 2. Add 2–10 players and pick your decks.
-3. Play until the cards run out — **561 questions** means the game decides how
+3. Play until the cards run out — **689 questions** means the game decides how
    long it lasts.
 4. Survive the Burn Book.
 
@@ -52,7 +52,7 @@ chrome, like a real app:
 - **iOS Safari** — Share → *Add to Home Screen*
 - **Android Chrome** — ⋮ → *Install app* / *Add to Home screen*
 
-> ⚠️ **18+ content warning.** One of the four decks is explicitly sexual and
+> ⚠️ **18+ content warning.** One of the seven decks is explicitly sexual and
 > gated behind an age confirmation. It is opt-in and off by default. The game is
 > intended for adults who know each other; see
 > [Content policy](#content-policy) for the rules the content follows.
@@ -112,17 +112,20 @@ Share the whole thing to the group chat.
 
 ## Content
 
-Four decks, freely mixable. **561 questions, 168 dares, 91 Call Out dares.**
+Seven decks, freely mixable. **689 questions, 218 dares, 116 Call Out dares.**
 
 | Deck | Questions | Dares | Call Out dares | Vibe |
 | --- | ---: | ---: | ---: | --- |
 | **Icebreakers** | 191 | 53 | 28 | Safe-ish, warm-up, works with anyone |
 | **Friendship Destroyers** | 185 | 54 | 28 | Playful, chaotic, room-based roasting |
-| **Spicy 18+** | 135 | 41 | 25 | Explicit. Opt-in, age-gated, blur-marked |
+| **Spicy 18+** | 93 | 28 | 14 | Explicit and uncomfortable. Opt-in, age-gated, blur-marked |
 | **Unhinged** | 50 | 20 | 10 | Peak cursed energy. Pure chaos |
+| **Confessions** | 54 | 22 | 12 | Secrets, regret, the things you never say out loud |
+| **Would You Rather** | 62 | 21 | 12 | Impossible choices you have to defend out loud |
+| **Chaos** | 54 | 20 | 12 | Absurd hypotheticals pointed at this exact group |
 
 Because the whole set is shuffled into one queue and dealt without replacement,
-**no question repeats** in a session. Pick two decks or all four; the length of
+**no question repeats** in a session. Pick two decks or all seven; the length of
 the game follows from your choice.
 
 ### Reaction memes
@@ -136,8 +139,8 @@ in the bundle** (`public/memes/`, 6.7 KB total), not scraped and not fetched:
 - **Deterministic per card.** The reaction is picked by hashing the card id, so it
   never flickers to a different image while the player is holding the phone
   still.
-- **Curated per deck.** Spicy and Unhinged cards draw from their own pools, so a
-  spicy card never gets a wholesome "chef's kiss".
+- **Curated per deck.** Every deck draws from its own reaction pool, so a spicy
+  card never gets a wholesome "chef's kiss".
 - **Sprinkled, not sprayed.** Roughly 35% of cards get *no* reaction at all — a
   reaction on every card is just wallpaper.
 - **Never spoils the reveal.** An 18+ card stays reaction-free until it's tapped
@@ -263,8 +266,11 @@ src/
 ├─ data/
 │  ├─ icebreakers.ts             content
 │  ├─ destroyers.ts              content
-│  ├─ spicy.ts                   content
+│  ├─ spicy.ts                   content (Desire / Taboo / Brutal honesty)
 │  ├─ unhinged.ts                content
+│  ├─ confessions.ts             content
+│  ├─ dilemmas.ts                content (Would You Rather)
+│  ├─ chaos.ts                   content
 │  ├─ memes.ts                   reaction catalogue + deterministic picker
 │  └─ decks.ts                   aggregation, Coward ladder, dare picker
 ├─ types.ts                      the vocabulary

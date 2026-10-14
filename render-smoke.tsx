@@ -86,6 +86,9 @@ check('title rendered', setupHtml.includes('Truth or') && setupHtml.includes('Sw
 check('deck labels rendered', setupHtml.includes('Icebreakers') && setupHtml.includes('Friendship Destroyers'))
 check('18+ deck present', setupHtml.includes('Spicy'))
 check('unhinged deck present', setupHtml.includes('Unhinged'))
+check('confessions deck present', setupHtml.includes('Confessions'))
+check('would-you-rather deck present', setupHtml.includes('Would You Rather'))
+check('chaos deck present', setupHtml.includes('Chaos'))
 check('start button present', setupHtml.includes('Start the game'))
 check('no duplicate deck typo', setupHtml.includes('Friendship Destroyers'))
 

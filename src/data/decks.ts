@@ -10,6 +10,9 @@ import { destroyerCallOuts, destroyerDares, destroyerQuestions } from './destroy
 import { icebreakerCallOuts, icebreakerDares, icebreakerQuestions } from './icebreakers'
 import { spicyCallOuts, spicyDares, spicyQuestions } from './spicy'
 import { unhingedCallOuts, unhingedDares, unhingedQuestions } from './unhinged'
+import { confessionCallOuts, confessionDares, confessionQuestions } from './confessions'
+import { dilemmaCallOuts, dilemmaDares, dilemmaQuestions } from './dilemmas'
+import { chaosCallOuts, chaosDares, chaosQuestions } from './chaos'
 
 /**
  * CONTENT POLICY (agreed 2026-10-04)
@@ -44,6 +47,24 @@ export const DECKS: Deck[] = [
     blurb: 'Peak cursed energy. Pure unadulterated chaos.',
     minAge: 0,
   },
+  {
+    id: 'confessions',
+    label: 'Confessions',
+    blurb: 'Secrets, regret, and the things you never say out loud.',
+    minAge: 0,
+  },
+  {
+    id: 'dilemmas',
+    label: 'Would You Rather',
+    blurb: 'Impossible choices. Defend them out loud.',
+    minAge: 0,
+  },
+  {
+    id: 'chaos',
+    label: 'Chaos',
+    blurb: 'Absurd hypotheticals pointed at this exact group.',
+    minAge: 0,
+  },
 ]
 
 export const QUESTIONS: Question[] = [
@@ -51,15 +72,29 @@ export const QUESTIONS: Question[] = [
   ...destroyerQuestions,
   ...spicyQuestions,
   ...unhingedQuestions,
+  ...confessionQuestions,
+  ...dilemmaQuestions,
+  ...chaosQuestions,
 ]
 
-export const DARES: Dare[] = [...icebreakerDares, ...destroyerDares, ...spicyDares, ...unhingedDares]
+export const DARES: Dare[] = [
+  ...icebreakerDares,
+  ...destroyerDares,
+  ...spicyDares,
+  ...unhingedDares,
+  ...confessionDares,
+  ...dilemmaDares,
+  ...chaosDares,
+]
 
 export const CALL_OUT_DARES: CallOutDare[] = [
   ...icebreakerCallOuts,
   ...destroyerCallOuts,
   ...spicyCallOuts,
   ...unhingedCallOuts,
+  ...confessionCallOuts,
+  ...dilemmaCallOuts,
+  ...chaosCallOuts,
 ]
 
 export function getDeck(id: DeckId): Deck {

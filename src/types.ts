@@ -1,7 +1,14 @@
 /** 1 = light, 2 = spicy, 3 = philosophical / no-go-there-deep. */
 export type Intensity = 1 | 2 | 3
 
-export type DeckId = 'icebreakers' | 'destroyers' | 'spicy' | 'unhinged'
+export type DeckId =
+  | 'icebreakers'
+  | 'destroyers'
+  | 'spicy'
+  | 'unhinged'
+  | 'confessions'
+  | 'dilemmas'
+  | 'chaos'
 
 export type SwipeDirection = 'left' | 'right'
 

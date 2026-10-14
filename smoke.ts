@@ -15,14 +15,14 @@ function check(label: string, cond: boolean, extra = '') {
   }
 }
 
-const ALL: DeckId[] = ['icebreakers', 'destroyers', 'spicy', 'unhinged']
+const ALL: DeckId[] = DECKS.map((d) => d.id)
 
 console.log('content volumes')
-for (const decks of [['icebreakers'], ['destroyers'], ['spicy'], ['unhinged'], ['icebreakers', 'destroyers', 'spicy', 'unhinged']] as const) {
-  const c = contentCounts([...decks])
+for (const decks of [...ALL.map((d) => [d] as DeckId[]), ALL]) {
+  const c = contentCounts(decks)
   console.log(`   ${decks.join('+').padEnd(38)} q=${c.questions} d=${c.dares} c=${c.callOuts}`)
 }
-check('all four decks together has > 500 questions', contentCounts(ALL).questions > 500)
+check('all decks together has > 500 questions', contentCounts(ALL).questions > 500)
 for (const deck of ALL) {
   const c = contentCounts([deck])
   check(`${deck} has enough of each pool`, c.questions >= 50 && c.dares >= 20 && c.callOuts >= 10,

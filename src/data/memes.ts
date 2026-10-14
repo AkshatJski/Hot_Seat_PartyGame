@@ -92,6 +92,9 @@ const DECK_POOL: Record<DeckId, string[]> = {
   destroyers: ['chefs-kiss', 'big-brain', 'cringe', 'bruh', 'eye-roll', 'no-thoughts', 'this-is-fine'],
   spicy: ['no-thoughts', 'eye-roll', 'bruh', 'cringe', 'ratio', 'send-it'],
   unhinged: ['send-it', 'no-thoughts', 'this-is-fine', 'cringe', 'bruh', 'ratio', 'big-brain'],
+  confessions: ['cringe', 'bruh', 'eye-roll', 'no-thoughts', 'this-is-fine', 'ratio'],
+  dilemmas: ['big-brain', 'eye-roll', 'this-is-fine', 'send-it', 'bruh', 'ratio'],
+  chaos: ['send-it', 'no-thoughts', 'this-is-fine', 'cringe', 'big-brain', 'bruh', 'eye-roll', 'ratio'],
 }
 
 /** FNV-1a. Small, fast, and stable across runs — no randomness, no hydration drift. */
