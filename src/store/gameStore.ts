@@ -39,7 +39,11 @@ export interface GameStore {
   pool: Question[]
   poolIndex: number
 
-  // ---- transient: deliberately NOT persisted --------------------------------
+  // ---- Classic Circle mode --------------------------------------------------
+  gameMode: 'free' | 'classic'
+  turnOrder: string[]
+  turnsTaken: Record<string, number>
+  roundsPerPlayer: number | null
   currentQuestion: Question | null
   pendingDare: Dare | null
   pendingIsCallOut: boolean
@@ -50,7 +54,7 @@ export interface GameStore {
   banner: string | null
 
   // ---- actions --------------------------------------------------------------
-  startGame: (names: NewPlayer[], deckIds: DeckId[]) => void
+  startGame: (names: NewPlayer[], deckIds: DeckId[], options?: { gameMode?: 'free' | 'classic'; roundsPerPlayer?: number | null }) => void
   drawQuestion: () => void
   answer: () => void
   skip: () => void
@@ -72,6 +76,10 @@ interface PersistedSlice {
   /** Only ids — the questions themselves are rehydrated from the content library. */
   poolIds: string[]
   poolIndex: number
+  gameMode: 'free' | 'classic'
+  turnOrder: string[]
+  turnsTaken: Record<string, number>
+  roundsPerPlayer: number | null
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10)
@@ -169,6 +177,11 @@ export const useGameStore = create<GameStore>()(
         pool: [],
         poolIndex: 0,
 
+        gameMode: 'free',
+        turnOrder: [],
+        turnsTaken: {},
+        roundsPerPlayer: null,
+
         currentQuestion: null,
         pendingDare: null,
         pendingIsCallOut: false,
@@ -178,10 +191,14 @@ export const useGameStore = create<GameStore>()(
         recentDareIds: [],
         banner: null,
 
-        startGame: (names, deckIds) => {
+        startGame: (names, deckIds, options) => {
+          const gameMode = options?.gameMode ?? 'free'
+          const roundsPerPlayer = options?.roundsPerPlayer ?? null
+          const players = names.map((n) => makePlayer(n.name))
+          const turnOrder = gameMode === 'classic' ? players.map((p) => p.id) : []
           set({
             phase: 'playing',
-            players: names.map((n) => makePlayer(n.name)),
+            players,
             deckIds,
             turnIndex: 0,
             round: 1,
@@ -189,6 +206,10 @@ export const useGameStore = create<GameStore>()(
             poolIndex: 0,
             recentDareIds: [],
             lastAnsweredText: null,
+            gameMode,
+            turnOrder,
+            turnsTaken: {},
+            roundsPerPlayer,
             ...blankTurn(),
           })
           get().drawQuestion()
@@ -332,6 +353,10 @@ export const useGameStore = create<GameStore>()(
             poolIndex: 0,
             banner: null,
             lastAnsweredText: null,
+            gameMode: 'free',
+            turnOrder: [],
+            turnsTaken: {},
+            roundsPerPlayer: null,
             ...blankTurn(),
           }),
 
@@ -354,6 +379,10 @@ export const useGameStore = create<GameStore>()(
         round: s.round,
         poolIds: s.pool.map((q) => q.id),
         poolIndex: s.poolIndex,
+        gameMode: s.gameMode,
+        turnOrder: s.turnOrder,
+        turnsTaken: s.turnsTaken,
+        roundsPerPlayer: s.roundsPerPlayer,
       }),
       merge: (persisted, current) => {
         const p = persisted as PersistedSlice | undefined
@@ -370,7 +399,10 @@ export const useGameStore = create<GameStore>()(
           turnIndex: p.turnIndex ?? 0,
           round: p.round ?? 1,
           pool,
-          poolIndex: p.poolIndex ?? 0,
+          gameMode: p.gameMode ?? 'free',
+          turnOrder: p.turnOrder ?? [],
+          turnsTaken: p.turnsTaken ?? {},
+          roundsPerPlayer: p.roundsPerPlayer ?? null,
         }
       },
     },

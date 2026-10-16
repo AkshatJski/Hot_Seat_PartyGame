@@ -28,55 +28,55 @@ export const MEMES: Meme[] = [
     id: 'chefs-kiss',
     src: '/memes/chefs-kiss.svg',
     alt: "Chef's kiss",
-    caption: 'Perfect answer.',
+    caption: 'Chef\'s kiss.',
   },
   {
     id: 'big-brain',
     src: '/memes/big-brain.svg',
     alt: 'Big brain',
-    caption: 'Answer of the night.',
-  },
-  {
-    id: 'no-thoughts',
-    src: '/memes/no-thoughts.svg',
-    alt: 'No thoughts, just vibes',
-    caption: 'Instinct took over.',
+    caption: 'Big brain move.',
   },
   {
     id: 'this-is-fine',
     src: '/memes/this-is-fine.svg',
     alt: 'This is fine',
-    caption: 'Everything is normal.',
-  },
-  {
-    id: 'send-it',
-    src: '/memes/send-it.svg',
-    alt: 'Send it',
-    caption: 'No safety net.',
+    caption: 'This is fine.',
   },
   {
     id: 'cringe',
     src: '/memes/cringe.svg',
     alt: 'Cringe',
-    caption: 'Burn Book material.',
+    caption: 'Cringe.',
   },
   {
     id: 'bruh',
     src: '/memes/bruh.svg',
     alt: 'Bruh',
-    caption: 'That was devastating.',
+    caption: 'Bruh.',
   },
   {
     id: 'eye-roll',
     src: '/memes/eye-roll.svg',
     alt: 'Eye roll',
-    caption: 'Unbelievable.',
+    caption: 'Massive eye roll.',
   },
   {
-    id: 'ratio',
-    src: '/memes/ratio.svg',
-    alt: 'Ratio',
-    caption: 'You could not.',
+    id: 'drake',
+    src: '/memes/drake.png',
+    alt: 'Drake',
+    caption: 'Hard pass vs do it.',
+  },
+  {
+    id: 'changemymind',
+    src: '/memes/changemymind.png',
+    alt: 'Change My Mind',
+    caption: 'Change my mind.',
+  },
+  {
+    id: 'npc',
+    src: '/memes/npc.jpg',
+    alt: 'NPC',
+    caption: 'NPC moment.',
   },
 ]
 
@@ -89,12 +89,12 @@ const BY_ID = new Map(MEMES.map((m) => [m.id, m]))
  */
 const DECK_POOL: Record<DeckId, string[]> = {
   icebreakers: MEMES.map((m) => m.id),
-  destroyers: ['chefs-kiss', 'big-brain', 'cringe', 'bruh', 'eye-roll', 'no-thoughts', 'this-is-fine'],
-  spicy: ['no-thoughts', 'eye-roll', 'bruh', 'cringe', 'ratio', 'send-it'],
-  unhinged: ['send-it', 'no-thoughts', 'this-is-fine', 'cringe', 'bruh', 'ratio', 'big-brain'],
-  confessions: ['cringe', 'bruh', 'eye-roll', 'no-thoughts', 'this-is-fine', 'ratio'],
-  dilemmas: ['big-brain', 'eye-roll', 'this-is-fine', 'send-it', 'bruh', 'ratio'],
-  chaos: ['send-it', 'no-thoughts', 'this-is-fine', 'cringe', 'big-brain', 'bruh', 'eye-roll', 'ratio'],
+  destroyers: ['chefs-kiss', 'big-brain', 'cringe', 'bruh', 'eye-roll', 'this-is-fine'],
+  spicy: ['eye-roll', 'bruh', 'cringe', 'drake', 'big-brain'],
+  unhinged: ['this-is-fine', 'cringe', 'bruh', 'big-brain', 'changemymind'],
+  confessions: ['cringe', 'bruh', 'eye-roll', 'this-is-fine', 'changemymind'],
+  dilemmas: ['big-brain', 'eye-roll', 'this-is-fine', 'bruh', 'changemymind'],
+  chaos: ['this-is-fine', 'cringe', 'big-brain', 'bruh', 'npc'],
 }
 
 /** FNV-1a. Small, fast, and stable across runs — no randomness, no hydration drift. */

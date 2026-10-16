@@ -57,7 +57,7 @@ check('every card is tagged to its deck', [...allQ, ...allD, ...allC].every((x) 
 
 console.log('\nmeme reactions')
 check('every meme has a caption and alt', MEMES.every((m) => m.caption.length > 0 && m.alt.length > 0))
-check('every meme src is a local /memes asset', MEMES.every((m) => m.src.startsWith('/memes/') && m.src.endsWith('.svg')))
+check('every meme src is a local /memes asset', MEMES.every((m) => m.src.startsWith('/memes/') && (m.src.endsWith('.svg') || m.src.endsWith('.png') || m.src.endsWith('.jpg') || m.src.endsWith('.webp'))))
 check('meme ids are unique', new Set(MEMES.map((m) => m.id)).size === MEMES.length)
 check(
   'memes are deterministic per card',
