@@ -15,6 +15,8 @@ export function SetupScreen() {
   const [deckIds, setDeckIds] = useState<DeckId[]>(['icebreakers', 'destroyers'])
   const [ageOk, setAgeOk] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [gameMode, setGameMode] = useState<'free' | 'classic'>('free')
+  const roundsPerPlayer = null
 
   const cleaned = names.map((n) => n.trim()).filter(Boolean)
   const wantsSpicy = deckIds.includes('spicy')
@@ -57,6 +59,7 @@ export function SetupScreen() {
     startGame(
       cleaned.map((name) => ({ name })),
       deckIds,
+      { gameMode, roundsPerPlayer },
     )
   }
 
@@ -70,6 +73,32 @@ export function SetupScreen() {
           Pass the phone. Swipe right to answer.
         </p>
       </header>
+
+      {/* Game Mode ----------------------------------------------------------- */}
+      <section className="mb-6">
+        <h2 className="mb-3 text-[11px] font-bold tracking-widest text-white/40 uppercase">
+          Game Mode
+        </h2>
+        <div className="flex gap-2 rounded-2xl border border-white/8 bg-coal/60 p-1">
+          <button
+            type="button"
+            onClick={() => setGameMode('free')}
+            className={`flex-1 rounded-2xl px-3 py-2 text-sm transition ${gameMode === 'free' ? 'bg-neon-cyan/20 text-neon-cyan ring-1 ring-neon-cyan/40' : 'text-white/70 hover:bg-white/5'}`}
+          >
+            Free Play (Legacy)
+          </button>
+          <button
+            type="button"
+            onClick={() => setGameMode('classic')}
+            className={`flex-1 rounded-2xl px-3 py-2 text-sm transition ${gameMode === 'classic' ? 'bg-neon-purple/20 text-neon-purple ring-1 ring-neon-purple/40' : 'text-white/70 hover:bg-white/5'}`}
+          >
+            Classic Circle
+          </button>
+        </div>
+        <p className="mt-2 text-[11px] text-white/40">
+          {gameMode === 'free' ? 'Pass & swipe as usual.' : 'Fixed turn order. Truth or Dare each turn.'}
+        </p>
+      </section>
 
       {/* Players ------------------------------------------------------------ */}
       <section className="mb-7">
