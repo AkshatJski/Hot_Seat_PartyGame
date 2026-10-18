@@ -44,6 +44,7 @@ export interface GameStore {
   turnOrder: string[]
   turnsTaken: Record<string, number>
   roundsPerPlayer: number | null
+  classicStage: 'intro' | 'choice' | 'playing' | 'nextup' | null
   currentQuestion: Question | null
   pendingDare: Dare | null
   pendingIsCallOut: boolean
@@ -65,6 +66,11 @@ export interface GameStore {
   dismissBanner: () => void
   restart: () => void
   quitToBurnBook: () => void
+  // Classic Circle
+  beginClassicTurn: () => void
+  classicChooseTruth: () => void
+  classicRefuseTruth: () => void
+  classicNextUp: () => void
 }
 
 interface PersistedSlice {
@@ -181,8 +187,32 @@ export const useGameStore = create<GameStore>()(
         turnOrder: [],
         turnsTaken: {},
         roundsPerPlayer: null,
+        classicStage: null,
 
         currentQuestion: null,
+        beginClassicTurn: () => set({ classicStage: 'choice' }),
+        classicChooseTruth: () => {
+          const { gameMode } = get()
+          if (gameMode !== 'classic') return
+          set({ classicStage: 'playing' })
+          get().drawQuestion()
+        },
+        classicRefuseTruth: () => {
+          const { gameMode, players, turnIndex } = get()
+          if (gameMode !== 'classic' || !players[turnIndex]) return
+          const player = players[turnIndex]
+          set({
+            players: editPlayers(players, [{ id: player.id, fn: (p) => void (p.coward += 1) }]),
+          })
+          get().skip()
+          set({ classicStage: 'playing' })
+        },
+        classicNextUp: () => {
+          const { gameMode } = get()
+          if (gameMode !== 'classic') return
+          advanceTurn()
+          set({ classicStage: 'intro' })
+        },
         pendingDare: null,
         pendingIsCallOut: false,
         flipped: false,
@@ -210,8 +240,12 @@ export const useGameStore = create<GameStore>()(
             turnOrder,
             turnsTaken: {},
             roundsPerPlayer,
+            classicStage: gameMode === 'classic' ? 'intro' : null,
             ...blankTurn(),
           })
+          if (gameMode === 'classic') {
+            set({ stage: 'question', currentQuestion: null, pendingDare: null, flipped: false })
+          }
           get().drawQuestion()
         },
 
@@ -357,6 +391,7 @@ export const useGameStore = create<GameStore>()(
             turnOrder: [],
             turnsTaken: {},
             roundsPerPlayer: null,
+            classicStage: null,
             ...blankTurn(),
           }),
 
