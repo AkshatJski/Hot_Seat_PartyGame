@@ -51,10 +51,10 @@ const c = (text: string, intensity: Intensity = 3): CallOutDare => ({
 export const spicyQuestions: Question[] = [
   // ---- Desire: sexual and intimate ------------------------------------------
   // Direct on purpose. A flirty question gets a laugh; a vague one gets silence.
-  q('Describe the kind of sex you actually want, not the kind you joke about.'),
-  q('What do you want in bed that you have never asked a partner for out loud?'),
-  q('Who in this room do you think would be the best kisser, and what makes you say that?', 2),
-  q('What did a former partner do that you still think about?'),
+  q('What kind of chemistry is the most dangerous for you?', 2),
+  q('What boundary would you never cross, but others might?', 2),
+  q('Who here has the most magnetic energy, in your opinion?', 2),
+  q('What moment with someone caught you completely off guard?', 2),
   q('How long has it been since you slept with someone, and are you actually okay with that?'),
   q('What instantly kills the mood for you?', 2),
   q('What is the fastest someone has won you over, and what exactly did they do?', 2),
