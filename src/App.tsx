@@ -1,11 +1,16 @@
 import { motion } from 'motion/react'
 import { BurnBookScreen } from './screens/BurnBookScreen'
 import { GameScreen } from './screens/GameScreen'
+import { NextUpScreen } from './screens/NextUpScreen'
 import { SetupScreen } from './screens/SetupScreen'
+import { TruthOrDareScreen } from './screens/TruthOrDareScreen'
+import { TurnIntroScreen } from './screens/TurnIntroScreen'
 import { useGameStore } from './store/gameStore'
 
 export default function App() {
   const phase = useGameStore((s) => s.phase)
+  const gameMode = useGameStore((s) => s.gameMode)
+  const classicStage = useGameStore((s) => s.classicStage)
 
   return (
     <div className="min-h-full">
@@ -23,7 +28,11 @@ export default function App() {
         transition={{ duration: 0.2, ease: 'easeOut' }}
       >
         {phase === 'setup' && <SetupScreen />}
-        {phase === 'playing' && <GameScreen />}
+        {phase === 'playing' && gameMode === 'classic' && classicStage === 'intro' && <TurnIntroScreen />}
+        {phase === 'playing' && gameMode === 'classic' && classicStage === 'choice' && <TruthOrDareScreen />}
+        {phase === 'playing' && gameMode === 'classic' && (classicStage === 'playing' || classicStage === null) && <GameScreen />}
+        {phase === 'playing' && gameMode === 'classic' && classicStage === 'nextup' && <NextUpScreen />}
+        {phase === 'playing' && gameMode === 'free' && <GameScreen />}
         {phase === 'burnbook' && <BurnBookScreen />}
       </motion.div>
     </div>

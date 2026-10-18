@@ -6,6 +6,9 @@ export function NextUpScreen() {
   const turnIndex = useGameStore((s) => s.turnIndex)
   const turnOrder = useGameStore((s) => s.turnOrder)
   const players = useGameStore((s) => s.players)
+  const next = () => {
+    useGameStore.getState().classicNextUp()
+  }
 
   if (gameMode !== 'classic') return null
 
@@ -30,9 +33,7 @@ export function NextUpScreen() {
         <button
           type="button"
           className="mt-2 rounded-full bg-neon-purple px-6 py-3 text-sm font-bold text-void shadow-neon-purple/40 shadow-lg active:scale-95"
-          onClick={() => {
-            // Will be wired to advance
-          }}
+          onClick={next}
         >
           Next →
         </button>
