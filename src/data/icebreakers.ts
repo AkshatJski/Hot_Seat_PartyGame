@@ -28,12 +28,12 @@ const c = (text: string, intensity: Intensity = 2): CallOutDare => ({
 
 export const icebreakerQuestions: Question[] = [
   // ---- Observational / get-to-know-you -------------------------------------
-  q("What's the worst haircut you've ever had, and who gave it to you?"),
-  q('If you could delete one app from your phone forever, which one dies tonight?'),
-  q('What is a rule you followed as a kid that you would now openly break?'),
-  q("What's the pettiest reason you've ever stopped replying to someone?"),
-  q('Describe your personality as the title of a bad horror movie.'),
-  q("What's the last thing you searched on your phone that you'd be embarrassed to explain?"),
+  q('If you had 24 hours with zero consequences, what harmless-but-chaotic thing would you do first?'),
+  q('If you could swap lives with anyone for a day, who would it be and why?'),
+  q('What is a rule you would break if you knew no one would ever find out?'),
+  q('What tiny decision in your life changed everything?'),
+  q('Describe your personality as the title of a trashy thriller.'),
+  q("What's a \"what if\" question that actually keeps you up at night?"),
   q('What is a compliment you received once that you still think about?'),
   q('What are you genuinely, uselessly good at?'),
   q('Who in this room would you call first if you were stranded at 2am?'),
