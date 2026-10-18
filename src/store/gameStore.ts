@@ -139,10 +139,35 @@ export const useGameStore = create<GameStore>()(
     (set, get) => {
       /** Rotate to the next player, then deal. Ends the game when the queue is dry. */
       const advanceTurn = () => {
-        const { players, turnIndex, poolIndex, pool, round } = get()
+        const { players, turnIndex, poolIndex, pool, round, gameMode, turnsTaken, roundsPerPlayer } = get()
         if (players.length === 0) return
         const next = (turnIndex + 1) % players.length
         const wrapped = next === 0
+
+        // Classic Circle: record the completed turn, honour the round limit, and
+        // route to the "Next up" screen instead of auto-dealing the next card.
+        if (gameMode === 'classic') {
+          const currentId = players[turnIndex]?.id
+          const nextTurnsTaken = currentId
+            ? { ...turnsTaken, [currentId]: (turnsTaken[currentId] ?? 0) + 1 }
+            : turnsTaken
+          const exhausted = poolIndex >= pool.length
+          const limitReached =
+            roundsPerPlayer != null && players.every((p) => (nextTurnsTaken[p.id] ?? 0) >= roundsPerPlayer)
+          if (exhausted || limitReached) {
+            set({ turnsTaken: nextTurnsTaken, phase: 'burnbook', classicStage: null, ...blankTurn() })
+            return
+          }
+          set({
+            turnIndex: next,
+            turnsTaken: nextTurnsTaken,
+            ...(wrapped ? { round: round + 1 } : {}),
+            classicStage: 'nextup',
+            ...blankTurn(),
+          })
+          return
+        }
+
         if (poolIndex >= pool.length) {
           set({ turnIndex: next, phase: 'burnbook', ...blankTurn() })
           return
@@ -210,7 +235,9 @@ export const useGameStore = create<GameStore>()(
         classicNextUp: () => {
           const { gameMode } = get()
           if (gameMode !== 'classic') return
-          advanceTurn()
+          // advanceTurn() already ran when the turn completed (it advanced
+          // turnIndex and set classicStage to 'nextup'). All that is left is to
+          // show the next player's turn intro.
           set({ classicStage: 'intro' })
         },
         pendingDare: null,
@@ -244,7 +271,10 @@ export const useGameStore = create<GameStore>()(
             ...blankTurn(),
           })
           if (gameMode === 'classic') {
+            // Classic deals the question only after the player picks Truth, so
+            // skip the pre-draw here (avoids burning an extra card per turn).
             set({ stage: 'question', currentQuestion: null, pendingDare: null, flipped: false })
+            return
           }
           get().drawQuestion()
         },

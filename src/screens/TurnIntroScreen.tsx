@@ -4,14 +4,14 @@ import { useGameStore, selectCurrentPlayer } from '../store/gameStore'
 export function TurnIntroScreen() {
   const currentPlayer = useGameStore(selectCurrentPlayer)
   const gameMode = useGameStore((s) => s.gameMode)
+  const beginClassicTurn = useGameStore((s) => s.beginClassicTurn)
 
   if (gameMode !== 'classic' || !currentPlayer) {
     return null
   }
 
   const next = () => {
-    // Transition to Truth or Dare choice
-    // We'll handle via store state in next step; for now just placeholder
+    beginClassicTurn()
   }
 
   return (

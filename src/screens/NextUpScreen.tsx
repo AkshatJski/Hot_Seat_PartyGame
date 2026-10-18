@@ -4,7 +4,6 @@ import { useGameStore } from '../store/gameStore'
 export function NextUpScreen() {
   const gameMode = useGameStore((s) => s.gameMode)
   const turnIndex = useGameStore((s) => s.turnIndex)
-  const turnOrder = useGameStore((s) => s.turnOrder)
   const players = useGameStore((s) => s.players)
   const next = () => {
     useGameStore.getState().classicNextUp()
@@ -12,9 +11,9 @@ export function NextUpScreen() {
 
   if (gameMode !== 'classic') return null
 
-  // Compute next player
-  const nextIndex = turnOrder.length > 0 ? (turnIndex + 1) % turnOrder.length : (turnIndex + 1) % players.length
-  const nextPlayer = players[nextIndex]
+  // advanceTurn() already rotated turnIndex to the next player, so the "next
+  // up" player is simply the one now at turnIndex.
+  const nextPlayer = players[turnIndex]
 
   return (
     <div className="mx-auto flex min-h-full w-full max-w-md flex-col justify-center px-5">

@@ -4,15 +4,15 @@ import { useGameStore, selectCurrentPlayer } from '../store/gameStore'
 export function TruthOrDareScreen() {
   const currentPlayer = useGameStore(selectCurrentPlayer)
   const gameMode = useGameStore((s) => s.gameMode)
+  const classicChooseTruth = useGameStore((s) => s.classicChooseTruth)
+  const classicRefuseTruth = useGameStore((s) => s.classicRefuseTruth)
 
   if (gameMode !== 'classic') return null
 
-  const classicChooseTruth = useGameStore((s) => s.classicChooseTruth)
   const chooseTruth = () => {
     classicChooseTruth()
   }
 
-  const classicRefuseTruth = useGameStore((s) => s.classicRefuseTruth)
   const chooseDare = () => {
     classicRefuseTruth()
   }
