@@ -229,10 +229,10 @@ export const destroyerQuestions: Question[] = [
 
 export const destroyerDares: Dare[] = [
   d('Read your last three DMs out loud. Any of them.', 2),
-  d('Give the person opposite you one specific, sincere compliment.', 1),
-  d('Let the group send one emoji to anyone in your recent chats.', 2),
-  d('Say your last thought out loud word for word. No editing.', 2),
-  d('Delete one app from your phone for the rest of the game.', 2),
+  d('Stand up and give the person opposite you a specific sincere compliment with eye contact.', 1),
+  d('Pick a silly dance move and teach it to the person on your left.', 2),
+  d('Act out the last text you sent - no words.', 2),
+  d('Strike your most dramatic movie pose and hold it for 10 seconds.', 2),
   d('Say what you genuinely like about someone who is not in this room.', 1),
   d('Tell the group a secret you have never told anyone here.', 3),
   d('Let the group read the newest note in your Notes app out loud.', 3),
