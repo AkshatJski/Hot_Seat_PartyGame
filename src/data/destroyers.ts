@@ -30,11 +30,11 @@ export const destroyerQuestions: Question[] = [
   // ---- Room-based roasting and playful chaos ---------------------------------
   // Deliberately NOT abstract. These all point at someone or something that is
   // physically present, which is what makes them work in a party.
-  q('Who in this room would you pick as your partner in crime for 24 hours?', 2),
-  q('Who here has the most unserious energy and why?', 2),
-  q('Who here would you 100% trust to lie for you, and who would crack instantly?', 2),
-  q('Pick two people here and assign them the most chaotic duo name imaginable.', 2),
-  q('Who here gives off main character energy the most?', 2),
+  q('If the room had to pull off a ridiculous heist, who would be your first pick and why?', 2),
+  q('Which of your boldest what-ifs would you actually test if nobody judged you?', 2),
+  q('What wild scenario would test your loyalty the most?', 2),
+  q('If two people here had to team up for maximum chaos, what would they do?', 2),
+  q('Who in this room would talk their way out of a ridiculous situation first?', 2),
   q('Who in this room would roast you the hardest right now?', 2),
   q('Who here would you drag to the weirdest adventure with zero hesitation?', 2),
   q('Describe the person to your left in three words that all mean trouble.', 2),
