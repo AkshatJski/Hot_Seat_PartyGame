@@ -110,7 +110,10 @@ function makePlayer(name: string): Player {
     brave: 0,
     coward: 0,
     daresCompleted: 0,
-    callOutsMade: 0,
+    timesCalledOut: 0,
+    falseAccusations: 0,
+    bestStreak: 0,
+    answerStreak: 0,
     truthStreak: 0,
     /** Highest intensity question this player actually answered. */
     deepestAnswered: 1,
@@ -336,6 +339,9 @@ export const useGameStore = create<GameStore>()(
                 fn: (p) => {
                   p.brave += 1
                   p.deepestAnswered = higher(p.deepestAnswered, currentQuestion.intensity)
+                  // Unbroken run of answers — a skip zeroes it, see skip().
+                  p.answerStreak += 1
+                  p.bestStreak = Math.max(p.bestStreak, p.answerStreak)
                 },
               },
             ]),
@@ -361,6 +367,7 @@ export const useGameStore = create<GameStore>()(
                 fn: (p) => {
                   if (classic) p.truthStreak = 0
                   else p.coward += 1
+                  p.answerStreak = 0
                 },
               },
             ]),
@@ -407,7 +414,7 @@ export const useGameStore = create<GameStore>()(
                 id: player.id,
                 fn: (p) => {
                   p.brave = Math.max(0, p.brave - 1)
-                  p.callOutsMade += 1
+                  p.timesCalledOut += 1
                 },
               },
             ]),
@@ -427,7 +434,11 @@ export const useGameStore = create<GameStore>()(
           const edits = [
             {
               id: playerId,
-              fn: (p: Player) => void (p.coward += 1),
+              fn: (p: Player) => {
+                p.coward += 1
+                // The caller was overruled — a false accusation for the record.
+                p.falseAccusations += 1
+              },
             },
           ]
           if (accused && accused.id !== playerId) {
@@ -501,7 +512,19 @@ export const useGameStore = create<GameStore>()(
         return {
           ...current,
           phase: 'playing' as GamePhase,
-          players: (p.players ?? []).map((pl) => ({ ...pl, truthStreak: pl.truthStreak ?? 0 })),
+          players: (p.players ?? []).map((pl) => {
+            // Backfill stats added after this save was written. `callOutsMade`
+            // was the pre-2026-10-19 name for `timesCalledOut` (same behaviour).
+            const legacy = pl as Player & { callOutsMade?: number }
+            return {
+              ...pl,
+              timesCalledOut: legacy.timesCalledOut ?? legacy.callOutsMade ?? 0,
+              falseAccusations: legacy.falseAccusations ?? 0,
+              bestStreak: legacy.bestStreak ?? 0,
+              answerStreak: legacy.answerStreak ?? 0,
+              truthStreak: legacy.truthStreak ?? 0,
+            }
+          }),
           deckIds: p.deckIds ?? [],
           turnIndex: p.turnIndex ?? 0,
           round: p.round ?? 1,

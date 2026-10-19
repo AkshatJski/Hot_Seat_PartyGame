@@ -322,10 +322,15 @@ await flush(800)
 const burnHtml = container.innerHTML
 if (!burnHtml.includes('Burn Book')) console.log('   DEBUG html:', burnHtml.slice(0, 300))
 check('Burn Book title', burnHtml.includes('Burn Book'))
-check('Biggest Coward award', burnHtml.includes('Biggest Coward'))
-check('Most Exposed award', burnHtml.includes('Most Exposed'))
-check('Menace to Society award', burnHtml.includes('Menace to Society'))
-check('Straightest Shooter award', burnHtml.includes('Straightest Shooter'))
+check('The Verdicts roster shown', burnHtml.includes('The verdicts'))
+const verdictCards = container.querySelectorAll('[data-verdict]')
+check(
+  'one verdict card per player',
+  verdictCards.length === store().players.length,
+  `cards=${verdictCards.length} players=${store().players.length}`,
+)
+check('every player gets a verdict', store().players.every((p) => burnHtml.includes(p.name)))
+check('no empty-winner placeholder', !burnHtml.includes('Nobody flinched'))
 check('Share button', burnHtml.includes('Share'))
 check('Rematch button', burnHtml.includes('Rematch'))
 check('total cards is large', contentCounts(['icebreakers', 'destroyers', 'spicy', 'unhinged']).questions > 500)

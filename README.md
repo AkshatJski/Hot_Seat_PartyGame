@@ -98,13 +98,16 @@ hard dares ran out.
 
 ### The Burn Book
 
-When the last card is gone. Four awards, and ties are labelled as ties instead of
-being broken arbitrarily:
+When the last card is gone, **every player gets a verdict** — one archetype card
+picked from their own stats, so nobody leaves empty-handed and there are no
+arbitrary tie-breaks:
 
-- **Biggest Coward** — swiped left the most
-- **Most Exposed** — answered the *deepest* questions, not the most
-- **Menace to Society** — did the hardest dares
-- **Straightest Shooter** — answered the most, ducked nothing
+- **The Reckless** — took the nuclear dare
+- **No Regrets** — never skipped once
+- **On a Tear** — the longest unbroken run of answers
+- **Cry Wolf** — kept calling people out and getting overruled
+- **The Ghost** — never touched a card
+- and a dozen more, driven by skips, dares, depth, and being called out
 
 Share the whole thing to the group chat.
 
