@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'motion/react'
-import { MOOD_ACCENT, MOOD_EMOJI, type Quip } from '../data/commentary'
+import { MOOD_ACCENT, MOOD_BUBBLE, MOOD_EMOJI, type Quip } from '../data/commentary'
 
 interface CommentatorProps {
   quip: Quip
@@ -8,8 +8,11 @@ interface CommentatorProps {
 }
 
 /**
- * The host: a mood-emoji face in a bubble with a one-line review of whatever is
- * happening. This is the replacement for the old reaction meme.
+ * The host: a mood-emoji face in a speech bubble with a one-line review of
+ * whatever is happening. This is the replacement for the old reaction meme.
+ *
+ * Styled as an arcade sticker, not a glass panel: solid fill, 2px ink outline,
+ * hard offset shadow, no translucency and no backdrop-blur.
  *
  * Deliberately `pointer-events-none`: a swipe is a drag across the whole card,
  * and anything that catches a pointer here eats the gesture. The host is
@@ -29,21 +32,21 @@ export function Commentator({ quip, variant = 'card' }: CommentatorProps) {
       initial={reduce ? false : { opacity: 0, y: 10, scale: 0.94 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: 'spring', stiffness: 240, damping: 18, delay: toast ? 0 : 0.1 }}
-      className={`pointer-events-none flex items-start gap-2.5 ${toast ? '' : 'mt-3'}`}
+      className={`pointer-events-none flex max-w-full items-start gap-2.5 ${toast ? '' : 'mt-3'}`}
     >
       <span
         aria-hidden
-        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/6 text-[15px] leading-none ${MOOD_ACCENT[quip.mood]}`}
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border-2 border-ink text-base leading-none shadow-pop-sm ${MOOD_BUBBLE[quip.mood]}`}
       >
         {MOOD_EMOJI[quip.mood]}
       </span>
-      <figcaption className="relative rounded-2xl rounded-tl-sm border border-white/10 bg-white/6 px-3 py-1.5">
+      <figcaption className="min-w-0 rounded-2xl rounded-tl-sm border-2 border-ink bg-panel px-3 py-1.5 shadow-pop-sm">
         <span
-          className={`mr-1.5 align-middle text-[9px] font-black tracking-widest uppercase ${MOOD_ACCENT[quip.mood]}`}
+          className={`mr-1.5 align-middle text-[9px] font-black tracking-[0.15em] uppercase ${MOOD_ACCENT[quip.mood]}`}
         >
           Host
         </span>
-        <span className="align-middle text-[12px] leading-snug font-semibold text-white/70 italic">
+        <span className="align-middle text-[12px] leading-snug font-bold text-bone italic">
           {quip.text}
         </span>
       </figcaption>

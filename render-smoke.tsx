@@ -105,8 +105,14 @@ check('phase switched to playing', store().phase === 'playing')
 check('current player name on screen', playHtml.includes('Aksha'))
 check('turn label rendered', playHtml.includes("turn"))
 check('a question is on the card', playHtml.includes(store().currentQuestion!.text.slice(0, 30)))
-check('answer button rendered', playHtml.includes('Answer'))
-check('dare button rendered', playHtml.includes('Dare'))
+check('swipe hint rendered (buttons removed)', playHtml.includes('Swipe the card'))
+check('card legend states the gesture', playHtml.includes('Answer') && playHtml.includes('Dare'))
+check(
+  'no Answer/Dare buttons — the card is the control',
+  Array.from(container.querySelectorAll('button')).every(
+    (b) => !/^(Answer|Dare)$/.test((b.textContent ?? '').trim()),
+  ),
+)
 check('player rail shows both players', playHtml.includes('Aksha') && playHtml.includes('Robin'))
 check('call out button NOT visible yet', !playHtml.includes('Call Out'))
 
@@ -186,20 +192,17 @@ if (quipCard) {
 
 // Reproduces the reported "4 players, starts auto-skipping and gets stuck" bug.
 // The rest of this file drives the store directly, which is exactly why the bug
-// survived: it lives entirely in the BUTTON/keyboard path, which nothing here
-// touched. So this section clicks the real buttons instead of calling actions.
-console.log('\nBUG REPRO: buttons must not auto-swipe the following card')
-const buttonByText = (re: RegExp) =>
-  Array.from(container.querySelectorAll('button')).find((b) => re.test(b.textContent ?? ''))
-
-const answerBtn = buttonByText(/Answer/)
-check('found the real Answer button', Boolean(answerBtn))
+// survived: it lives entirely in the signal-emitting input path, which nothing
+// here touched. The Answer/Dare buttons are gone (swipe-only, by request), so
+// this now presses the keyboard instead — which raises the SAME fire() signal
+// the buttons used, and so covers the identical regression.
+console.log('\nBUG REPRO: a swipe signal must not auto-swipe the following card')
 
 await act(async () => {
-  answerBtn!.click()
+  dom.window.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'ArrowRight' }))
 })
 await flush(900)
-check('tapping Answer resolved the current card', store().stage === 'answered')
+check('ArrowRight resolved the current card', store().stage === 'answered')
 const poolAfterTap = store().poolIndex
 
 // Let the 4s Call Out window elapse, which advances the turn and deals a new card.

@@ -27,12 +27,12 @@ function buzz(pattern: number | number[]) {
 
 function IntensityPips({ level }: { level: Intensity }) {
   return (
-    <span className="flex items-center gap-[3px]">
+    <span className="flex items-center gap-1">
       {[1, 2, 3].map((n) => (
         <span
           key={n}
-          className={`h-1.5 w-1.5 rounded-full ${
-            n <= level ? 'bg-neon-amber' : 'bg-white/20'
+          className={`h-2 w-2 rounded-sm border border-ink ${
+            n <= level ? 'bg-neon-amber' : 'bg-hairline'
           }`}
         />
       ))}
@@ -40,7 +40,7 @@ function IntensityPips({ level }: { level: Intensity }) {
   )
 }
 
-/** Lets a parent (buttons, keyboard, future game loop) force a swipe without a drag. */
+/** Lets a parent (keyboard, future game loop) force a swipe without a drag. */
 export interface SwipeSignal {
   direction: SwipeDirection
   id: number
@@ -174,10 +174,11 @@ export function SwipeCard({
       initial={{ opacity: 0, y: 22 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 190, damping: 22 }}
-      className="relative mx-auto w-[min(88vw,380px)]"
+      // The hard shadow lives on the WRAPPER, not the card itself: the card sets
+      // preserve-3d, and keeping its box free of extra paint work avoids any
+      // browser that flattens a 3D context when the element gets a shadow.
+      className="relative mx-auto w-[min(88vw,380px)] rounded-[28px] shadow-pop-lg"
     >
-      <div className="absolute inset-0 translate-y-3 rounded-[32px] bg-neon-purple/10 blur-2xl" />
-
       <motion.div
         drag={locked || flipped ? false : 'x'}
         dragConstraints={{ left: 0, right: 0 }}
@@ -194,28 +195,28 @@ export function SwipeCard({
         // rotateY(180deg) renders as literal reversed text on top of the front.
         // Also note nothing on this element may set overflow:hidden — that
         // flattens the context again and re-breaks the flip.
-        className="relative h-[min(62vh,520px)] w-full touch-pan-y rounded-[28px] border border-white/10 bg-coal shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)] transform-3d"
+        className="relative h-[min(62vh,520px)] w-full touch-pan-y rounded-[28px] border-[3px] border-ink bg-coal transform-3d"
       >
         {/* FRONT — the question, or a Called Out notice when there is none.
             The webkit prefix is not redundant: older iOS Safari is a real
             target here and silently ignores the unprefixed property. */}
-        <div className="absolute inset-0 flex flex-col rounded-[28px] bg-linear-to-b from-slate-panel to-coal p-6 [backface-visibility:hidden] [-webkit-backface-visibility:hidden]">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 rounded-full bg-white/8 px-3 py-1.5 text-xs font-semibold tracking-wide">
+        <div className="absolute inset-0 flex flex-col rounded-[25px] bg-panel p-6 [backface-visibility:hidden] [-webkit-backface-visibility:hidden]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex items-center gap-2 rounded-xl border-2 border-ink bg-coal px-3 py-1.5 text-xs font-bold tracking-wide text-bone shadow-pop-sm">
               <span
-                className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black text-void ${accent.bg}`}
+                className={`flex h-5 w-5 items-center justify-center rounded-full border border-ink text-[10px] font-black text-ink ${accent.bg}`}
               >
                 {playerName.slice(0, 1).toUpperCase()}
               </span>
               {playerName}
             </span>
-            <span className="flex items-center gap-2 text-[11px] text-white/45">
+            <span className="flex items-center gap-2 text-[11px] text-muted">
               <IntensityPips level={question?.intensity ?? 1} />
             </span>
           </div>
 
           {question?.sensitive && (
-            <span className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full border border-neon-red/40 bg-neon-red/10 px-2.5 py-1 text-[10px] font-bold tracking-widest text-neon-red uppercase">
+            <span className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-lg border-2 border-ink bg-neon-red px-2.5 py-1 text-[10px] font-black tracking-widest text-ink uppercase shadow-pop-sm">
               <ShieldAlert size={11} /> 18+
             </span>
           )}
@@ -227,7 +228,7 @@ export function SwipeCard({
             className="relative mt-4 flex-1 text-left"
           >
             <p
-              className={`text-[26px] leading-[1.25] font-semibold text-balance text-bone transition-[filter,opacity] duration-300 ${
+              className={`text-[26px] leading-[1.25] font-bold text-balance text-bone transition-[filter,opacity] duration-300 ${
                 blurred ? 'blur-[7px] opacity-60 select-none' : ''
               }`}
             >
@@ -236,7 +237,7 @@ export function SwipeCard({
             {blurred && (
               <span className="absolute inset-0 flex flex-col items-center justify-center gap-2">
                 <Eye size={22} className="text-neon-red" />
-                <span className="rounded-full bg-neon-red px-4 py-1.5 text-[11px] font-black tracking-widest text-void uppercase">
+                <span className="rounded-lg border-2 border-ink bg-neon-red px-4 py-1.5 text-[11px] font-black tracking-widest text-ink uppercase shadow-pop-sm">
                   Tap to reveal
                 </span>
               </span>
@@ -245,12 +246,12 @@ export function SwipeCard({
 
           {quip && <Commentator quip={quip} />}
 
-          <div className="mt-4 flex items-center justify-between text-[11px] font-bold tracking-widest uppercase">
-            <span className="flex items-center gap-1.5 text-neon-red/80">
+          <div className="mt-4 flex items-center justify-between border-t-2 border-hairline pt-3 text-[11px] font-black tracking-widest uppercase">
+            <span className="flex items-center gap-1.5 text-neon-red">
               <Zap size={12} /> Dare
             </span>
-            <span className="text-white/25">or</span>
-            <span className="flex items-center gap-1.5 text-neon-green/80">
+            <span className="text-dim">or</span>
+            <span className="flex items-center gap-1.5 text-neon-green">
               Answer <Zap size={12} />
             </span>
           </div>
@@ -258,13 +259,13 @@ export function SwipeCard({
           {/* Swipe stamps, driven straight off the x motion value */}
           <motion.div
             style={{ opacity: dareStamp, rotate: dareTilt }}
-            className="pointer-events-none absolute top-8 right-6 rounded-xl border-[3px] border-neon-red px-3 py-1 text-lg font-black tracking-widest text-neon-red uppercase"
+            className="pointer-events-none absolute top-8 right-6 rounded-xl border-[3px] border-neon-red bg-ink px-3 py-1 text-lg font-black tracking-widest text-neon-red uppercase"
           >
             Dare
           </motion.div>
           <motion.div
             style={{ opacity: answerStamp, rotate: answerTilt }}
-            className="pointer-events-none absolute top-8 left-6 rounded-xl border-[3px] border-neon-green px-3 py-1 text-lg font-black tracking-widest text-neon-green uppercase"
+            className="pointer-events-none absolute top-8 left-6 rounded-xl border-[3px] border-neon-green bg-ink px-3 py-1 text-lg font-black tracking-widest text-neon-green uppercase"
           >
             Answer
           </motion.div>
@@ -273,18 +274,20 @@ export function SwipeCard({
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="pointer-events-none absolute inset-0 rounded-[28px] bg-neon-green/25"
+              className="pointer-events-none absolute inset-0 rounded-[25px] border-[6px] border-neon-green"
             />
           )}
         </div>
 
         {/* BACK — the dare, revealed by the 3D flip.
+            Solid neon red, near-black text: the loudest surface in the app, which
+            is exactly right for the card you did not want to see.
             The rotateY(180deg) pre-mirrors this face so that once the parent
             reaches 180deg the two cancel and the text reads forwards. It only
             works because the parent sets preserve-3d. */}
-        <div className="absolute inset-0 flex flex-col justify-between rounded-[28px] bg-linear-to-b from-neon-red/25 to-coal p-6 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)]">
+        <div className="absolute inset-0 flex flex-col justify-between rounded-[25px] bg-neon-red p-6 text-ink [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)]">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-neon-red px-3 py-1.5 text-[11px] font-black tracking-widest text-void uppercase">
+            <span className="inline-flex items-center gap-2 rounded-xl border-2 border-ink bg-ink px-3 py-1.5 text-[11px] font-black tracking-widest text-neon-red uppercase">
               <Flame size={13} /> Dare
             </span>
             <span className="ml-3 inline-flex items-center gap-2 align-middle">
@@ -292,11 +295,11 @@ export function SwipeCard({
             </span>
           </div>
 
-          <p className="text-[26px] leading-[1.25] font-semibold text-balance text-bone">
+          <p className="text-[26px] leading-[1.25] font-black text-balance text-ink">
             {dare?.text ?? 'No dare loaded.'}
           </p>
 
-          <span className="text-[11px] font-bold tracking-widest text-white/40 uppercase">
+          <span className="text-[11px] font-black tracking-widest text-ink uppercase">
             {playerName} &middot; do it, then hit done
           </span>
         </div>

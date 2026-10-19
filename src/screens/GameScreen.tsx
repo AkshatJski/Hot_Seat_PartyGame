@@ -29,12 +29,12 @@ const CALL_OUT_MS = 4000
 
 function Pips({ level }: { level: Intensity }) {
   return (
-    <span className="flex items-center gap-[3px]">
+    <span className="flex items-center gap-1">
       {[1, 2, 3].map((n) => (
         <span
           key={n}
-          className={`h-1.5 w-1.5 rounded-full ${
-            n <= level ? 'bg-neon-amber' : 'bg-white/20'
+          className={`h-1.5 w-1.5 rounded-sm ${
+            n <= level ? 'bg-neon-amber' : 'bg-hairline'
           }`}
         />
       ))}
@@ -51,21 +51,21 @@ function PlayerRail({ players, turnIndex }: { players: Player[]; turnIndex: numb
         return (
           <div
             key={p.id}
-            className={`flex min-w-[104px] flex-1 flex-col gap-1.5 rounded-2xl border p-2.5 transition ${
-              active ? `${palette.border} ${palette.soft}` : 'border-white/8 bg-coal/50'
+            className={`flex min-w-[104px] flex-1 flex-col gap-1.5 rounded-xl border-2 p-2.5 ${
+              active ? `${palette.border} ${palette.soft} shadow-pop-sm` : 'border-hairline bg-coal'
             }`}
           >
             <div className="flex items-center gap-1.5">
               <span
                 className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-black ${
-                  active ? `${palette.bg} text-void` : `${palette.soft} ${palette.text}`
+                  active ? `border border-ink text-ink ${palette.bg}` : `${palette.soft} ${palette.text}`
                 }`}
               >
                 {p.name.slice(0, 1).toUpperCase()}
               </span>
               <span className="truncate text-[11px] font-bold">{p.name}</span>
             </div>
-            <div className="flex gap-1.5 text-[10px] font-bold">
+            <div className="flex gap-1.5 text-[10px] font-black">
               <span className="text-neon-green">+{p.brave}</span>
               <span className="text-neon-red">-{p.coward}</span>
             </div>
@@ -120,6 +120,10 @@ export function GameScreen() {
    * effects, so the incoming card would consume the stale signal before the
    * parent could null it. Comparing tokens during render cannot have that
    * ordering problem, so a mismatched signal is simply never handed down.
+   *
+   * Since the Answer/Dare buttons were removed (swipe-only, by request) the
+   * keyboard is the only producer of a signal — but the guard stays: it is what
+   * makes ANY programmatic swipe safe.
    */
   const cardToken = `${currentQuestion?.id ?? 'callout'}:${stage}:${turnIndex}`
   const [raised, setRaised] = useState<{ token: string; signal: SwipeSignal } | null>(null)
@@ -136,7 +140,7 @@ export function GameScreen() {
     }
   }, [phase, currentQuestion, stage, cardsLeft, drawQuestion])
 
-  // A monotonic counter, not Date.now(): two taps inside the same millisecond
+  // A monotonic counter, not Date.now(): two presses inside the same millisecond
   // would produce identical ids and SwipeCard's dedupe would swallow the second.
   const fire = (direction: 'left' | 'right') => {
     signalSeq.current += 1
@@ -152,11 +156,14 @@ export function GameScreen() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-    // `fire` closes over the current card token; re-subscribing on every render
-    // would be wasteful, and the handler only ever reads the latest via closure
-    // at call time. Same trade the card makes for its swipe signal.
+    // Re-subscribe per card TOKEN, not just per stage. `fire` closes over the
+    // token that scopes a signal to exactly one card, so a listener that only
+    // re-bound on `stage` would keep raising signals stamped with an old card
+    // id — which the guard then (correctly) drops, leaving the arrow dead.
+    // That is reachable for real: rehydrating or re-dealing a card does not
+    // always change `stage`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage])
+  }, [stage, cardToken])
 
   // The Call Out window is deliberately short — it is a group reaction, not a
   // menu. Four seconds, then the turn moves on by itself.
@@ -190,7 +197,7 @@ export function GameScreen() {
     <div className="mx-auto flex min-h-full w-full max-w-md flex-col px-5 pt-6 pb-8">
       <header className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-[10px] tracking-widest text-white/30 uppercase">
+          <p className="text-[10px] font-bold tracking-widest text-dim uppercase">
             Round {round} &middot; {cardsLeft} cards left
           </p>
           <p className="mt-0.5 text-lg font-black">
@@ -201,7 +208,7 @@ export function GameScreen() {
         <button
           type="button"
           onClick={quitToBurnBook}
-          className="rounded-full border border-white/10 px-3 py-1.5 text-[10px] font-bold tracking-widest text-white/40 uppercase active:scale-95"
+          className="rounded-xl border-2 border-ink bg-coal px-3 py-1.5 text-[10px] font-black tracking-widest text-muted uppercase shadow-pop-sm active:translate-y-[3px] active:shadow-none"
         >
           End
         </button>
@@ -212,9 +219,11 @@ export function GameScreen() {
       </div>
 
       {gameMode === 'classic' && wildcard && (
-        <div className="mb-4 flex items-center gap-2 rounded-xl border border-neon-amber/25 bg-neon-amber/8 px-3 py-2">
-          <span className="text-[9px] font-bold tracking-widest text-neon-amber uppercase">Wildcard</span>
-          <span className="text-[11px] leading-snug text-white/70">{wildcard}</span>
+        <div className="mb-4 flex items-center gap-2 rounded-xl border-2 border-neon-amber bg-panel px-3 py-2 shadow-pop-sm">
+          <span className="text-[9px] font-black tracking-widest text-neon-amber uppercase">
+            Wildcard
+          </span>
+          <span className="text-[11px] leading-snug text-bone">{wildcard}</span>
         </div>
       )}
 
@@ -223,18 +232,18 @@ export function GameScreen() {
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex h-[min(62vh,520px)] w-[min(88vw,380px)] flex-col items-center justify-center gap-3 rounded-[28px] border border-white/10 bg-coal/60 px-2 text-center"
+            className="flex h-[min(62vh,520px)] w-[min(88vw,380px)] flex-col items-center justify-center gap-3 rounded-[28px] border-[3px] border-ink bg-panel px-3 text-center shadow-pop-lg"
           >
-            <Gavel size={30} className="text-neon-red" />
-            <p className="px-5 text-sm font-bold">Did {player.name} deserve that?</p>
+            <Gavel size={32} className="text-neon-red" />
+            <p className="px-5 text-sm font-black">Did {player.name} deserve that?</p>
             <button
               type="button"
               onClick={acceptCallOut}
-              className="rounded-xl bg-neon-green px-5 py-2.5 text-xs font-black tracking-wide text-void active:scale-95"
+              className="rounded-xl border-2 border-ink bg-neon-green px-5 py-2.5 text-xs font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
             >
               Deserved it
             </button>
-            <p className="text-[10px] tracking-widest text-white/35 uppercase">
+            <p className="text-[10px] font-bold tracking-widest text-dim uppercase">
               Wrong call? Pick who called it out
             </p>
             <div className="flex flex-wrap justify-center gap-1.5 px-4">
@@ -245,13 +254,13 @@ export function GameScreen() {
                     key={p.id}
                     type="button"
                     onClick={() => penalizeCaller(p.id)}
-                    className="rounded-full border border-neon-red/40 bg-neon-red/10 px-3 py-1.5 text-[11px] font-bold text-neon-red active:scale-95"
+                    className="rounded-lg border-2 border-ink bg-neon-red px-3 py-1.5 text-[11px] font-black text-ink shadow-pop-sm active:translate-y-[3px] active:shadow-none"
                   >
                     {p.name} &minus;1
                   </button>
                 ))}
             </div>
-            <p className="px-5 text-[10px] text-white/25">
+            <p className="px-5 text-[10px] font-bold text-dim">
               {player.name} gets the Brave point back.
             </p>
           </motion.div>
@@ -259,23 +268,23 @@ export function GameScreen() {
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative flex h-[min(62vh,520px)] w-[min(88vw,380px)] flex-col items-center justify-center gap-3 rounded-[28px] border border-neon-green/25 bg-linear-to-b from-neon-green/10 to-coal px-6 text-center"
+            className="relative flex h-[min(62vh,520px)] w-[min(88vw,380px)] flex-col items-center justify-center gap-3 rounded-[28px] border-[3px] border-neon-green bg-panel px-6 text-center shadow-pop-lg"
           >
             <ConfettiBurst />
-            <Check size={30} className="text-neon-green" />
-            <p className="text-sm font-bold">{player.name} answered</p>
-            <p className="text-[11px] leading-relaxed text-white/40">
+            <Check size={32} className="text-neon-green" />
+            <p className="text-sm font-black">{player.name} answered</p>
+            <p className="text-[11px] font-bold leading-relaxed text-muted">
               Group decides: was it honest?
             </p>
-            <p className="mt-1 text-[10px] tracking-widest text-white/25 uppercase">
+            <p className="mt-1 text-[10px] font-bold tracking-widest text-dim uppercase">
               passing over to the next player
             </p>
           </motion.div>
         ) : (
           <>
             {/* two static cards behind, to sell the stack */}
-            <div className="absolute inset-x-6 bottom-2 h-6 rounded-[28px] border border-white/5 bg-coal/60" />
-            <div className="absolute inset-x-3 bottom-1 h-6 rounded-[28px] border border-white/8 bg-coal/80" />
+            <div className="absolute inset-x-6 bottom-2 h-6 rounded-[28px] border-2 border-ink bg-coal" />
+            <div className="absolute inset-x-3 bottom-1 h-6 rounded-[28px] border-2 border-ink bg-coal" />
             <SwipeCard
               // No `stage` in the key: a skip must keep the SAME card instance
               // so the 3D flip animates instead of remounting mid-reveal.
@@ -304,32 +313,37 @@ export function GameScreen() {
       {/* Call Out countdown — a visible fuse for the 4s group-reaction window. */}
       {canCallOut &&
         (reduce ? (
-          <div className="mx-auto mt-3 h-1 w-44 rounded-full bg-neon-red/40" />
+          <div className="mx-auto mt-3 h-1.5 w-44 rounded-full bg-neon-red" />
         ) : (
           <motion.div
             key={`callout-${turnIndex}-${round}`}
             initial={{ scaleX: 1 }}
             animate={{ scaleX: 0 }}
             transition={{ duration: CALL_OUT_MS / 1000, ease: 'linear' }}
-            className="mx-auto mt-3 h-1 w-44 origin-left rounded-full bg-neon-red/70"
+            className="mx-auto mt-3 h-1.5 w-44 origin-left rounded-full bg-neon-red"
           />
         ))}
 
       {/* ---- Actions --------------------------------------------------------
+          There is deliberately NO Answer / Dare button pair. The card IS the
+          control: drag it right to answer, left to dare. The keyboard arrows
+          remain as the non-drag path (same `fire()` signal). What is left here
+          is only the actions that a swipe cannot express — confirming a dare,
+          the Call Out vote, and its verdict.
+
           `showVerdict` must be checked explicitly. If it were allowed to fall
-          through to the default branch, the Dare/Answer buttons would be live
-          during the verdict, and a queued `signal` would be consumed by the
-          next card on mount — silently auto-swiping a fresh question. */}
+          through to the default branch, a queued `signal` would be consumed by
+          the next card on mount — silently auto-swiping a fresh question. */}
       <div className="mt-4 flex gap-3">
         {showVerdict ? (
-          <p className="py-3 text-center text-[10px] tracking-widest text-white/25 uppercase">
+          <p className="w-full py-3 text-center text-[10px] font-bold tracking-widest text-dim uppercase">
             verdict decides the turn
           </p>
         ) : awaitingDare ? (
           <button
             type="button"
             onClick={completeDare}
-            className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-neon-green text-base font-black tracking-wide text-void active:scale-95"
+            className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-neon-green text-base font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
           >
             <Check size={19} /> Done
           </button>
@@ -338,44 +352,40 @@ export function GameScreen() {
             <button
               type="button"
               onClick={acceptCallOut}
-              className="h-14 flex-1 rounded-2xl border border-white/12 text-sm font-bold text-white/40 active:scale-95"
+              className="h-14 flex-1 rounded-2xl border-2 border-ink bg-coal text-sm font-black text-muted shadow-pop-sm active:translate-y-[3px] active:shadow-none"
             >
               Next player
             </button>
             <button
               type="button"
               onClick={callOut}
-              className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-neon-red text-base font-black tracking-wide text-void active:scale-95"
+              className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-neon-red text-base font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
             >
               <Gavel size={19} /> Call Out
             </button>
           </>
         ) : (
-          <>
-            <button
-              type="button"
-              onClick={() => fire('left')}
-              className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl border border-neon-red/50 bg-neon-red/10 font-bold text-neon-red active:scale-95"
-            >
-              <ArrowLeft size={18} /> Dare
-            </button>
-            <button
-              type="button"
-              onClick={() => fire('right')}
-              className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-neon-green font-bold text-void active:scale-95"
-            >
-              Answer <ArrowRight size={18} />
-            </button>
-          </>
+          <div className="flex h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl border-2 border-ink bg-panel shadow-pop-sm">
+            <span className="text-[9px] font-black tracking-[0.2em] text-dim uppercase">
+              Swipe the card
+            </span>
+            <span className="flex items-center gap-2 text-[11px] font-black tracking-widest uppercase">
+              <ArrowLeft size={14} className="text-neon-red" />
+              <span className="text-neon-red">Dare</span>
+              <span className="text-dim">&middot;</span>
+              <span className="text-neon-green">Answer</span>
+              <ArrowRight size={14} className="text-neon-green" />
+            </span>
+          </div>
         )}
       </div>
 
-      <div className="mt-3 flex items-center justify-center gap-4 text-[10px] tracking-widest text-white/20 uppercase">
+      <div className="mt-3 flex items-center justify-center gap-4 text-[10px] font-bold tracking-widest text-dim uppercase">
         <span className="flex items-center gap-1">
           <Flame size={10} /> tier {Math.min(3, 1 + Math.floor(player.coward / 2))}
         </span>
         {player.coward >= 4 && (
-          <span className="flex items-center gap-1 text-neon-red/70">
+          <span className="flex items-center gap-1 text-neon-red">
             <ShieldAlert size={10} /> on thin ice
           </span>
         )}

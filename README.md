@@ -69,6 +69,10 @@ chrome, like a real app:
 | **Swipe left** | Coward **+1**, and the card **flips to a dare** you have to do. Turn passes. |
 | **Call Out** | The group overruling your answer: Brave **−1** and a punishing dare from a *separate* pool. **You keep the turn.** |
 
+There is **no Answer button and no Dare button**. The card *is* the control —
+that's the whole game. On a keyboard, `←` / `→` raise the exact same internal
+signal a drag does, so it stays a genuine equal alternative.
+
 ### Call Out
 
 After you swipe right there's a **four-second window**. If the room thinks your
@@ -147,7 +151,8 @@ Call Out, a verdict. It's **all text, all offline, zero image assets**:
 - **Never spoils the reveal.** An 18+ card shows no commentary until it's tapped
   open.
 - **Mood-driven.** Every line carries a mood — hype, judgy, spicy, chaos,
-  sympathy, deadpan or suspicious — which picks its emoji face and accent colour.
+  sympathy, deadpan or suspicious — which picks its emoji face, its colour block
+  and its accent.
 - **The bubble is `pointer-events-none`** on purpose: it sits over a drag-to-swipe
   card, and anything that captures a pointer there eats the gesture.
 - **The linter reads it too.** `npm run lint:content` checks the host's voice for
@@ -288,7 +293,7 @@ src/
 │  └─ decks.ts                   aggregation, Coward ladder, dare picker
 ├─ types.ts                      the vocabulary
 ├─ App.tsx                       phase router
-└─ index.css                     Tailwind @theme — the neon palette + keyframes
+└─ index.css                     Tailwind @theme — palette, hard shadows, keyframes
 
 smoke.ts                         store suite
 render-smoke.tsx                 jsdom DOM suite
@@ -305,6 +310,10 @@ Being straight about these:
 - **The physics have never been felt on a real device.** Every spring constant and
   threshold was written without a browser. Expect to want to retune
   `commitAnswer` / `commitSkip`.
+- **The card is swipe-only.** The visible Answer / Dare buttons were removed by
+  request, so on a phone a drag is the only way to commit a card — the keyboard
+  arrows only help a desktop user. That's a deliberate trade for the gesture-first
+  feel the game is named after, but it is a real accessibility gap.
 - **The host's voice is finite.** 92 authored lines spread across the decks, so a
   long session will hear the same bark twice. The pools are cheap to extend — and
   `npm run lint:content` will refuse a duplicate line.

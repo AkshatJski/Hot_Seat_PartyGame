@@ -55,8 +55,23 @@ export const MOOD_ACCENT: Record<Mood, string> = {
   spicy: 'text-neon-red',
   chaos: 'text-neon-lime',
   sympathy: 'text-neon-cyan',
-  deadpan: 'text-white/50',
+  deadpan: 'text-muted',
   suspicious: 'text-neon-pink',
+}
+
+/**
+ * Solid fill for the mood's emoji face. The poppy counterpart to `MOOD_ACCENT`:
+ * the host's face sits on a block of colour, not a translucent chip. Also read
+ * by the content linter, so a new mood cannot ship without a face colour.
+ */
+export const MOOD_BUBBLE: Record<Mood, string> = {
+  hype: 'bg-neon-green',
+  judgy: 'bg-neon-purple',
+  spicy: 'bg-neon-red',
+  chaos: 'bg-neon-lime',
+  sympathy: 'bg-neon-cyan',
+  deadpan: 'bg-bone',
+  suspicious: 'bg-neon-pink',
 }
 
 const q = (text: string, mood: Mood): Quip => ({ text, mood })

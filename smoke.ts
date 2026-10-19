@@ -4,6 +4,7 @@ import {
   CARD_QUIPS,
   EVENT_QUIPS,
   MOOD_ACCENT,
+  MOOD_BUBBLE,
   MOOD_EMOJI,
   quipForCard,
   reactionFor,
@@ -70,8 +71,10 @@ const EVENTS = Object.keys(EVENT_QUIPS) as (keyof typeof EVENT_QUIPS)[]
 check('every deck owns a card-quip pool', ALL.every((d) => CARD_QUIPS[d].length >= 6))
 check('every event owns a bark pool', EVENTS.every((e) => EVENT_QUIPS[e].length >= 3))
 check(
-  'every mood has an emoji and an accent',
-  ALL_QUIPS.every((q) => Boolean(MOOD_EMOJI[q.mood]) && Boolean(MOOD_ACCENT[q.mood])),
+  'every mood has an emoji, an accent and a bubble fill',
+  ALL_QUIPS.every(
+    (q) => Boolean(MOOD_EMOJI[q.mood]) && Boolean(MOOD_ACCENT[q.mood]) && Boolean(MOOD_BUBBLE[q.mood]),
+  ),
 )
 check('every card draws a quip', allQ.every((q) => quipForCard(q.id, q.deck).text.length > 0))
 check(

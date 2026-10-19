@@ -27,18 +27,18 @@ export function NextUpScreen() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
-        className="flex flex-col items-center gap-6 rounded-3xl border border-white/8 bg-coal/80 p-8 text-center backdrop-blur"
+        className="flex flex-col items-center gap-6 rounded-3xl border-2 border-ink bg-panel p-8 text-center shadow-pop-lg"
       >
-        <div className="text-[11px] font-bold tracking-widest text-white/40 uppercase">
+        <div className="text-[11px] font-black tracking-widest text-muted uppercase">
           Turn complete
         </div>
-        <h1 className="text-3xl font-black leading-tight">
+        <h1 className="text-3xl leading-tight font-black">
           Next up: <span className={palette.text}>{nextPlayer?.name || 'Next'}</span>
         </h1>
         <Commentator quip={quip} variant="toast" />
         <button
           type="button"
-          className="mt-2 rounded-full bg-neon-purple px-6 py-3 text-sm font-bold text-void shadow-neon-purple/40 shadow-lg active:scale-95"
+          className="mt-2 rounded-2xl border-2 border-ink bg-neon-purple px-6 py-3 text-base font-black text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
           onClick={next}
         >
           Next →

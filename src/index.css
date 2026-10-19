@@ -1,10 +1,16 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-void: #08080b;
+  /* Stage floor — a deep indigo so the app reads as a venue, not a page. */
+  --color-stage: #120e1f;
   --color-coal: #111118;
-  --color-slate-panel: #1a1a24;
+  /* Raised surfaces. Solid on purpose — no backdrop-blur, no white/10 glass. */
+  --color-panel: #1c1730;
   --color-hairline: #2a2a38;
+  /* Outlines and hard shadows. Near-black, never a blur. */
+  --color-ink: #05050a;
+  --color-muted: #9a93b8;
+  --color-dim: #6b6688;
   --color-neon-green: #2bff88;
   --color-neon-purple: #b44dff;
   --color-neon-red: #ff2d55;
@@ -14,6 +20,15 @@
   --color-neon-lime: #b6ff3d;
   --color-neon-orange: #ff8a3d;
   --color-bone: #eceaf5;
+
+  /*
+   * Hard offset shadows — the arcade "sticker" lift. Solid, never blurred, so
+   * every surface looks physically stuck to the stage. Buttons press into them
+   * (`active:translate-y-[Npx] active:shadow-none`) instead of merely scaling.
+   */
+  --shadow-pop-sm: 0 3px 0 0 #05050a;
+  --shadow-pop: 0 5px 0 0 #05050a;
+  --shadow-pop-lg: 0 8px 0 0 #05050a;
 
   --font-sans:
     system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
@@ -28,7 +43,7 @@
 
   body {
     margin: 0;
-    background-color: var(--color-void);
+    background-color: var(--color-stage);
     color: var(--color-bone);
     font-family: var(--font-sans);
     overscroll-behavior: none;

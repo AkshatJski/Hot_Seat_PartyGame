@@ -28,28 +28,28 @@ export function TruthOrDareScreen() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
-        className="flex flex-col items-center gap-6 rounded-3xl border border-white/8 bg-coal/80 p-8 text-center backdrop-blur"
+        className="flex flex-col items-center gap-6 rounded-3xl border-2 border-ink bg-panel p-8 text-center shadow-pop-lg"
       >
-        <div className="text-[11px] font-bold tracking-widest text-white/40 uppercase">
+        <div className="text-[11px] font-black tracking-widest text-muted uppercase">
           <span className={palette.text}>{currentPlayer?.name}</span>'s Turn
         </div>
         <h1 className="text-4xl font-black">Truth or Dare?</h1>
 
         {/* Truth-streak meter: 3 truths in a row forces a dare. */}
         <div className="flex flex-col items-center gap-2">
-          <span className="text-[10px] tracking-widest text-white/35 uppercase">
+          <span className="text-[10px] font-black tracking-widest text-muted uppercase">
             {dareForced ? 'Dare is mandatory' : `${truthsLeft} truth${truthsLeft === 1 ? '' : 's'} left`}
           </span>
           <div className="flex items-center gap-2">
             {Array.from({ length: TRUTH_STREAK_LIMIT }).map((_, i) => (
               <span
                 key={i}
-                className={`h-2.5 w-8 rounded-full transition ${
+                className={`h-3 w-9 rounded-sm border-2 border-ink ${
                   i < streak
                     ? dareForced && i === TRUTH_STREAK_LIMIT - 1
                       ? 'bg-neon-red'
                       : 'bg-neon-green'
-                    : 'bg-white/12'
+                    : 'bg-hairline'
                 }`}
               />
             ))}
@@ -59,12 +59,12 @@ export function TruthOrDareScreen() {
         <div className="flex w-full flex-col gap-3 sm:flex-row">
           <button
             type="button"
-            disabled={dareForced}
             onClick={() => classicChooseTruth()}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold active:scale-95 ${
+            disabled={dareForced}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-ink py-4 text-base font-black tracking-wide ${
               dareForced
-                ? 'cursor-not-allowed border border-white/10 bg-white/5 text-white/30'
-                : 'bg-neon-green text-void shadow-neon-green/40 shadow-lg'
+                ? 'bg-coal text-dim'
+                : 'bg-neon-green text-ink shadow-pop active:translate-y-[5px] active:shadow-none'
             }`}
           >
             {dareForced && <Lock size={16} />}
@@ -73,13 +73,13 @@ export function TruthOrDareScreen() {
           <button
             type="button"
             onClick={() => classicChooseDare()}
-            className="flex-1 rounded-full bg-neon-red px-6 py-3 text-sm font-bold text-bone shadow-neon-red/40 shadow-lg active:scale-95"
+            className="flex-1 rounded-2xl border-2 border-ink bg-neon-red py-4 text-base font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
           >
             DARE
           </button>
         </div>
 
-        <p className="text-[11px] leading-relaxed text-white/40">
+        <p className="text-[11px] leading-relaxed text-muted">
           {dareForced
             ? 'Three truths in a row — the circle demands a dare.'
             : 'Pick either. Dares are always free — no penalty.'}

@@ -59,7 +59,7 @@ export function verdictFor(p: Player): Verdict {
   const plural = (n: number, one: string, many: string) => (n === 1 ? one : many)
 
   // 1 — never engaged at all.
-  if (faced === 0) return v('ghost', 'The Ghost', 'Never touched a card.', 'text-white/45')
+  if (faced === 0) return v('ghost', 'The Ghost', 'Never touched a card.', 'text-muted')
   // 2 — flinched, but never answered or dared.
   if (brave + dares === 0) {
     return v('flincher', 'Serial Flincher', `Skipped all ${skips}.`, 'text-neon-red')

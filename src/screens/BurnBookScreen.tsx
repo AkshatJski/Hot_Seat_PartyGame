@@ -100,11 +100,11 @@ export function BurnBookScreen() {
   if (players.length === 0) {
     return (
       <div className="flex min-h-full flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="text-sm text-white/40">No game played yet.</p>
+        <p className="text-sm text-muted">No game played yet.</p>
         <button
           type="button"
           onClick={restart}
-          className="rounded-2xl bg-neon-green px-6 py-3 font-black text-void active:scale-95"
+          className="rounded-2xl border-2 border-ink bg-neon-green px-6 py-3 font-black text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
         >
           Start a game
         </button>
@@ -115,11 +115,11 @@ export function BurnBookScreen() {
   return (
     <div className="mx-auto w-full max-w-md px-5 pt-8 pb-8">
       <header className="mb-6 text-center">
-        <p className="text-[10px] tracking-widest text-neon-red uppercase">
+        <p className="text-[10px] font-black tracking-widest text-neon-red uppercase">
           Round {round} &middot; complete
         </p>
         <h1 className="mt-1 text-4xl font-black tracking-tight">The Burn Book</h1>
-        <p className="mt-2 text-[11px] text-white/35">
+        <p className="mt-2 text-[11px] text-muted">
           {deckIds.map(deckLabel).join(' + ')}
         </p>
         <div className="mt-4 flex justify-center">
@@ -136,24 +136,25 @@ export function BurnBookScreen() {
         ].map((stat) => (
           <div
             key={stat.label}
-            className="rounded-2xl border border-white/8 bg-coal/60 py-3 text-center"
+            className="rounded-2xl border-2 border-ink bg-panel py-3 text-center shadow-pop-sm"
           >
             <p className={`text-xl font-black ${stat.colour}`}>
               <CountUp value={stat.value} />
             </p>
-            <p className="mt-0.5 text-[9px] tracking-widest text-white/30 uppercase">
+            <p className="mt-0.5 text-[9px] font-black tracking-widest text-dim uppercase">
               {stat.label}
             </p>
           </div>
         ))}
       </div>
 
-      <p className="mb-2.5 text-[10px] tracking-widest text-white/30 uppercase">
+      <p className="mb-2.5 text-[10px] font-black tracking-widest text-muted uppercase">
         The verdicts
       </p>
       <div className="mb-6 space-y-2.5">
         {roster.map(({ player, verdict }, i) => {
           const Icon = VERDICT_ICON[verdict.kind]
+          const palette = playerPalette(i)
           return (
             <motion.div
               key={player.id}
@@ -161,23 +162,23 @@ export function BurnBookScreen() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.07 }}
-              className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-slate-panel to-coal p-4"
+              className="relative overflow-hidden rounded-3xl border-2 border-ink bg-panel p-4 shadow-pop-lg"
             >
               <div className="flex items-start gap-3">
                 <span
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border bg-white/8 ${playerPalette(i).border} ${verdict.accent}`}
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border-2 border-ink ${palette.bg} text-ink`}
                 >
                   <Icon size={19} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] tracking-widest text-white/35 uppercase">
+                  <p className="text-[10px] font-black tracking-widest text-muted uppercase">
                     {verdict.title}
                   </p>
                   <p className={`mt-0.5 truncate text-lg font-black ${verdict.accent}`}>
                     {player.name}
                   </p>
-                  <p className="text-[11px] text-white/45">{verdict.blurb}</p>
-                  <p className="mt-1.5 text-[10px] font-bold text-white/30">
+                  <p className="text-[11px] text-muted">{verdict.blurb}</p>
+                  <p className="mt-1.5 text-[10px] font-bold text-dim">
                     <CountUp value={player.brave} className="text-neon-green" /> brave &middot;{' '}
                     <CountUp value={player.coward} className="text-neon-red" /> skipped &middot;{' '}
                     <CountUp value={player.daresCompleted} className="text-neon-amber" /> dares
@@ -193,16 +194,16 @@ export function BurnBookScreen() {
         <button
           type="button"
           onClick={share}
-          className="flex h-13 flex-1 items-center justify-center gap-2 rounded-2xl bg-neon-purple font-black tracking-wide text-void active:scale-95"
+          className="flex h-13 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-neon-purple font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
         >
           <Share2 size={17} /> {copied ? 'Copied!' : 'Share'}
         </button>
         <button
           type="button"
           onClick={restart}
-          className="flex h-13 flex-1 items-center justify-center gap-2 rounded-2xl border border-white/12 font-bold text-white/60 active:scale-95"
+          className="flex h-13 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-coal font-black tracking-wide text-muted shadow-pop active:translate-y-[5px] active:shadow-none"
         >
-          <RotateCcw size={16} /> Rematch
+          <RotateCcw size={17} /> Rematch
         </button>
       </div>
     </div>

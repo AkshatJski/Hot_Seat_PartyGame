@@ -22,6 +22,7 @@ import {
   CARD_QUIPS,
   EVENT_QUIPS,
   MOOD_ACCENT,
+  MOOD_BUBBLE,
   MOOD_EMOJI,
   type Quip,
 } from '../src/data/commentary'
@@ -216,7 +217,7 @@ function checkQuip(where: string, quip: Quip) {
   if (!/^[A-Z0-9]/.test(t)) violations.push(`[quip-shape] ${where} — not capitalised: "${t}"`)
   if (!QUIP_END.test(t)) violations.push(`[quip-shape] ${where} — no terminal punctuation: "${t}"`)
   if (/\s{2,}/.test(t)) violations.push(`[quip-space] ${where} — double space: "${t}"`)
-  if (!MOOD_EMOJI[quip.mood] || !MOOD_ACCENT[quip.mood])
+  if (!MOOD_EMOJI[quip.mood] || !MOOD_ACCENT[quip.mood] || !MOOD_BUBBLE[quip.mood])
     violations.push(`[quip-mood] ${where} — no styling for mood "${quip.mood}"`)
   const key = t.toLowerCase()
   const prior = quipSeen.get(key)
