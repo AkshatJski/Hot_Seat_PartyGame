@@ -18,6 +18,13 @@
  * inherently monotone Would-You-Rather format. A gate that cries wolf gets ignored.
  */
 import { DECKS, callOutDaresFor, daresFor, questionsFor } from '../src/data/decks'
+import {
+  CARD_QUIPS,
+  EVENT_QUIPS,
+  MOOD_ACCENT,
+  MOOD_EMOJI,
+  type Quip,
+} from '../src/data/commentary'
 import type { DeckId } from '../src/types'
 
 type Pool = 'question' | 'dare' | 'callout'
@@ -190,6 +197,42 @@ function checkDeck(deck: { id: DeckId; questions: Card[]; dares: Card[]; callout
 
 // ---- run --------------------------------------------------------------------
 for (const deck of decks) checkDeck(deck)
+
+// ---- commentator voice ------------------------------------------------------
+// The host's barks are content too, and fail the same ways: empty, typo'd,
+// duplicated, or quoting a mood the UI has no styling for. Cheaper to lint them
+// than to notice a dead line mid-party.
+const QUIP_MIN = 3
+const QUIP_MAX = 90
+const QUIP_END = /[.!?]$/
+const quipSeen = new Map<string, string>()
+let quipCount = 0
+
+function checkQuip(where: string, quip: Quip) {
+  quipCount++
+  const t = quip.text.trim()
+  if (t.length < QUIP_MIN) violations.push(`[quip-short] ${where} — "${t}"`)
+  if (t.length > QUIP_MAX) violations.push(`[quip-long] ${where} — ${t.length} chars: "${t}"`)
+  if (!/^[A-Z0-9]/.test(t)) violations.push(`[quip-shape] ${where} — not capitalised: "${t}"`)
+  if (!QUIP_END.test(t)) violations.push(`[quip-shape] ${where} — no terminal punctuation: "${t}"`)
+  if (/\s{2,}/.test(t)) violations.push(`[quip-space] ${where} — double space: "${t}"`)
+  if (!MOOD_EMOJI[quip.mood] || !MOOD_ACCENT[quip.mood])
+    violations.push(`[quip-mood] ${where} — no styling for mood "${quip.mood}"`)
+  const key = t.toLowerCase()
+  const prior = quipSeen.get(key)
+  if (prior) violations.push(`[quip-dupe] ${where} — same as ${prior}: "${t}"`)
+  else quipSeen.set(key, where)
+}
+
+for (const [deck, quips] of Object.entries(CARD_QUIPS)) {
+  if (quips.length < 6) violations.push(`[quip-pool] ${deck} — only ${quips.length} card quips (min 6)`)
+  for (const quip of quips) checkQuip(`card:${deck}`, quip)
+}
+for (const [event, quips] of Object.entries(EVENT_QUIPS)) {
+  if (quips.length < 3) violations.push(`[quip-pool] ${event} — only ${quips.length} event quips (min 3)`)
+  for (const quip of quips) checkQuip(`event:${event}`, quip)
+}
+stats.push(`  ${'commentator'.padEnd(12)} ${String(quipCount).padStart(3)} quips`)
 
 console.log('content lint')
 console.log(stats.join('\n'))

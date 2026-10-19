@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import {
   ArrowLeft,
   ArrowRight,
@@ -10,6 +10,10 @@ import {
   SkipForward,
 } from 'lucide-react'
 import { SwipeCard, type SwipeSignal } from '../components/SwipeCard'
+import { Commentator } from '../components/Commentator'
+import { ConfettiBurst } from '../components/ConfettiBurst'
+import { reactionFor, type GameEvent } from '../data/commentary'
+import { playerPalette } from '../data/playerColors'
 import {
   selectAwaitingDare,
   selectCanCallOut,
@@ -19,6 +23,9 @@ import {
   useGameStore,
 } from '../store/gameStore'
 import type { Intensity, Player } from '../types'
+
+/** How long the group has to Call Out an answer before the turn moves on. */
+const CALL_OUT_MS = 4000
 
 function Pips({ level }: { level: Intensity }) {
   return (
@@ -40,19 +47,18 @@ function PlayerRail({ players, turnIndex }: { players: Player[]; turnIndex: numb
     <div className="flex w-full gap-2 overflow-x-auto pb-1">
       {players.map((p, i) => {
         const active = i === turnIndex
+        const palette = playerPalette(i)
         return (
           <div
             key={p.id}
             className={`flex min-w-[104px] flex-1 flex-col gap-1.5 rounded-2xl border p-2.5 transition ${
-              active
-                ? 'border-neon-purple/60 bg-neon-purple/10'
-                : 'border-white/8 bg-coal/50'
+              active ? `${palette.border} ${palette.soft}` : 'border-white/8 bg-coal/50'
             }`}
           >
             <div className="flex items-center gap-1.5">
               <span
                 className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-black ${
-                  active ? 'bg-neon-purple text-void' : 'bg-white/15 text-bone'
+                  active ? `${palette.bg} text-void` : `${palette.soft} ${palette.text}`
                 }`}
               >
                 {p.name.slice(0, 1).toUpperCase()}
@@ -82,7 +88,6 @@ export function GameScreen() {
   const pendingDare = useGameStore((s) => s.pendingDare)
   const flipped = useGameStore((s) => s.flipped)
   const stage = useGameStore((s) => s.stage)
-  const banner = useGameStore((s) => s.banner)
 
   const answer = useGameStore((s) => s.answer)
   const skip = useGameStore((s) => s.skip)
@@ -99,6 +104,7 @@ export function GameScreen() {
   const canCallOut = useGameStore(selectCanCallOut)
   const awaitingDare = useGameStore(selectAwaitingDare)
   const showVerdict = useGameStore(selectShowVerdict)
+  const reduce = useReducedMotion()
 
   /**
    * A pending swipe signal is scoped to exactly one card in exactly one stage.
@@ -146,17 +152,39 @@ export function GameScreen() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+    // `fire` closes over the current card token; re-subscribing on every render
+    // would be wasteful, and the handler only ever reads the latest via closure
+    // at call time. Same trade the card makes for its swipe signal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage])
 
   // The Call Out window is deliberately short — it is a group reaction, not a
   // menu. Four seconds, then the turn moves on by itself.
   useEffect(() => {
     if (!canCallOut) return
-    const t = setTimeout(() => acceptCallOut(), 4000)
+    const t = setTimeout(() => acceptCallOut(), CALL_OUT_MS)
     return () => clearTimeout(t)
   }, [canCallOut, acceptCallOut])
 
   if (!player) return null
+
+  const palette = playerPalette(turnIndex)
+
+  /**
+   * The host barks once per moment, not per card: an answer, a dare, a Call Out
+   * or the verdict. Seeded by the turn so the line is stable for that beat but
+   * rotates between turns. `null` during the quiet question stage.
+   */
+  const hostEvent: GameEvent | null = showVerdict
+    ? 'verdict'
+    : stage === 'answered'
+      ? 'answer'
+      : stage === 'dare'
+        ? 'dare'
+        : stage === 'callout'
+          ? 'callOut'
+          : null
+  const hostLine = hostEvent ? reactionFor(hostEvent, `${turnIndex}:${round}`) : null
 
   return (
     <div className="mx-auto flex min-h-full w-full max-w-md flex-col px-5 pt-6 pb-8">
@@ -167,7 +195,7 @@ export function GameScreen() {
           </p>
           <p className="mt-0.5 text-lg font-black">
             {player.name}
-            <span className="text-neon-purple">'s turn</span>
+            <span className={palette.text}>'s turn</span>
           </p>
         </div>
         <button
@@ -192,7 +220,11 @@ export function GameScreen() {
 
       <div className="relative flex flex-1 items-center justify-center">
         {showVerdict ? (
-          <div className="flex h-[min(62vh,520px)] w-[min(88vw,380px)] flex-col items-center justify-center gap-3 rounded-[28px] border border-white/10 bg-coal/60 px-2 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex h-[min(62vh,520px)] w-[min(88vw,380px)] flex-col items-center justify-center gap-3 rounded-[28px] border border-white/10 bg-coal/60 px-2 text-center"
+          >
             <Gavel size={30} className="text-neon-red" />
             <p className="px-5 text-sm font-bold">Did {player.name} deserve that?</p>
             <button
@@ -222,9 +254,14 @@ export function GameScreen() {
             <p className="px-5 text-[10px] text-white/25">
               {player.name} gets the Brave point back.
             </p>
-          </div>
+          </motion.div>
         ) : stage === 'answered' ? (
-          <div className="flex h-[min(62vh,520px)] w-[min(88vw,380px)] flex-col items-center justify-center gap-3 rounded-[28px] border border-neon-green/25 bg-linear-to-b from-neon-green/10 to-coal px-6 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative flex h-[min(62vh,520px)] w-[min(88vw,380px)] flex-col items-center justify-center gap-3 rounded-[28px] border border-neon-green/25 bg-linear-to-b from-neon-green/10 to-coal px-6 text-center"
+          >
+            <ConfettiBurst />
             <Check size={30} className="text-neon-green" />
             <p className="text-sm font-bold">{player.name} answered</p>
             <p className="text-[11px] leading-relaxed text-white/40">
@@ -233,7 +270,7 @@ export function GameScreen() {
             <p className="mt-1 text-[10px] tracking-widest text-white/25 uppercase">
               passing over to the next player
             </p>
-          </div>
+          </motion.div>
         ) : (
           <>
             {/* two static cards behind, to sell the stack */}
@@ -245,6 +282,7 @@ export function GameScreen() {
               key={`${currentQuestion?.id ?? 'callout'}-${turnIndex}`}
               question={currentQuestion}
               playerName={player.name}
+              accent={palette}
               dare={pendingDare}
               flipped={flipped}
               signal={signal}
@@ -255,19 +293,27 @@ export function GameScreen() {
         )}
       </div>
 
-      <AnimatePresence>
-        {banner && !showVerdict && (
-          <motion.button
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            onClick={dismissBanner}
-            className="mx-auto mt-4 max-w-[90%] rounded-full bg-white/8 px-4 py-2 text-center text-[11px] font-bold tracking-wide text-white/70"
-          >
-            {banner}
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* The host's running commentary replaces the old static banner. Derived
+          from the stage, so it appears with the moment and clears itself. */}
+      {hostLine && (
+        <div className="mt-4 flex justify-center">
+          <Commentator quip={hostLine} variant="toast" />
+        </div>
+      )}
+
+      {/* Call Out countdown — a visible fuse for the 4s group-reaction window. */}
+      {canCallOut &&
+        (reduce ? (
+          <div className="mx-auto mt-3 h-1 w-44 rounded-full bg-neon-red/40" />
+        ) : (
+          <motion.div
+            key={`callout-${turnIndex}-${round}`}
+            initial={{ scaleX: 1 }}
+            animate={{ scaleX: 0 }}
+            transition={{ duration: CALL_OUT_MS / 1000, ease: 'linear' }}
+            className="mx-auto mt-3 h-1 w-44 origin-left rounded-full bg-neon-red/70"
+          />
+        ))}
 
       {/* ---- Actions --------------------------------------------------------
           `showVerdict` must be checked explicitly. If it were allowed to fall

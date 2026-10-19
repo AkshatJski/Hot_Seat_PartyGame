@@ -1,6 +1,14 @@
 import { useGameStore } from './src/store/gameStore'
 import { DECKS, dareTier, contentCounts, questionsFor, daresFor, callOutDaresFor } from './src/data/decks'
-import { MEMES, memeForCard } from './src/data/memes'
+import {
+  CARD_QUIPS,
+  EVENT_QUIPS,
+  MOOD_ACCENT,
+  MOOD_EMOJI,
+  quipForCard,
+  reactionFor,
+} from './src/data/commentary'
+import { PLAYER_PALETTE, playerPalette } from './src/data/playerColors'
 import { verdictFor } from './src/data/verdicts'
 import type { DeckId, Player } from './src/types'
 
@@ -56,22 +64,53 @@ check('every card has text', [...allQ, ...allD, ...allC].every((x) => x.text.tri
 check('intensity is always 1..3', [...allD, ...allC].every((x) => x.intensity >= 1 && x.intensity <= 3))
 check('every card is tagged to its deck', [...allQ, ...allD, ...allC].every((x) => ALL.includes(x.deck)))
 
-console.log('\nmeme reactions')
-check('every meme has a caption and alt', MEMES.every((m) => m.caption.length > 0 && m.alt.length > 0))
-check('every meme src is a local /memes asset', MEMES.every((m) => m.src.startsWith('/memes/') && (m.src.endsWith('.svg') || m.src.endsWith('.png') || m.src.endsWith('.jpg') || m.src.endsWith('.webp'))))
-check('meme ids are unique', new Set(MEMES.map((m) => m.id)).size === MEMES.length)
+console.log('\ncommentator voice')
+const ALL_QUIPS = [...Object.values(CARD_QUIPS).flat(), ...Object.values(EVENT_QUIPS).flat()]
+const EVENTS = Object.keys(EVENT_QUIPS) as (keyof typeof EVENT_QUIPS)[]
+check('every deck owns a card-quip pool', ALL.every((d) => CARD_QUIPS[d].length >= 6))
+check('every event owns a bark pool', EVENTS.every((e) => EVENT_QUIPS[e].length >= 3))
 check(
-  'memes are deterministic per card',
-  allQ.every((q) => memeForCard(q.id, q.deck)?.id === memeForCard(q.id, q.deck)?.id),
+  'every mood has an emoji and an accent',
+  ALL_QUIPS.every((q) => Boolean(MOOD_EMOJI[q.mood]) && Boolean(MOOD_ACCENT[q.mood])),
 )
-const withMeme = allQ.filter((q) => memeForCard(q.id, q.deck) !== null).length
-check('a minority of cards get a reaction', withMeme > 0 && withMeme < allQ.length * 0.8, `${withMeme}/${allQ.length}`)
-check('reaction coverage is not tiny', withMeme > allQ.length * 0.4, `${withMeme}/${allQ.length}`)
+check('every card draws a quip', allQ.every((q) => quipForCard(q.id, q.deck).text.length > 0))
 check(
-  'spicy deck never draws a wholesome reaction',
-  allQ.filter((q) => q.deck === 'spicy').every((q) => memeForCard(q.id, q.deck)?.id !== 'chefs-kiss'),
+  'quips are deterministic per card',
+  allQ.every((q) => quipForCard(q.id, q.deck).text === quipForCard(q.id, q.deck).text),
 )
-check('unknown deck yields no meme, no throw', memeForCard('x', 'nope' as DeckId) === null)
+check(
+  'a deck only ever draws its own quips',
+  ALL.every((deck) =>
+    allQ
+      .filter((q) => q.deck === deck)
+      .every((q) => CARD_QUIPS[deck].includes(quipForCard(q.id, deck))),
+  ),
+)
+check(
+  'event barks are deterministic per seed',
+  EVENTS.every((e) => reactionFor(e, 'seed').text === reactionFor(e, 'seed').text),
+)
+check(
+  'every quip is capitalised and punctuated',
+  ALL_QUIPS.every((q) => /^[A-Z0-9]/.test(q.text) && /[.!?]$/.test(q.text)),
+)
+check(
+  'no duplicated quip in the whole voice',
+  (() => {
+    const seen = ALL_QUIPS.map((q) => q.text.toLowerCase())
+    return new Set(seen).size === seen.length
+  })(),
+)
+check('unknown deck still yields a quip, no throw', quipForCard('x', 'nope' as DeckId).text.length > 0)
+
+console.log('\nplayer identity colours')
+check('palette is stocked', PLAYER_PALETTE.length >= 6)
+check(
+  'palette entries carry every class the UI reads',
+  PLAYER_PALETTE.every((p) => p.text && p.bg && p.soft && p.border),
+)
+check('seat colours cycle safely', playerPalette(0).name === PLAYER_PALETTE[0].name && playerPalette(PLAYER_PALETTE.length).name === PLAYER_PALETTE[0].name)
+check('negative seats wrap, not crash', playerPalette(-1).name === PLAYER_PALETTE[PLAYER_PALETTE.length - 1].name)
 
 console.log('\ndare tier ladder')
 check('0 cowards -> tier 1', dareTier(0) === 1)

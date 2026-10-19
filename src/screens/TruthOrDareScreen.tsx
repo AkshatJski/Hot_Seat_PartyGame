@@ -1,5 +1,6 @@
 import { motion } from 'motion/react'
 import { Lock } from 'lucide-react'
+import { playerPalette } from '../data/playerColors'
 import {
   TRUTH_STREAK_LIMIT,
   selectCurrentPlayer,
@@ -13,11 +14,13 @@ export function TruthOrDareScreen() {
   const classicChooseTruth = useGameStore((s) => s.classicChooseTruth)
   const classicChooseDare = useGameStore((s) => s.classicChooseDare)
   const truthsLeft = useGameStore(selectTruthsLeft)
+  const turnIndex = useGameStore((s) => s.turnIndex)
 
   if (gameMode !== 'classic') return null
 
   const streak = currentPlayer?.truthStreak ?? 0
   const dareForced = truthsLeft <= 0
+  const palette = playerPalette(turnIndex)
 
   return (
     <div className="mx-auto flex min-h-full w-full max-w-md flex-col justify-center px-5">
@@ -28,7 +31,7 @@ export function TruthOrDareScreen() {
         className="flex flex-col items-center gap-6 rounded-3xl border border-white/8 bg-coal/80 p-8 text-center backdrop-blur"
       >
         <div className="text-[11px] font-bold tracking-widest text-white/40 uppercase">
-          {currentPlayer?.name}'s Turn
+          <span className={palette.text}>{currentPlayer?.name}</span>'s Turn
         </div>
         <h1 className="text-4xl font-black">Truth or Dare?</h1>
 

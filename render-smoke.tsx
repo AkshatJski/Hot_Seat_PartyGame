@@ -48,7 +48,7 @@ const React = await import('react')
 const { default: App } = await import('./src/App')
 const { useGameStore } = await import('./src/store/gameStore')
 const { contentCounts, questionsFor } = await import('./src/data/decks')
-const { memeForCard } = await import('./src/data/memes')
+const { quipForCard } = await import('./src/data/commentary')
 
 // lowercase name so oxlint doesn't mistake this for a component
 const store = () => useGameStore.getState()
@@ -140,40 +140,42 @@ check(
   backFaceClasses.includes('rotateY(180deg)'),
 )
 
-console.log('\nmeme reaction badge')
-// Drive a card whose id hashes to a meme, so this asserts the real render path
-// rather than "no meme happened to be assigned".
-const memeCard = questionsFor(['icebreakers', 'destroyers', 'spicy', 'unhinged']).find(
-  (q) => memeForCard(q.id, q.deck) !== null,
-)
-check('found a card that gets a reaction', Boolean(memeCard))
-if (memeCard) {
-  const expected = memeForCard(memeCard.id, memeCard.deck)!
+console.log('\ncommentator quip on the card')
+// Drive a real card so this asserts the rendered host line, not "a quip existed
+// somewhere". The quip is deterministic, so the expected text is knowable.
+const quipCard = questionsFor(['icebreakers', 'destroyers', 'spicy', 'unhinged'])[0]
+check('found a card to commentate', Boolean(quipCard))
+if (quipCard) {
+  const expected = quipForCard(quipCard.id, quipCard.deck)
   await act(async () => {
-    useGameStore.setState({ currentQuestion: memeCard, stage: 'question', flipped: false })
+    useGameStore.setState({ currentQuestion: quipCard, stage: 'question', flipped: false })
   })
   await flush()
-  const img = container.querySelector(`img[src="${expected.src}"]`)
-  check('reaction image rendered on the card', Boolean(img), `expected ${expected.src}`)
-  check('reaction has alt text', (img?.getAttribute('alt') ?? '').length > 0)
-  check('reaction caption rendered', container.innerHTML.includes(expected.caption))
+  const fig = container.querySelector('[data-commentator]')
+  check('commentator rendered on the card', Boolean(fig))
   check(
-    'reaction badge does not intercept the swipe gesture',
-    (img?.closest('figure')?.getAttribute('class') ?? '').includes('pointer-events-none'),
+    'commentator shows the deterministic quip',
+    (fig?.textContent ?? '').includes(expected.text),
+    `expected "${expected.text}"`,
+  )
+  check('commentator exposes its mood', fig?.getAttribute('data-commentator') === expected.mood)
+  check(
+    'commentator does not intercept the swipe gesture',
+    (fig?.getAttribute('class') ?? '').includes('pointer-events-none'),
   )
 
-  // A blurred 18+ card must not leak its punchline before the tap-to-reveal.
-  const spicyCard = questionsFor(['spicy']).find((q) => q.sensitive && memeForCard(q.id, q.deck) !== null)
-  check('found a sensitive card with a reaction', Boolean(spicyCard))
+  // A blurred 18+ card must not leak its quip before the tap-to-reveal.
+  const spicyCard = questionsFor(['spicy']).find((q) => q.sensitive)
+  check('found a sensitive card', Boolean(spicyCard))
   if (spicyCard) {
-    const hidden = memeForCard(spicyCard.id, spicyCard.deck)!
+    const hidden = quipForCard(spicyCard.id, spicyCard.deck)
     await act(async () => {
       useGameStore.setState({ currentQuestion: spicyCard, stage: 'question', flipped: false })
     })
     await flush()
     check(
-      'reaction hidden while an 18+ card is still blurred',
-      !container.innerHTML.includes(hidden.src),
+      'quip hidden while an 18+ card is still blurred',
+      !container.innerHTML.includes(hidden.text),
     )
   }
   await act(async () => {

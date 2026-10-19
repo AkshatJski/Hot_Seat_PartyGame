@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { AlertTriangle, ArrowRight, Flame, Plus, ShieldAlert, X } from 'lucide-react'
 import { contentCounts, DECKS } from '../data/decks'
+import { playerPalette } from '../data/playerColors'
 import { useGameStore } from '../store/gameStore'
 import type { DeckId } from '../types'
 
@@ -72,6 +73,9 @@ export function SetupScreen() {
         <p className="mt-2 text-[11px] tracking-widest text-white/35 uppercase">
           Pass the phone. Swipe right to answer.
         </p>
+        <p className="mt-2 text-[11px] leading-relaxed text-white/45">
+          A trash-talking host will be watching. Do not embarrass yourself.
+        </p>
       </header>
 
       {/* Game Mode ----------------------------------------------------------- */}
@@ -114,7 +118,9 @@ export function SetupScreen() {
               animate={{ opacity: 1, y: 0 }}
               className="flex items-center gap-2 rounded-xl border border-white/8 bg-coal px-3 py-2.5"
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-neon-purple text-xs font-black text-void">
+              <span
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black text-void ${playerPalette(i).bg}`}
+              >
                 {(name || '?').slice(0, 1).toUpperCase()}
               </span>
               <input

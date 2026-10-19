@@ -1,10 +1,14 @@
 import { motion } from 'motion/react'
+import { Commentator } from '../components/Commentator'
+import { reactionFor } from '../data/commentary'
+import { playerPalette } from '../data/playerColors'
 import { useGameStore } from '../store/gameStore'
 
 export function NextUpScreen() {
   const gameMode = useGameStore((s) => s.gameMode)
   const turnIndex = useGameStore((s) => s.turnIndex)
   const players = useGameStore((s) => s.players)
+  const round = useGameStore((s) => s.round)
   const next = () => {
     useGameStore.getState().classicNextUp()
   }
@@ -14,6 +18,8 @@ export function NextUpScreen() {
   // advanceTurn() already rotated turnIndex to the next player, so the "next
   // up" player is simply the one now at turnIndex.
   const nextPlayer = players[turnIndex]
+  const palette = playerPalette(turnIndex)
+  const quip = reactionFor('pass', `${turnIndex}:${round}`)
 
   return (
     <div className="mx-auto flex min-h-full w-full max-w-md flex-col justify-center px-5">
@@ -27,8 +33,9 @@ export function NextUpScreen() {
           Turn complete
         </div>
         <h1 className="text-3xl font-black leading-tight">
-          Next up: <span className="text-neon-purple">{nextPlayer?.name || 'Next'}</span>
+          Next up: <span className={palette.text}>{nextPlayer?.name || 'Next'}</span>
         </h1>
+        <Commentator quip={quip} variant="toast" />
         <button
           type="button"
           className="mt-2 rounded-full bg-neon-purple px-6 py-3 text-sm font-bold text-void shadow-neon-purple/40 shadow-lg active:scale-95"

@@ -7,8 +7,9 @@ import {
   type PanInfo,
 } from 'motion/react'
 import { Eye, Flame, ShieldAlert, Zap } from 'lucide-react'
-import { memeForCard } from '../data/memes'
-import { MemeBadge } from './MemeBadge'
+import { quipForCard } from '../data/commentary'
+import { playerPalette, type PlayerPalette } from '../data/playerColors'
+import { Commentator } from './Commentator'
 import type { Dare, Intensity, Question, SwipeDirection } from '../types'
 
 /** Past this horizontal offset the gesture counts as a real swipe. */
@@ -49,6 +50,8 @@ interface SwipeCardProps {
   /** `null` renders the Called Out notice instead of a question. */
   question: Question | null
   playerName: string
+  /** Seat colour, so the card matches the rail. */
+  accent?: PlayerPalette
   /** Must be supplied before `flipped` flips to true, or the back face renders empty. */
   dare: Dare | null
   /** Controlled by the caller, NOT by the card. Keeps dare selection in the store. */
@@ -61,6 +64,7 @@ interface SwipeCardProps {
 export function SwipeCard({
   question,
   playerName,
+  accent = playerPalette(0),
   dare,
   flipped,
   signal,
@@ -160,13 +164,18 @@ export function SwipeCard({
   const blurred = Boolean(question?.sensitive) && !revealed
   const cardKey = question?.id ?? 'callout'
 
-  // Reactions hang off the question's id, so they are stable for the life of the
-  // card and never re-roll under the player's thumb. Null while the question is
-  // still blurred — no spoiling the punchline behind the 18+ cover.
-  const meme = question && !blurred ? memeForCard(question.id, question.deck) : null
+  // The host's card quip hangs off the question's id, so it is stable for the
+  // life of the card and never re-rolls under the player's thumb. Null while the
+  // question is still blurred — no spoiling the punchline behind the 18+ cover.
+  const quip = question && !blurred ? quipForCard(question.id, question.deck) : null
 
   return (
-    <div className="relative mx-auto w-[min(88vw,380px)]">
+    <motion.div
+      initial={{ opacity: 0, y: 22 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 190, damping: 22 }}
+      className="relative mx-auto w-[min(88vw,380px)]"
+    >
       <div className="absolute inset-0 translate-y-3 rounded-[32px] bg-neon-purple/10 blur-2xl" />
 
       <motion.div
@@ -193,7 +202,9 @@ export function SwipeCard({
         <div className="absolute inset-0 flex flex-col rounded-[28px] bg-linear-to-b from-slate-panel to-coal p-6 [backface-visibility:hidden] [-webkit-backface-visibility:hidden]">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2 rounded-full bg-white/8 px-3 py-1.5 text-xs font-semibold tracking-wide">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-neon-purple text-[10px] font-black text-void">
+              <span
+                className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black text-void ${accent.bg}`}
+              >
                 {playerName.slice(0, 1).toUpperCase()}
               </span>
               {playerName}
@@ -232,7 +243,7 @@ export function SwipeCard({
             )}
           </button>
 
-          {meme && <MemeBadge meme={meme} />}
+          {quip && <Commentator quip={quip} />}
 
           <div className="mt-4 flex items-center justify-between text-[11px] font-bold tracking-widest uppercase">
             <span className="flex items-center gap-1.5 text-neon-red/80">
@@ -290,6 +301,6 @@ export function SwipeCard({
           </span>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   )
 }

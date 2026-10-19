@@ -131,25 +131,31 @@ Because the whole set is shuffled into one queue and dealt without replacement,
 **no question repeats** in a session. Pick two decks or all seven; the length of
 the game follows from your choice.
 
-### Reaction memes
+### The host
 
-Roughly two-thirds of cards carry a reaction image under the question — the
-"chef's kiss", the "ratio", the "this is fine". They're **original SVGs shipped
-in the bundle** (`public/memes/`, 6.7 KB total), not scraped and not fetched:
+Every card is narrated by a small trash-talking commentator. It reviews the
+question in one line, then barks at what actually happens — an answer, a dare, a
+Call Out, a verdict. It's **all text, all offline, zero image assets**:
 
-- **No external API.** Nothing to rate-limit, nothing to break mid-party, and no
-  random NSFW image arriving on your phone unannounced.
-- **Deterministic per card.** The reaction is picked by hashing the card id, so it
-  never flickers to a different image while the player is holding the phone
-  still.
-- **Curated per deck.** Every deck draws from its own reaction pool, so a spicy
-  card never gets a wholesome "chef's kiss".
-- **Sprinkled, not sprayed.** Roughly 35% of cards get *no* reaction at all — a
-  reaction on every card is just wallpaper.
-- **Never spoils the reveal.** An 18+ card stays reaction-free until it's tapped
+- **No external API, no model.** The lines are authored, curated pools in
+  `src/data/commentary.ts`. Nothing to rate-limit, nothing to break mid-party.
+- **Deterministic per card.** The line is picked by hashing the card id, so it
+  never changes while the player is holding the phone still. (React re-renders
+  constantly; a random pick would flicker between two lines under a thumb.)
+- **Curated per deck.** Each deck has its own quip pool, so a spicy card never
+  gets a wholesome line.
+- **Never spoils the reveal.** An 18+ card shows no commentary until it's tapped
   open.
-- The badge is `pointer-events-none` on purpose: it sits over a drag-to-swipe card,
-  and anything that captures a pointer there eats the gesture.
+- **Mood-driven.** Every line carries a mood — hype, judgy, spicy, chaos,
+  sympathy, deadpan or suspicious — which picks its emoji face and accent colour.
+- **The bubble is `pointer-events-none`** on purpose: it sits over a drag-to-swipe
+  card, and anything that captures a pointer there eats the gesture.
+- **The linter reads it too.** `npm run lint:content` checks the host's voice for
+  length, capitalisation, terminal punctuation, duplicates, and that every mood
+  actually has styling.
+
+Adding a deck fails to compile until it has a voice — the pools are typed
+`Record<DeckId, Quip[]>`.
 
 ### Content policy
 
@@ -260,7 +266,10 @@ A few decisions worth knowing about if you read the source:
 ```
 src/
 ├─ components/SwipeCard.tsx      the whole mechanic: physics, 3D flip, haptics
-├─ components/MemeBadge.tsx      the reaction image pinned under a card
+├─ components/Commentator.tsx    the host: emoji face + one-line review
+├─ components/CountUp.tsx        roll-up numbers for the Burn Book
+├─ components/ConfettiBurst.tsx  emoji confetti on an answered card
+├─ components/ArcadeBackdrop.tsx the drifting neon wash behind everything
 ├─ store/gameStore.ts            turn machine, scoring, persistence
 ├─ screens/
 │  ├─ SetupScreen.tsx            players, deck mixing, 18+ gate
@@ -274,15 +283,16 @@ src/
 │  ├─ confessions.ts             content
 │  ├─ dilemmas.ts                content (Would You Rather)
 │  ├─ chaos.ts                   content
-│  ├─ memes.ts                   reaction catalogue + deterministic picker
+│  ├─ commentary.ts              host quips + event barks, deterministic picker
+│  ├─ playerColors.ts            seat colours across rail / card / Burn Book
 │  └─ decks.ts                   aggregation, Coward ladder, dare picker
 ├─ types.ts                      the vocabulary
 ├─ App.tsx                       phase router
-└─ index.css                     Tailwind @theme — the neon palette
+└─ index.css                     Tailwind @theme — the neon palette + keyframes
 
-public/memes/*.svg               9 original reaction images, 6.7 KB total
 smoke.ts                         store suite
 render-smoke.tsx                 jsdom DOM suite
+scripts/lint-content.ts          the content + host-voice quality gate
 scripts/make-icons.ts            icon.svg → PNGs
 ```
 
@@ -295,9 +305,9 @@ Being straight about these:
 - **The physics have never been felt on a real device.** Every spring constant and
   threshold was written without a browser. Expect to want to retune
   `commitAnswer` / `commitSkip`.
-- **The reaction memes are unstyled-by-design.** They're flat SVGs with no
-  animation beyond a single spring pop-in, and they have never been seen on a real
-  phone. Worth a pass on contrast and size against a real card.
+- **The host's voice is finite.** 92 authored lines spread across the decks, so a
+  long session will hear the same bark twice. The pools are cheap to extend — and
+  `npm run lint:content` will refuse a duplicate line.
 - **`preserve-3d` on the card is load-bearing.** Anything that flattens the 3D
   rendering context — a missing `transform-style`, or `overflow: hidden` on the
   card — makes the dare render mirrored. There is an assertion in

@@ -19,6 +19,10 @@ import {
 } from 'lucide-react'
 import { deckLabel } from '../data/decks'
 import { verdictFor, type VerdictKind } from '../data/verdicts'
+import { reactionFor } from '../data/commentary'
+import { playerPalette } from '../data/playerColors'
+import { Commentator } from '../components/Commentator'
+import { CountUp } from '../components/CountUp'
 import { useGameStore } from '../store/gameStore'
 
 /** One icon per archetype — kept here so `src/data/verdicts.ts` stays pure. */
@@ -118,6 +122,9 @@ export function BurnBookScreen() {
         <p className="mt-2 text-[11px] text-white/35">
           {deckIds.map(deckLabel).join(' + ')}
         </p>
+        <div className="mt-4 flex justify-center">
+          <Commentator quip={reactionFor('finish', String(round))} variant="toast" />
+        </div>
       </header>
 
       <div className="mb-6 grid grid-cols-4 gap-2">
@@ -131,7 +138,9 @@ export function BurnBookScreen() {
             key={stat.label}
             className="rounded-2xl border border-white/8 bg-coal/60 py-3 text-center"
           >
-            <p className={`text-xl font-black ${stat.colour}`}>{stat.value}</p>
+            <p className={`text-xl font-black ${stat.colour}`}>
+              <CountUp value={stat.value} />
+            </p>
             <p className="mt-0.5 text-[9px] tracking-widest text-white/30 uppercase">
               {stat.label}
             </p>
@@ -156,7 +165,7 @@ export function BurnBookScreen() {
             >
               <div className="flex items-start gap-3">
                 <span
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/8 ${verdict.accent}`}
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border bg-white/8 ${playerPalette(i).border} ${verdict.accent}`}
                 >
                   <Icon size={19} />
                 </span>
@@ -169,9 +178,9 @@ export function BurnBookScreen() {
                   </p>
                   <p className="text-[11px] text-white/45">{verdict.blurb}</p>
                   <p className="mt-1.5 text-[10px] font-bold text-white/30">
-                    <span className="text-neon-green">{player.brave}</span> brave &middot;{' '}
-                    <span className="text-neon-red">{player.coward}</span> skipped &middot;{' '}
-                    <span className="text-neon-amber">{player.daresCompleted}</span> dares
+                    <CountUp value={player.brave} className="text-neon-green" /> brave &middot;{' '}
+                    <CountUp value={player.coward} className="text-neon-red" /> skipped &middot;{' '}
+                    <CountUp value={player.daresCompleted} className="text-neon-amber" /> dares
                   </p>
                 </div>
               </div>

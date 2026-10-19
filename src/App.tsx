@@ -1,4 +1,5 @@
 import { motion } from 'motion/react'
+import { ArcadeBackdrop } from './components/ArcadeBackdrop'
 import { BurnBookScreen } from './screens/BurnBookScreen'
 import { GameScreen } from './screens/GameScreen'
 import { NextUpScreen } from './screens/NextUpScreen'
@@ -14,6 +15,7 @@ export default function App() {
 
   return (
     <div className="min-h-full">
+      <ArcadeBackdrop />
       {/*
         Keyed on `phase` so each screen animates in on mount. Deliberately NOT
         wrapped in AnimatePresence: `mode="wait"` holds the old screen on screen

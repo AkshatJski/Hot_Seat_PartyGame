@@ -1,4 +1,7 @@
 import { motion } from 'motion/react'
+import { Commentator } from '../components/Commentator'
+import { reactionFor } from '../data/commentary'
+import { playerPalette } from '../data/playerColors'
 import { useGameStore, selectCurrentPlayer } from '../store/gameStore'
 
 export function TurnIntroScreen() {
@@ -7,10 +10,14 @@ export function TurnIntroScreen() {
   const beginClassicTurn = useGameStore((s) => s.beginClassicTurn)
   const wildcard = useGameStore((s) => s.wildcard)
   const round = useGameStore((s) => s.round)
+  const turnIndex = useGameStore((s) => s.turnIndex)
 
   if (gameMode !== 'classic' || !currentPlayer) {
     return null
   }
+
+  const palette = playerPalette(turnIndex)
+  const quip = reactionFor('roundStart', `${turnIndex}:${round}`)
 
   const next = () => {
     beginClassicTurn()
@@ -28,8 +35,9 @@ export function TurnIntroScreen() {
           Classic Circle · Round {round}
         </div>
         <h1 className="text-4xl font-black leading-tight">
-          It's <span className="text-neon-purple">{currentPlayer.name}</span>'s turn
+          It's <span className={palette.text}>{currentPlayer.name}</span>'s turn
         </h1>
+        <Commentator quip={quip} variant="toast" />
         <p className="text-sm text-white/60">Hand the phone to them.</p>
 
         {wildcard && (
