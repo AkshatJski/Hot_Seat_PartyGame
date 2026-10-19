@@ -76,6 +76,8 @@ export function GameScreen() {
   const players = useGameStore((s) => s.players)
   const turnIndex = useGameStore((s) => s.turnIndex)
   const round = useGameStore((s) => s.round)
+  const gameMode = useGameStore((s) => s.gameMode)
+  const wildcard = useGameStore((s) => s.wildcard)
   const currentQuestion = useGameStore((s) => s.currentQuestion)
   const pendingDare = useGameStore((s) => s.pendingDare)
   const flipped = useGameStore((s) => s.flipped)
@@ -180,6 +182,13 @@ export function GameScreen() {
       <div className="mb-5">
         <PlayerRail players={players} turnIndex={turnIndex} />
       </div>
+
+      {gameMode === 'classic' && wildcard && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-neon-amber/25 bg-neon-amber/8 px-3 py-2">
+          <span className="text-[9px] font-bold tracking-widest text-neon-amber uppercase">Wildcard</span>
+          <span className="text-[11px] leading-snug text-white/70">{wildcard}</span>
+        </div>
+      )}
 
       <div className="relative flex flex-1 items-center justify-center">
         {showVerdict ? (

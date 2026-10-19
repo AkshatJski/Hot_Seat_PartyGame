@@ -9,6 +9,7 @@ import {
   questionsFor,
 } from '../data/decks'
 import type { Dare, DeckId, GamePhase, Intensity, Player, Question } from '../types'
+import { pickWildcard } from '../data/wildcards'
 
 /**
  * Where a turn currently is.
@@ -45,6 +46,8 @@ export interface GameStore {
   turnsTaken: Record<string, number>
   roundsPerPlayer: number | null
   classicStage: 'intro' | 'choice' | 'playing' | 'nextup' | null
+  /** Classic Circle only. The modifier drawn for the current round. */
+  wildcard: string | null
   currentQuestion: Question | null
   pendingDare: Dare | null
   pendingIsCallOut: boolean
@@ -69,7 +72,7 @@ export interface GameStore {
   // Classic Circle
   beginClassicTurn: () => void
   classicChooseTruth: () => void
-  classicRefuseTruth: () => void
+  classicChooseDare: () => void
   classicNextUp: () => void
 }
 
@@ -86,11 +89,19 @@ interface PersistedSlice {
   turnOrder: string[]
   turnsTaken: Record<string, number>
   roundsPerPlayer: number | null
+  wildcard: string | null
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10)
 
 const RECENT_LIMIT = 6
+
+/**
+ * Classic Circle: truths taken in a row before a dare is forced. Picking DARE
+ * is always free — this counter is what keeps the mode from becoming an endless
+ * truth-only loop, instead of taxing the (perfectly valid) dare choice.
+ */
+export const TRUTH_STREAK_LIMIT = 3
 
 function makePlayer(name: string): Player {
   return {
@@ -100,6 +111,7 @@ function makePlayer(name: string): Player {
     coward: 0,
     daresCompleted: 0,
     callOutsMade: 0,
+    truthStreak: 0,
     /** Highest intensity question this player actually answered. */
     deepestAnswered: 1,
     /** Highest intensity dare this player actually performed. */
@@ -161,7 +173,7 @@ export const useGameStore = create<GameStore>()(
           set({
             turnIndex: next,
             turnsTaken: nextTurnsTaken,
-            ...(wrapped ? { round: round + 1 } : {}),
+            ...(wrapped ? { round: round + 1, wildcard: pickWildcard(get().wildcard) } : {}),
             classicStage: 'nextup',
             ...blankTurn(),
           })
@@ -213,24 +225,42 @@ export const useGameStore = create<GameStore>()(
         turnsTaken: {},
         roundsPerPlayer: null,
         classicStage: null,
+        wildcard: null,
 
         currentQuestion: null,
         beginClassicTurn: () => set({ classicStage: 'choice' }),
         classicChooseTruth: () => {
-          const { gameMode } = get()
-          if (gameMode !== 'classic') return
-          set({ classicStage: 'playing' })
-          get().drawQuestion()
-        },
-        classicRefuseTruth: () => {
           const { gameMode, players, turnIndex } = get()
           if (gameMode !== 'classic' || !players[turnIndex]) return
           const player = players[turnIndex]
+          // Guard the streak here too, not just in the UI: three truths in a row
+          // makes a dare mandatory until a dare resets the counter.
+          if ((player.truthStreak ?? 0) >= TRUTH_STREAK_LIMIT) return
           set({
-            players: editPlayers(players, [{ id: player.id, fn: (p) => void (p.coward += 1) }]),
+            players: editPlayers(players, [
+              { id: player.id, fn: (p) => void (p.truthStreak = (p.truthStreak ?? 0) + 1) },
+            ]),
+            classicStage: 'playing',
           })
-          get().skip()
-          set({ classicStage: 'playing' })
+          get().drawQuestion()
+        },
+        classicChooseDare: () => {
+          const { gameMode, players, turnIndex } = get()
+          if (gameMode !== 'classic' || !players[turnIndex]) return
+          const player = players[turnIndex]
+          // Choosing a dare is FREE — no Coward penalty. Taking a dare resets
+          // the truth streak.
+          set({
+            players: editPlayers(players, [{ id: player.id, fn: (p) => void (p.truthStreak = 0) }]),
+            classicStage: 'playing',
+          })
+          if (!drawDare(false)) {
+            // No dares in the chosen decks — deal a question instead so the turn
+            // still resolves rather than dead-ending.
+            get().drawQuestion()
+            return
+          }
+          set({ stage: 'dare', banner: 'Dare revealed — hit Done when finished.' })
         },
         classicNextUp: () => {
           const { gameMode } = get()
@@ -268,6 +298,7 @@ export const useGameStore = create<GameStore>()(
             turnsTaken: {},
             roundsPerPlayer,
             classicStage: gameMode === 'classic' ? 'intro' : null,
+            wildcard: gameMode === 'classic' ? pickWildcard() : null,
             ...blankTurn(),
           })
           if (gameMode === 'classic') {
@@ -316,13 +347,22 @@ export const useGameStore = create<GameStore>()(
         },
 
         skip: () => {
-          const { players, turnIndex } = get()
+          const { players, turnIndex, gameMode } = get()
           const player = players[turnIndex]
           if (!player) return
-          // Count the chicken-out first: the tier reflects the skip just made.
+          // Free Play counts the chicken-out (the tier reflects the skip just made).
+          // Classic treats taking a dare as a legitimate, FREE choice — so it only
+          // resets the truth streak instead of taxing Coward.
+          const classic = gameMode === 'classic'
           set({
             players: editPlayers(players, [
-              { id: player.id, fn: (p) => void (p.coward += 1) },
+              {
+                id: player.id,
+                fn: (p) => {
+                  if (classic) p.truthStreak = 0
+                  else p.coward += 1
+                },
+              },
             ]),
           })
           if (!drawDare(false)) {
@@ -422,6 +462,7 @@ export const useGameStore = create<GameStore>()(
             turnsTaken: {},
             roundsPerPlayer: null,
             classicStage: null,
+            wildcard: null,
             ...blankTurn(),
           }),
 
@@ -448,6 +489,7 @@ export const useGameStore = create<GameStore>()(
         turnOrder: s.turnOrder,
         turnsTaken: s.turnsTaken,
         roundsPerPlayer: s.roundsPerPlayer,
+        wildcard: s.wildcard,
       }),
       merge: (persisted, current) => {
         const p = persisted as PersistedSlice | undefined
@@ -459,7 +501,7 @@ export const useGameStore = create<GameStore>()(
         return {
           ...current,
           phase: 'playing' as GamePhase,
-          players: p.players ?? [],
+          players: (p.players ?? []).map((pl) => ({ ...pl, truthStreak: pl.truthStreak ?? 0 })),
           deckIds: p.deckIds ?? [],
           turnIndex: p.turnIndex ?? 0,
           round: p.round ?? 1,
@@ -468,6 +510,7 @@ export const useGameStore = create<GameStore>()(
           turnOrder: p.turnOrder ?? [],
           turnsTaken: p.turnsTaken ?? {},
           roundsPerPlayer: p.roundsPerPlayer ?? null,
+          wildcard: p.wildcard ?? null,
         }
       },
     },
@@ -492,3 +535,7 @@ export const selectAwaitingDare = (s: GameStore): boolean =>
 
 export const selectShowVerdict = (s: GameStore): boolean =>
   s.stage === 'calloutVerdict'
+
+/** Classic Circle: truths left before a dare is forced (0 → must dare now). */
+export const selectTruthsLeft = (s: GameStore): number =>
+  Math.max(0, TRUTH_STREAK_LIMIT - (s.players[s.turnIndex]?.truthStreak ?? 0))

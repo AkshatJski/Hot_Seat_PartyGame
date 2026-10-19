@@ -42,6 +42,12 @@ export interface Player {
   coward: number
   daresCompleted: number
   callOutsMade: number
+  /**
+   * Classic Circle only. Consecutive truths taken without a dare in between.
+   * At TRUTH_STREAK_LIMIT the player must take a dare; any dare resets it to 0.
+   * Optional so older persisted games rehydrate cleanly (read via `?? 0`).
+   */
+  truthStreak?: number
   /** Highest question intensity this player actually answered. Feeds "Most Exposed". */
   deepestAnswered: Intensity
   /** Highest dare intensity this player actually performed. Feeds "Menace to Society". */

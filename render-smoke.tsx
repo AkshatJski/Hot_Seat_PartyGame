@@ -339,6 +339,116 @@ await flush(600)
 check('phase is setup', store().phase === 'setup')
 check('setup screen back', container.innerHTML.includes('Start the game'))
 
+// ---------------------------------------------------------------------------
+// Classic Circle. This flow shipped once with a dead "Start Turn" button and a
+// hooks-order crash, so it gets its own end-to-end pass: intro -> choice ->
+// play -> next-up, the free-dare rule, and the 3-truths-in-a-row lock.
+// ---------------------------------------------------------------------------
+console.log('\nclassic circle: turn flow, free dares, truth-streak lock, wildcard')
+
+/** Drive exactly one full Classic turn for whoever is currently up. */
+async function classicTurn(choice: 'truth' | 'dare') {
+  await act(async () => {
+    store().classicNextUp() // no-op at the very first turn; routes next-up -> intro otherwise
+  })
+  await flush()
+  await act(async () => {
+    store().beginClassicTurn()
+  })
+  await flush()
+  await act(async () => {
+    if (choice === 'truth') store().classicChooseTruth()
+    else store().classicChooseDare()
+  })
+  await flush()
+  await act(async () => {
+    if (choice === 'truth') store().answer()
+    else store().completeDare()
+  })
+  await flush()
+  if (choice === 'truth') {
+    await act(async () => {
+      store().acceptCallOut()
+    })
+    await flush()
+  }
+}
+
+await act(async () => {
+  store().startGame(
+    [{ name: 'Ada' }, { name: 'Bo' }],
+    ['icebreakers', 'destroyers'],
+    { gameMode: 'classic', roundsPerPlayer: null },
+  )
+})
+await flush()
+check('classic game is playing', store().phase === 'playing')
+check('gameMode is classic', store().gameMode === 'classic')
+check('classic opens on the turn intro', store().classicStage === 'intro')
+check(
+  'a wildcard is drawn for the round',
+  typeof store().wildcard === 'string' && (store().wildcard ?? '').length > 0,
+)
+check('roundsPerPlayer defaults to null (pool-limited)', store().roundsPerPlayer === null)
+
+await act(async () => {
+  store().beginClassicTurn()
+})
+await flush()
+check('choice screen shown', store().classicStage === 'choice')
+check('Truth or Dare prompt rendered', container.innerHTML.includes('Truth or Dare'))
+
+const adaId = store().players[0]!.id
+const boId = store().players[1]!.id
+
+// Ada takes three truths in a row (her turns are 0, 2, 4); Bo takes dares to
+// reset nothing and to prove a dare is free.
+await classicTurn('truth')
+check('streak incremented to 1', store().players.find((p) => p.id === adaId)!.truthStreak === 1)
+check('turn passed to Bo', store().players[store().turnIndex]!.id === boId)
+await classicTurn('dare')
+check('dare choice charges no Coward', store().players.find((p) => p.id === boId)!.coward === 0)
+check('dare resets the streak', store().players.find((p) => p.id === boId)!.truthStreak === 0)
+await classicTurn('truth')
+await classicTurn('dare')
+await classicTurn('truth')
+check(
+  'Ada reached a 3-truth streak',
+  store().players.find((p) => p.id === adaId)!.truthStreak === 3,
+  `streak=${store().players.find((p) => p.id === adaId)!.truthStreak}`,
+)
+
+// Reach Ada's turn again and assert the lock is visible in the real UI.
+await classicTurn('dare')
+await act(async () => {
+  store().classicNextUp()
+})
+await flush()
+await act(async () => {
+  store().beginClassicTurn()
+})
+await flush()
+check('back on the choice screen for Ada', store().classicStage === 'choice' && store().players[store().turnIndex]!.id === adaId)
+check('UI announces the forced dare', container.innerHTML.includes('Dare is mandatory'))
+const truthBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+  (b.textContent ?? '').includes('TRUTH'),
+)
+check('TRUTH button is disabled', truthBtn?.hasAttribute('disabled') === true)
+const streakBeforeForcedDare = store().players.find((p) => p.id === adaId)!.truthStreak
+await act(async () => {
+  store().classicChooseTruth() // must be rejected by the store guard
+})
+await flush()
+check('store rejects a locked truth', store().players.find((p) => p.id === adaId)!.truthStreak === streakBeforeForcedDare)
+
+await act(async () => {
+  store().classicChooseDare()
+})
+await flush()
+check('forced dare charges no Coward', store().players.find((p) => p.id === adaId)!.coward === 0)
+check('forced dare resets the streak', store().players.find((p) => p.id === adaId)!.truthStreak === 0)
+check('forced dare loaded', store().pendingDare !== null)
+
 console.log('\nno react errors/warnings captured')
 const real = errors.filter((e) => !e.includes('persist middleware'))
 check(`zero console errors (got ${real.length})`, real.length === 0)
