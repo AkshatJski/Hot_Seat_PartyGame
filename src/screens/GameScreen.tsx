@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import {
-  ArrowLeft,
-  ArrowRight,
   Check,
   Flame,
   Gavel,
+  Minus,
+  RefreshCw,
   ShieldAlert,
   SkipForward,
 } from 'lucide-react'
@@ -14,6 +14,7 @@ import { Commentator } from '../components/Commentator'
 import { ConfettiBurst } from '../components/ConfettiBurst'
 import { reactionFor, type GameEvent } from '../data/commentary'
 import { playerPalette } from '../data/playerColors'
+import { dareTier } from '../data/decks'
 import {
   selectAwaitingDare,
   selectCanCallOut,
@@ -91,6 +92,9 @@ export function GameScreen() {
 
   const answer = useGameStore((s) => s.answer)
   const skip = useGameStore((s) => s.skip)
+  const reroll = useGameStore((s) => s.reroll)
+  const chickenOut = useGameStore((s) => s.chickenOut)
+  const rerollUsed = useGameStore((s) => s.rerollUsed)
   const completeDare = useGameStore((s) => s.completeDare)
   const callOut = useGameStore((s) => s.callOut)
   const acceptCallOut = useGameStore((s) => s.acceptCallOut)
@@ -325,11 +329,15 @@ export function GameScreen() {
         ))}
 
       {/* ---- Actions --------------------------------------------------------
-          There is deliberately NO Answer / Dare button pair. The card IS the
-          control: drag it right to answer, left to dare. The keyboard arrows
-          remain as the non-drag path (same `fire()` signal). What is left here
-          is only the actions that a swipe cannot express — confirming a dare,
-          the Call Out vote, and its verdict.
+          There is still deliberately NO Answer / Dare button pair. The card IS
+          the control: drag it right to answer, left to dare. The keyboard arrows
+          remain as the non-drag path (same `fire()` signal). What lives here is
+          only what a swipe cannot express:
+
+            - Reroll       — swap the card once per turn (question OR dare side)
+            - Chicken out  — refuse both, take a Coward point, end the turn
+            - Done         — confirm a dare
+            - Call Out     — the group's vote, and its verdict
 
           `showVerdict` must be checked explicitly. If it were allowed to fall
           through to the default branch, a queued `signal` would be consumed by
@@ -340,13 +348,34 @@ export function GameScreen() {
             verdict decides the turn
           </p>
         ) : awaitingDare ? (
-          <button
-            type="button"
-            onClick={completeDare}
-            className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-neon-green text-base font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
-          >
-            <Check size={19} /> Done
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={reroll}
+              disabled={rerollUsed}
+              title={rerollUsed ? 'Reroll already used this turn' : 'Swap this dare once'}
+              className={`flex h-14 items-center justify-center gap-2 rounded-2xl border-2 border-ink px-3 text-sm font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-40 disabled:shadow-pop-sm ${
+                rerollUsed ? 'bg-coal' : 'bg-neon-amber'
+              }`}
+            >
+              <RefreshCw size={17} /> Reroll
+            </button>
+            <button
+              type="button"
+              onClick={chickenOut}
+              title="Refuse the dare — costs a point and ends the turn"
+              className="flex h-14 items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-neon-red px-3 text-sm font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
+            >
+              <Minus size={17} /> Chicken out
+            </button>
+            <button
+              type="button"
+              onClick={completeDare}
+              className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-neon-green text-base font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
+            >
+              <Check size={19} /> Done
+            </button>
+          </>
         ) : stage === 'answered' ? (
           <>
             <button
@@ -365,26 +394,35 @@ export function GameScreen() {
             </button>
           </>
         ) : (
-          <div className="flex h-14 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl border-2 border-ink bg-panel shadow-pop-sm">
-            <span className="text-[9px] font-black tracking-[0.2em] text-dim uppercase">
-              Swipe the card
-            </span>
-            <span className="flex items-center gap-2 text-[11px] font-black tracking-widest uppercase">
-              <ArrowLeft size={14} className="text-neon-red" />
-              <span className="text-neon-red">Dare</span>
-              <span className="text-dim">&middot;</span>
-              <span className="text-neon-green">Answer</span>
-              <ArrowRight size={14} className="text-neon-green" />
-            </span>
-          </div>
+          <>
+            <button
+              type="button"
+              onClick={reroll}
+              disabled={rerollUsed}
+              title={rerollUsed ? 'Reroll already used this turn' : 'Swap this question once'}
+              className={`flex h-14 items-center justify-center gap-2 rounded-2xl border-2 border-ink px-4 text-sm font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-40 disabled:shadow-pop-sm ${
+                rerollUsed ? 'bg-coal' : 'bg-neon-amber'
+              }`}
+            >
+              <RefreshCw size={17} /> Reroll
+            </button>
+            <button
+              type="button"
+              onClick={chickenOut}
+              title="Refuse both the question and the dare — costs a point"
+              className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-neon-red text-sm font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
+            >
+              <Minus size={17} /> Chicken out &middot; &minus;1
+            </button>
+          </>
         )}
       </div>
 
       <div className="mt-3 flex items-center justify-center gap-4 text-[10px] font-bold tracking-widest text-dim uppercase">
         <span className="flex items-center gap-1">
-          <Flame size={10} /> tier {Math.min(3, 1 + Math.floor(player.coward / 2))}
+          <Flame size={10} /> tier {dareTier(player.flinchCount ?? 0)}
         </span>
-        {player.coward >= 4 && (
+        {(player.flinchCount ?? 0) >= 4 && (
           <span className="flex items-center gap-1 text-neon-red">
             <ShieldAlert size={10} /> on thin ice
           </span>

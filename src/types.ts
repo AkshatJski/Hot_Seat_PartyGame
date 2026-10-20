@@ -25,8 +25,16 @@ export interface Player {
   name: string
   /** Answers given. Cleared / reversed by a Call Out. */
   brave: number
-  /** Times swiped left. Drives the Coward Meter's dare tier. */
+  /** Times swiped left or chickened out. The visible Coward score on the rail. */
   coward: number
+  /**
+   * Hidden escalation counter. Separate from `coward` on purpose: taking a dare
+   * is now free (no Coward), so the *score* can no longer double as the
+   * difficulty driver. This only ever rises, and only chicken-outs feed it, so
+   * a chronic dodger still gets harder dares without the score changing shape.
+   * Deliberately NOT rendered on the player rail.
+   */
+  flinchCount: number
   daresCompleted: number
   /**
    * Times this player was called out by the group. Named `callOutsMade` before

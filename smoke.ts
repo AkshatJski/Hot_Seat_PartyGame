@@ -135,15 +135,63 @@ S().skip()
 check('stage is dare', S().stage === 'dare')
 check('a dare was loaded', S().pendingDare !== null)
 check('card is flipped', S().flipped === true)
-check('player B coward = 1', S().players[1].coward === 1)
+check('taking a dare charges NO coward point', S().players[1].coward === 0, `got ${S().players[1].coward}`)
+check('taking a dare leaves the tier alone', S().players[1].flinchCount === 0, `got ${S().players[1].flinchCount}`)
 check('B answerStreak reset by skip', S().players[1].answerStreak === 0, `got ${S().players[1].answerStreak}`)
 check('not a call-out dare', S().pendingIsCallOut === false)
+
+console.log('\nreroll a DARE (once per turn)')
+const dareBeforeReroll = S().pendingDare!.id
+check('reroll not yet used this turn', S().rerollUsed === false)
+S().reroll()
+check('dare actually changed', S().pendingDare!.id !== dareBeforeReroll, `still ${dareBeforeReroll}`)
+check('reroll now marked used', S().rerollUsed === true)
+check('still on the dare stage', S().stage === 'dare')
+const dareAfterReroll = S().pendingDare!.id
+S().reroll()
+check('second dare reroll is refused', S().pendingDare!.id === dareAfterReroll, 'reroll must be once per turn')
+
 S().completeDare()
 check('B daresCompleted = 1', S().players[1].daresCompleted === 1)
 check('advanced to player C', S().turnIndex === 2)
+check('reroll resets for the new turn', S().rerollUsed === false)
+
+console.log('\nreroll a QUESTION (once per turn)')
+const qBeforeReroll = S().currentQuestion!.id
+const cardsLeftBefore = S().pool.length - S().poolIndex
+S().reroll()
+check('question actually changed', S().currentQuestion!.id !== qBeforeReroll, `still ${qBeforeReroll}`)
+check('exactly one card consumed by the reroll', S().pool.length - S().poolIndex === cardsLeftBefore - 1)
+check('reroll did NOT score an answer', S().players[2].brave === 0, `brave=${S().players[2].brave}`)
+check('reroll did NOT charge a coward point', S().players[2].coward === 0, `coward=${S().players[2].coward}`)
+check('reroll did NOT advance the turn', S().turnIndex === 2)
+check('still on the question stage', S().stage === 'question')
+check('card is not flipped', S().flipped === false)
+const qAfterReroll = S().currentQuestion!.id
+S().reroll()
+check('second question reroll is refused', S().currentQuestion!.id === qAfterReroll, 'reroll must be once per turn')
+
+console.log('\nchicken out (refuse both, take a point, no dare)')
+const cowardBefore = S().players[2].coward
+const answerStreakBefore = S().players[2].answerStreak
+const daresDoneBefore = S().players[2].daresCompleted
+S().chickenOut()
+check('player C took a coward point', S().players[2].coward === cowardBefore + 1, `got ${S().players[2].coward}`)
+check('chicken out drew NO dare', S().players[2].daresCompleted === daresDoneBefore)
+check('chicken out reset the answer streak', S().players[2].answerStreak === 0, `was ${answerStreakBefore}`)
+check('chicken out ended the turn', S().turnIndex === 0, `turnIndex=${S().turnIndex}`)
+check('a fresh question was dealt', S().currentQuestion !== null)
+check('a coward point raises the dare tier', dareTier(S().players[2].coward) >= 1)
+check('reroll available again next turn', S().rerollUsed === false)
+
+console.log('\nrestore a known state for the Call Out tests')
+// The chicken-out above left the game on player A's turn. Put player C back on
+// turn and answer a fresh card, so the Call Out assertions below start from a
+// clean `answered` stage.
+useGameStore.setState({ turnIndex: 2 })
+S().answer()
 
 console.log('\nCALL OUT on an answered question')
-S().answer()
 check('C brave = 1', S().players[2].brave === 1)
 S().callOut()
 check('stage is callout', S().stage === 'callout')
@@ -180,16 +228,37 @@ if (turnBefore === lastIndex) {
   check('round unchanged mid-cycle', S().round === roundBefore, `round=${S().round}`)
 }
 
-console.log('\nescalation: coward meter drives dare tier')
+console.log('\nescalation: the hidden flinch counter drives dare tier')
 const s = S()
 const victim = s.players[1]
 useGameStore.setState({
-  players: s.players.map((p) => (p.id === victim.id ? { ...p, coward: 6 } : p)),
+  players: s.players.map((p) => (p.id === victim.id ? { ...p, flinchCount: 6 } : p)),
 })
 useGameStore.setState({ turnIndex: 1 })
 S().skip()
-check('player at 7 cowards still gets a dare', S().pendingDare !== null)
+check('player with 6 flinches still gets a dare', S().pendingDare !== null)
 check('that dare is max intensity (tier 3)', S().pendingDare?.intensity === 3, `got intensity ${S().pendingDare?.intensity}`)
+check('the visible coward score stays 0', S().players[1].coward === 0, `got ${S().players[1].coward}`)
+
+console.log('\nchicken out is the ONLY thing that raises the tier')
+S().restart()
+S().startGame([{ name: 'A' }, { name: 'B' }])
+S().skip()
+check('swipe-left left flinchCount at 0', S().players[0].flinchCount === 0, `got ${S().players[0].flinchCount}`)
+S().chickenOut()
+check('chicken out floored coward at 0 then added 1', S().players[0].coward === 1, `got ${S().players[0].coward}`)
+check('chicken out raised flinchCount to 1', S().players[0].flinchCount === 1, `got ${S().players[0].flinchCount}`)
+const daresDoneBeforeChicken = S().players[0].daresCompleted
+// Chicken out ends the turn, so step back onto player A and drive them to the
+// dare stage to prove the dare-stage path works for the SAME counter.
+S().turnIndex = 0
+useGameStore.setState({ turnIndex: 0 })
+S().skip()
+const flinchBeforeDareChicken = S().players[0].flinchCount
+check('swipe-left again still adds no flinch', flinchBeforeDareChicken === 1, `got ${flinchBeforeDareChicken}`)
+S().chickenOut()
+check('chicken out on the DARE stage still works', S().players[0].flinchCount === flinchBeforeDareChicken + 1, `got ${S().players[0].flinchCount}`)
+check('abandoning a dare earns no completion credit', S().players[0].daresCompleted === daresDoneBeforeChicken)
 
 console.log('\nplay to exhaustion -> burn book')
 S().restart()

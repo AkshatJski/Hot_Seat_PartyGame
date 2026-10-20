@@ -55,12 +55,20 @@ export interface GameStore {
   lastAnsweredText: string | null
   recentDareIds: string[]
   banner: string | null
+  /**
+   * One reroll per turn, covering BOTH sides of the card: on the question side
+   * it re-deals a fresh question, on the dare side it re-picks a dare. Reset by
+   * `blankTurn()`, so every new turn gets its single reroll back.
+   */
+  rerollUsed: boolean
 
   // ---- actions --------------------------------------------------------------
   startGame: (names: NewPlayer[], options?: { gameMode?: 'free' | 'classic'; roundsPerPlayer?: number | null }) => void
   drawQuestion: () => void
   answer: () => void
   skip: () => void
+  reroll: () => void
+  chickenOut: () => void
   completeDare: () => void
   callOut: () => void
   acceptCallOut: () => void
@@ -107,6 +115,7 @@ function makePlayer(name: string): Player {
     name: name.trim().slice(0, 18),
     brave: 0,
     coward: 0,
+    flinchCount: 0,
     daresCompleted: 0,
     timesCalledOut: 0,
     falseAccusations: 0,
@@ -144,6 +153,7 @@ function blankTurn() {
     pendingIsCallOut: false,
     flipped: false,
     stage: 'question' as TurnStage,
+    rerollUsed: false,
   }
 }
 
@@ -197,9 +207,10 @@ export const useGameStore = create<GameStore>()(
         const { players, turnIndex, recentDareIds } = get()
         const player = players[turnIndex]
         if (!player) return false
-        // Reads the *current* coward count, so a skip already counted above
-        // escalates this dare's difficulty tier immediately.
-        const tier = dareTier(player.coward)
+        // Reads the *current* flinch count, so a chicken-out already counted
+        // above escalates this dare's difficulty tier immediately. Dares are
+        // free to take now, so the visible `coward` score no longer drives this.
+        const tier = dareTier(player.flinchCount)
         const pool = isCallOut ? ALL_CALL_OUT_DARES : ALL_DARES
         const dare = pickDare(pool, tier, recentDareIds)
         if (!dare) return false
@@ -277,6 +288,7 @@ turnIndex: 0,
         lastAnsweredText: null,
         recentDareIds: [],
         banner: null,
+        rerollUsed: false,
 
         startGame: (names, options) => {
           const gameMode = options?.gameMode ?? 'free'
@@ -352,9 +364,10 @@ turnIndex: 0,
           const { players, turnIndex, gameMode } = get()
           const player = players[turnIndex]
           if (!player) return
-          // Free Play counts the chicken-out (the tier reflects the skip just made).
-          // Classic treats taking a dare as a legitimate, FREE choice — so it only
-          // resets the truth streak instead of taxing Coward.
+          // Taking a dare is now FREE in both modes — it is the *incentive*. The
+          // harsher chicken-out is what costs a point, so the app rewards doing
+          // something over refusing everything. Classic still just resets the
+          // truth streak, same as before.
           const classic = gameMode === 'classic'
           set({
             players: editPlayers(players, [
@@ -362,7 +375,6 @@ turnIndex: 0,
                 id: player.id,
                 fn: (p) => {
                   if (classic) p.truthStreak = 0
-                  else p.coward += 1
                   p.answerStreak = 0
                 },
               },
@@ -375,6 +387,87 @@ turnIndex: 0,
             return
           }
           set({ stage: 'dare', banner: 'Skipped! Dare revealed — hit Done when finished.' })
+        },
+
+        /**
+         * One reroll per turn, on either side of the card.
+         *
+         * Question side: swap in the next card from the shuffled queue WITHOUT
+         * counting as an answer or a skip, and without re-advancing the turn. The
+         * consumed card is genuinely discarded (the queue is the "cards run out =
+         * game over" mechanism) so rerolling shortens the game slightly.
+         *
+         * Dare side: re-pick from the dare pool, skipping the dare currently shown
+         * and the recent ones, so a reroll never lands on the same card. Dares are
+         * not consumed from the queue, so this one is free.
+         */
+        reroll: () => {
+          const { rerollUsed, stage, pool, poolIndex } = get()
+          if (rerollUsed) return
+
+          if (stage === 'dare') {
+            const { players, turnIndex, recentDareIds, pendingDare, pendingIsCallOut } = get()
+            const player = players[turnIndex]
+            if (!player || !pendingDare) return
+            const tier = dareTier(player.flinchCount)
+            const source = pendingIsCallOut ? ALL_CALL_OUT_DARES : ALL_DARES
+            // Exclude the dare on screen as well as the recent list, so the reroll
+            // visibly changes the card instead of silently re-dealing it.
+            const dare = pickDare(source, tier, [pendingDare.id, ...recentDareIds])
+            if (!dare) return
+            set({
+              pendingDare: dare,
+              recentDareIds: [dare.id, ...recentDareIds].slice(0, RECENT_LIMIT),
+              rerollUsed: true,
+              banner: 'Rerolled — last one for this turn.',
+            })
+            return
+          }
+
+          if (stage !== 'question') return
+          if (poolIndex >= pool.length) return
+          const next = pool[poolIndex]
+          if (!next) return
+          set({
+            currentQuestion: next,
+            poolIndex: poolIndex + 1,
+            flipped: false,
+            pendingDare: null,
+            rerollUsed: true,
+            banner: 'Rerolled — last one for this turn.',
+          })
+        },
+
+        /**
+         * Chicken out: refuse BOTH the question and the dare. This is the harsher
+         * exit than a swipe-left (which is now free) — it costs a Coward point and
+         * ends the turn immediately, with no dare drawn.
+         *
+         * Works on the question AND dare stage (Option A): abandoning a dare you
+         * refuse to do simply ends the turn; it earns no dare-completion credit.
+         *
+         * It increments `flinchCount` as well as `coward`. `coward` is the visible
+         * score; `flinchCount` is the hidden difficulty driver, so dodging
+         * repeatedly still escalates future dares even though the score shape
+         * changed when taking a dare became free.
+         */
+        chickenOut: () => {
+          const { players, turnIndex } = get()
+          const player = players[turnIndex]
+          if (!player) return
+          set({
+            players: editPlayers(players, [
+              {
+                id: player.id,
+                fn: (p) => {
+                  p.coward += 1
+                  p.flinchCount += 1
+                  p.answerStreak = 0
+                },
+              },
+            ]),
+          })
+          advanceTurn()
         },
 
         completeDare: () => {
@@ -517,6 +610,9 @@ turnIndex: 0,
               bestStreak: legacy.bestStreak ?? 0,
               answerStreak: legacy.answerStreak ?? 0,
               truthStreak: legacy.truthStreak ?? 0,
+              // Games saved before this field existed: seed the hidden escalator
+              // from the old visible counter, which is what used to drive it.
+              flinchCount: legacy.flinchCount ?? pl.coward ?? 0,
             }
           }),
           turnIndex: p.turnIndex ?? 0,
@@ -539,7 +635,7 @@ export const selectCurrentPlayer = (s: GameStore): Player | undefined =>
   s.players[s.turnIndex]
 
 export const selectCurrentDareTier = (s: GameStore): Intensity =>
-  dareTier(s.players[s.turnIndex]?.coward ?? 0)
+  dareTier(s.players[s.turnIndex]?.flinchCount ?? 0)
 
 export const selectCardsLeft = (s: GameStore): number =>
   Math.max(0, s.pool.length - s.poolIndex)

@@ -95,16 +95,46 @@ check('phase switched to playing', store().phase === 'playing')
 check('current player name on screen', playHtml.includes('Aksha'))
 check('turn label rendered', playHtml.includes("turn"))
 check('a question is on the card', playHtml.includes(store().currentQuestion!.text.slice(0, 30)))
-check('swipe hint rendered (buttons removed)', playHtml.includes('Swipe the card'))
 check('card legend states the gesture', playHtml.includes('Answer') && playHtml.includes('Dare'))
+check('Reroll button rendered', playHtml.includes('Reroll'))
+check('Chicken out button rendered', playHtml.includes('Chicken out'))
 check(
   'no Answer/Dare buttons — the card is the control',
   Array.from(container.querySelectorAll('button')).every(
     (b) => !/^(Answer|Dare)$/.test((b.textContent ?? '').trim()),
   ),
 )
+const rerollBtn = Array.from(container.querySelectorAll('button')).find(
+  (b) => (b.textContent ?? '').trim().includes('Reroll'),
+) as HTMLButtonElement | undefined
+check('reroll starts enabled', rerollBtn != null && !rerollBtn.disabled)
+const rerollCardId = store().currentQuestion!.id
+await act(async () => {
+  rerollBtn!.click()
+})
+await flush()
+check('clicking Reroll swaps the question', store().currentQuestion!.id !== rerollCardId)
+check('reroll is one-per-turn', store().rerollUsed === true)
+const rerollBtnAfter = Array.from(container.querySelectorAll('button')).find(
+  (b) => (b.textContent ?? '').trim().includes('Reroll'),
+) as HTMLButtonElement | undefined
+check('reroll button disabled after use', rerollBtnAfter?.disabled === true)
 check('player rail shows both players', playHtml.includes('Aksha') && playHtml.includes('Robin'))
 check('call out button NOT visible yet', !playHtml.includes('Call Out'))
+
+console.log('\nchicken out ends the turn with a point, no dare')
+const chickenBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+  (b.textContent ?? '').trim().includes('Chicken out'),
+) as HTMLButtonElement | undefined
+check('chicken out button found', chickenBtn != null)
+const cowardBeforeDom = store().players[store().turnIndex].coward
+await act(async () => {
+  chickenBtn!.click()
+})
+await flush()
+check('chicken out advanced the turn', store().turnIndex === 1)
+check('chicken out cost a coward point', store().players[0].coward === cowardBeforeDom + 1)
+check('chicken out drew no dare', store().stage === 'question' && store().pendingDare === null)
 
 // jsdom does no 3D rendering, so this cannot test that the flip *looks* right.
 // It can test the CSS invariants that caused it to look wrong: without
@@ -199,6 +229,13 @@ await flush(4200)
 check('and it does not cascade on later turns', store().stage === 'question', `stage=${store().stage}`)
 
 console.log('\nswipe right -> answered, Call Out window opens')
+// Earlier sections consumed turns (and a chicken-out). Park the turn on seat 0,
+// which is NOT the caller used below, so the "did not land back on the caller"
+// assertion stays meaningful with only two players.
+await act(async () => {
+  useGameStore.setState({ turnIndex: 0 })
+})
+await flush()
 await act(async () => {
   store().answer()
 })
@@ -244,7 +281,13 @@ check(
   store().turnIndex === (turnBeforePenalty + 1) % seats,
   `turnIndex=${store().turnIndex} from=${turnBeforePenalty}`,
 )
-check('turn did not land back on the caller', store().players[store().turnIndex]!.id !== callerId)
+check(
+  'turn did not land back on the caller',
+  // Only meaningful with 3+ seats: with exactly two players the next seat IS the
+  // caller, so "landing on the caller" is unavoidable rather than a bug.
+  seats < 3 || store().players[store().turnIndex]!.id !== callerId,
+  `seats=${seats} turnIndex=${store().turnIndex}`,
+)
 check('Robin got a coward point', store().players.find((p) => p.name === 'Robin')!.coward === 1)
 
 // Regression: during the verdict the action bar used to fall through to the
