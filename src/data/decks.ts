@@ -1,128 +1,29 @@
-import type {
-  CallOutDare,
-  Dare,
-  Deck,
-  DeckId,
-  Intensity,
-  Question,
-} from '../types'
-import { destroyerCallOuts, destroyerDares, destroyerQuestions } from './destroyers'
-import { icebreakerCallOuts, icebreakerDares, icebreakerQuestions } from './icebreakers'
-import { spicyCallOuts, spicyDares, spicyQuestions } from './spicy'
-import { unhingedCallOuts, unhingedDares, unhingedQuestions } from './unhinged'
-import { confessionCallOuts, confessionDares, confessionQuestions } from './confessions'
-import { dilemmaCallOuts, dilemmaDares, dilemmaQuestions } from './dilemmas'
-import { chaosCallOuts, chaosDares, chaosQuestions } from './chaos'
+import type { CallOutDare, Dare, Intensity, Question } from '../types'
+import { QUESTIONS } from './questions'
+import { DARES, CALL_OUT_DARES } from './dares'
 
 /**
- * CONTENT POLICY (agreed 2026-10-04)
- * - Questions carry the heat: spicy, philosophical, thought-provoking, funny.
+ * CONTENT POLICY (agreed 2026-10-04, restated 2026-10-19)
+ * - Questions carry the heat: funny, quirky, roasty.
  * - Dares are deliberately TAME: comedic, embarrassing, zero physical risk,
  *   zero humiliation of anyone outside the room. No "dark" tier of dare.
  * - Intensity on a dare is a difficulty hint for the player, not a risk level.
+ *
+ * Categories are gone. There is ONE flat question pool and ONE flat dare pool,
+ * dealt at random with no repeats until the pool runs dry.
  */
 
-export const DECKS: Deck[] = [
-  {
-    id: 'icebreakers',
-    label: 'Icebreakers',
-    blurb: 'Light, funny, observational. Safe for work.',
-    minAge: 0,
-  },
-  {
-    id: 'destroyers',
-    label: 'Friendship Destroyers',
-    blurb: 'Playful, chaotic, room-based roasting.',
-    minAge: 0,
-  },
-  {
-    id: 'spicy',
-    label: 'Spicy 18+',
-    blurb: 'The questions get real. Dares stay harmless.',
-    minAge: 18,
-  },
-  {
-    id: 'unhinged',
-    label: 'Unhinged',
-    blurb: 'Peak cursed energy. Pure unadulterated chaos.',
-    minAge: 0,
-  },
-  {
-    id: 'confessions',
-    label: 'Confessions',
-    blurb: 'Secrets, regret, and the things you never say out loud.',
-    minAge: 0,
-  },
-  {
-    id: 'dilemmas',
-    label: 'Would You Rather',
-    blurb: 'Impossible choices. Defend them out loud.',
-    minAge: 0,
-  },
-  {
-    id: 'chaos',
-    label: 'Chaos',
-    blurb: 'Absurd hypotheticals pointed at this exact group.',
-    minAge: 0,
-  },
-]
+export const ALL_QUESTIONS: Question[] = QUESTIONS
+export const ALL_DARES: Dare[] = DARES
+export const ALL_CALL_OUT_DARES: CallOutDare[] = CALL_OUT_DARES
 
-export const QUESTIONS: Question[] = [
-  ...icebreakerQuestions,
-  ...destroyerQuestions,
-  ...spicyQuestions,
-  ...unhingedQuestions,
-  ...confessionQuestions,
-  ...dilemmaQuestions,
-  ...chaosQuestions,
-]
-
-export const DARES: Dare[] = [
-  ...icebreakerDares,
-  ...destroyerDares,
-  ...spicyDares,
-  ...unhingedDares,
-  ...confessionDares,
-  ...dilemmaDares,
-  ...chaosDares,
-]
-
-export const CALL_OUT_DARES: CallOutDare[] = [
-  ...icebreakerCallOuts,
-  ...destroyerCallOuts,
-  ...spicyCallOuts,
-  ...unhingedCallOuts,
-  ...confessionCallOuts,
-  ...dilemmaCallOuts,
-  ...chaosCallOuts,
-]
-
-export function getDeck(id: DeckId): Deck {
-  const deck = DECKS.find((d) => d.id === id)
-  if (!deck) throw new Error(`Unknown deck: ${id}`)
-  return deck
-}
-
-export function deckLabel(id: DeckId): string {
-  return getDeck(id).label
-}
-
-function fromDecks<T extends { deck: DeckId }>(all: T[], ids: DeckId[]): T[] {
-  if (ids.length === 0) return []
-  const set = new Set(ids)
-  return all.filter((item) => set.has(item.deck))
-}
-
-export function questionsFor(ids: DeckId[]): Question[] {
-  return fromDecks(QUESTIONS, ids)
-}
-
-export function daresFor(ids: DeckId[]): Dare[] {
-  return fromDecks(DARES, ids)
-}
-
-export function callOutDaresFor(ids: DeckId[]): CallOutDare[] {
-  return fromDecks(CALL_OUT_DARES, ids)
+/**
+ * The whole question pool, shuffled into a queue. The game ends when this queue
+ * runs dry ("play until cards run out"), which is also the natural
+ * anti-repetition mechanism — you can never see a card twice.
+ */
+export function buildQuestionQueue(): Question[] {
+  return shuffle(ALL_QUESTIONS)
 }
 
 /** Fisher-Yates. Returns a new array; does not mutate the input. */
@@ -133,15 +34,6 @@ export function shuffle<T>(items: readonly T[]): T[] {
     ;[out[i], out[j]] = [out[j], out[i]]
   }
   return out
-}
-
-/**
- * The whole question pool for the chosen decks, shuffled into a queue.
- * The game ends when this queue runs dry ("play until cards run out"), which is
- * also the natural anti-repetition mechanism — you can never see a card twice.
- */
-export function buildQuestionQueue(ids: DeckId[]): Question[] {
-  return shuffle(questionsFor(ids))
 }
 
 /**
@@ -177,10 +69,10 @@ export function pickDare<T extends Dare>(
   return usable[Math.floor(Math.random() * usable.length)]
 }
 
-export function contentCounts(ids: DeckId[]) {
+export function contentCounts() {
   return {
-    questions: questionsFor(ids).length,
-    dares: daresFor(ids).length,
-    callOuts: callOutDaresFor(ids).length,
+    questions: ALL_QUESTIONS.length,
+    dares: ALL_DARES.length,
+    callOuts: ALL_CALL_OUT_DARES.length,
   }
 }

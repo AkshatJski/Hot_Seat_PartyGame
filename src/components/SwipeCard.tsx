@@ -6,7 +6,7 @@ import {
   useTransform,
   type PanInfo,
 } from 'motion/react'
-import { Eye, Flame, ShieldAlert, Zap } from 'lucide-react'
+import { Flame, Zap } from 'lucide-react'
 import { quipForCard } from '../data/commentary'
 import { playerPalette, type PlayerPalette } from '../data/playerColors'
 import { Commentator } from './Commentator'
@@ -80,7 +80,6 @@ export function SwipeCard({
 
   const [locked, setLocked] = useState(false)
   const [celebrating, setCelebrating] = useState(false)
-  const [revealed, setRevealed] = useState(false)
   const flipStarted = useRef(flipped)
   const lockedRef = useRef(false)
   const lastSignal = useRef(0)
@@ -161,13 +160,11 @@ export function SwipeCard({
     onSwipe('left')
   }
 
-  const blurred = Boolean(question?.sensitive) && !revealed
   const cardKey = question?.id ?? 'callout'
 
   // The host's card quip hangs off the question's id, so it is stable for the
-  // life of the card and never re-rolls under the player's thumb. Null while the
-  // question is still blurred — no spoiling the punchline behind the 18+ cover.
-  const quip = question && !blurred ? quipForCard(question.id, question.deck) : null
+  // life of the card and never re-rolls under the player's thumb.
+  const quip = question ? quipForCard(question.id) : null
 
   return (
     <motion.div
@@ -215,34 +212,11 @@ export function SwipeCard({
             </span>
           </div>
 
-          {question?.sensitive && (
-            <span className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-lg border-2 border-ink bg-neon-red px-2.5 py-1 text-[10px] font-black tracking-widest text-ink uppercase shadow-pop-sm">
-              <ShieldAlert size={11} /> 18+
-            </span>
-          )}
 
-          <button
-            type="button"
-            onClick={() => setRevealed(true)}
-            disabled={!blurred}
-            className="relative mt-4 flex-1 text-left"
-          >
-            <p
-              className={`text-[26px] leading-[1.25] font-bold text-balance text-bone transition-[filter,opacity] duration-300 ${
-                blurred ? 'blur-[7px] opacity-60 select-none' : ''
-              }`}
-            >
-              {question?.text ?? 'Called out. Brave does not protect you here.'}
-            </p>
-            {blurred && (
-              <span className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                <Eye size={22} className="text-neon-red" />
-                <span className="rounded-lg border-2 border-ink bg-neon-red px-4 py-1.5 text-[11px] font-black tracking-widest text-ink uppercase shadow-pop-sm">
-                  Tap to reveal
-                </span>
-              </span>
-            )}
-          </button>
+
+          <p className="text-[26px] leading-[1.25] font-bold text-balance text-bone">
+            {question?.text ?? 'Called out. Brave does not protect you here.'}
+          </p>
 
           {quip && <Commentator quip={quip} />}
 

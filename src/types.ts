@@ -1,29 +1,16 @@
 /** 1 = light, 2 = spicy, 3 = philosophical / no-go-there-deep. */
 export type Intensity = 1 | 2 | 3
 
-export type DeckId =
-  | 'icebreakers'
-  | 'destroyers'
-  | 'spicy'
-  | 'unhinged'
-  | 'confessions'
-  | 'dilemmas'
-  | 'chaos'
-
 export type SwipeDirection = 'left' | 'right'
 
 export interface Question {
   id: string
-  deck: DeckId
   text: string
   intensity: Intensity
-  /** Front of the card stays blurred until tapped. Drives the per-card 18+ marker. */
-  sensitive: boolean
 }
 
 export interface Dare {
   id: string
-  deck: DeckId
   text: string
   intensity: Intensity
 }
@@ -63,13 +50,6 @@ export interface Player {
   deepestAnswered: Intensity
   /** Highest dare intensity this player actually performed. Feeds "The Reckless". */
   worstDare: Intensity
-}
-
-export interface Deck {
-  id: DeckId
-  label: string
-  blurb: string
-  minAge: 18 | 0
 }
 
 export type GamePhase = 'setup' | 'playing' | 'burnbook'

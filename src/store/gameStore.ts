@@ -1,14 +1,14 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import {
+  ALL_CALL_OUT_DARES,
+  ALL_DARES,
+  ALL_QUESTIONS,
   buildQuestionQueue,
-  callOutDaresFor,
   dareTier,
-  daresFor,
   pickDare,
-  questionsFor,
 } from '../data/decks'
-import type { Dare, DeckId, GamePhase, Intensity, Player, Question } from '../types'
+import type { Dare, GamePhase, Intensity, Player, Question } from '../types'
 import { pickWildcard } from '../data/wildcards'
 
 /**
@@ -33,10 +33,9 @@ export interface NewPlayer {
 export interface GameStore {
   phase: GamePhase
   players: Player[]
-  deckIds: DeckId[]
   turnIndex: number
   round: number
-  /** Shuffled question queue for the chosen decks. Ends the game when it runs dry. */
+  /** Shuffled question queue. Ends the game when it runs dry. */
   pool: Question[]
   poolIndex: number
 
@@ -58,7 +57,7 @@ export interface GameStore {
   banner: string | null
 
   // ---- actions --------------------------------------------------------------
-  startGame: (names: NewPlayer[], deckIds: DeckId[], options?: { gameMode?: 'free' | 'classic'; roundsPerPlayer?: number | null }) => void
+  startGame: (names: NewPlayer[], options?: { gameMode?: 'free' | 'classic'; roundsPerPlayer?: number | null }) => void
   drawQuestion: () => void
   answer: () => void
   skip: () => void
@@ -79,7 +78,6 @@ export interface GameStore {
 interface PersistedSlice {
   phase: GamePhase
   players: Player[]
-  deckIds: DeckId[]
   turnIndex: number
   round: number
   /** Only ids — the questions themselves are rehydrated from the content library. */
@@ -196,13 +194,13 @@ export const useGameStore = create<GameStore>()(
       }
 
       const drawDare = (isCallOut: boolean) => {
-        const { players, turnIndex, deckIds, recentDareIds } = get()
+        const { players, turnIndex, recentDareIds } = get()
         const player = players[turnIndex]
         if (!player) return false
         // Reads the *current* coward count, so a skip already counted above
         // escalates this dare's difficulty tier immediately.
         const tier = dareTier(player.coward)
-        const pool = isCallOut ? callOutDaresFor(deckIds) : daresFor(deckIds)
+        const pool = isCallOut ? ALL_CALL_OUT_DARES : ALL_DARES
         const dare = pickDare(pool, tier, recentDareIds)
         if (!dare) return false
         set({
@@ -217,8 +215,7 @@ export const useGameStore = create<GameStore>()(
       return {
         phase: 'setup',
         players: [],
-        deckIds: [],
-        turnIndex: 0,
+turnIndex: 0,
         round: 1,
         pool: [],
         poolIndex: 0,
@@ -281,7 +278,7 @@ export const useGameStore = create<GameStore>()(
         recentDareIds: [],
         banner: null,
 
-        startGame: (names, deckIds, options) => {
+        startGame: (names, options) => {
           const gameMode = options?.gameMode ?? 'free'
           const roundsPerPlayer = options?.roundsPerPlayer ?? null
           const players = names.map((n) => makePlayer(n.name))
@@ -289,10 +286,9 @@ export const useGameStore = create<GameStore>()(
           set({
             phase: 'playing',
             players,
-            deckIds,
             turnIndex: 0,
             round: 1,
-            pool: buildQuestionQueue(deckIds),
+            pool: buildQuestionQueue(),
             poolIndex: 0,
             recentDareIds: [],
             lastAnsweredText: null,
@@ -461,8 +457,7 @@ export const useGameStore = create<GameStore>()(
           set({
             phase: 'setup',
             players: [],
-            deckIds: [],
-            turnIndex: 0,
+        turnIndex: 0,
             round: 1,
             pool: [],
             poolIndex: 0,
@@ -491,7 +486,6 @@ export const useGameStore = create<GameStore>()(
       partialize: (s): PersistedSlice => ({
         phase: s.phase,
         players: s.players,
-        deckIds: s.deckIds,
         turnIndex: s.turnIndex,
         round: s.round,
         poolIds: s.pool.map((q) => q.id),
@@ -505,7 +499,7 @@ export const useGameStore = create<GameStore>()(
       merge: (persisted, current) => {
         const p = persisted as PersistedSlice | undefined
         if (!p || p.phase !== 'playing' || !Array.isArray(p.poolIds)) return current
-        const byId = new Map(questionsFor(p.deckIds).map((q) => [q.id, q]))
+        const byId = new Map(ALL_QUESTIONS.map((q) => [q.id, q]))
         const pool = p.poolIds
           .map((id) => byId.get(id))
           .filter((q): q is Question => Boolean(q))
@@ -525,7 +519,6 @@ export const useGameStore = create<GameStore>()(
               truthStreak: legacy.truthStreak ?? 0,
             }
           }),
-          deckIds: p.deckIds ?? [],
           turnIndex: p.turnIndex ?? 0,
           round: p.round ?? 1,
           pool,

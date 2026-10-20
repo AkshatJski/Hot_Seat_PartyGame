@@ -1,10 +1,8 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { AlertTriangle, ArrowRight, Flame, Plus, ShieldAlert, X } from 'lucide-react'
-import { contentCounts, DECKS } from '../data/decks'
+import { ArrowRight, Flame, Plus, X } from 'lucide-react'
 import { playerPalette } from '../data/playerColors'
 import { useGameStore } from '../store/gameStore'
-import type { DeckId } from '../types'
 
 const MAX_PLAYERS = 10
 
@@ -13,16 +11,11 @@ export function SetupScreen() {
 
   const [names, setNames] = useState<string[]>(['', ''])
   const [draft, setDraft] = useState('')
-  const [deckIds, setDeckIds] = useState<DeckId[]>(['icebreakers', 'destroyers'])
-  const [ageOk, setAgeOk] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [gameMode, setGameMode] = useState<'free' | 'classic'>('free')
   const roundsPerPlayer = null
 
   const cleaned = names.map((n) => n.trim()).filter(Boolean)
-  const wantsSpicy = deckIds.includes('spicy')
-  const spicyLocked = wantsSpicy && !ageOk
-  const counts = contentCounts(deckIds)
 
   function addName() {
     const value = draft.trim()
@@ -37,31 +30,12 @@ export function SetupScreen() {
     setError(null)
   }
 
-  function toggleDeck(id: DeckId) {
-    setDeckIds((prev) =>
-      prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id],
-    )
-    setError(null)
-  }
-
   function begin() {
     if (cleaned.length < 2) {
       setError('Add at least two players.')
       return
     }
-    if (deckIds.length === 0) {
-      setError('Pick at least one deck.')
-      return
-    }
-    if (spicyLocked) {
-      setError('Confirm the 18+ deck to continue.')
-      return
-    }
-    startGame(
-      cleaned.map((name) => ({ name })),
-      deckIds,
-      { gameMode, roundsPerPlayer },
-    )
+    startGame(cleaned.map((name) => ({ name })), { gameMode, roundsPerPlayer })
   }
 
   return (
@@ -172,83 +146,16 @@ export function SetupScreen() {
         )}
       </section>
 
-      {/* Decks -------------------------------------------------------------- */}
-      <section className="mb-7">
-        <h2 className="mb-3 text-[11px] font-black tracking-widest text-muted uppercase">
-          Decks <span className="text-dim normal-case">(pick any mix)</span>
-        </h2>
-
-        <div className="space-y-2">
-          {DECKS.map((deck) => {
-            const on = deckIds.includes(deck.id)
-            return (
-              <button
-                key={deck.id}
-                type="button"
-                onClick={() => toggleDeck(deck.id)}
-                className={`flex w-full items-start gap-3 rounded-2xl border-2 p-3.5 text-left transition ${
-                  on
-                    ? 'border-neon-purple bg-[#2b1b3f] shadow-pop-sm'
-                    : 'border-ink bg-panel'
-                }`}
-              >
-                <span
-                  className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 ${
-                    on ? 'border-ink bg-neon-purple' : 'border-hairline bg-coal'
-                  }`}
-                >
-                  {on && <span className="h-1.5 w-1.5 rounded-full bg-ink" />}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1.5 text-sm font-black">
-                    {deck.label}
-                    {deck.minAge === 18 && <ShieldAlert size={12} className="text-neon-red" />}
-                  </span>
-                  <span className="mt-0.5 block text-[11px] text-muted">{deck.blurb}</span>
-                </span>
-              </button>
-            )
-          })}
-        </div>
-
-        {wantsSpicy && (
-          <motion.button
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            type="button"
-            onClick={() => setAgeOk(!ageOk)}
-            className={`mt-3 flex w-full items-center gap-2.5 rounded-xl border-2 px-3 py-2.5 text-left text-[11px] font-black tracking-wide ${
-              ageOk
-                ? 'border-neon-red bg-[#3a0f1a] text-neon-red shadow-pop-sm'
-                : 'border-hairline bg-panel text-muted'
-            }`}
-          >
-            <AlertTriangle size={14} className="shrink-0" />
-            {ageOk
-              ? 'Confirmed — everyone here is 18 or over.'
-              : 'Everyone in this room is 18 or over.'}
-          </motion.button>
-        )}
-      </section>
-
       {error && <p className="mb-3 text-center text-xs font-black text-neon-red">{error}</p>}
 
       <button
         type="button"
         onClick={begin}
-        disabled={spicyLocked}
         className="mt-auto flex items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-neon-green py-4 text-base font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none disabled:opacity-30"
       >
         <Flame size={19} /> Start the game
         <ArrowRight size={19} />
       </button>
-
-      {deckIds.length > 0 && (
-        <p className="mt-3 text-center text-[10px] tracking-widest text-dim uppercase">
-          {counts.questions} questions &middot; {counts.dares} dares &middot;{' '}
-          {counts.callOuts} call-outs &middot; ends when cards run out
-        </p>
-      )}
 
       {names.length > 0 && cleaned.length > 0 && (
         <p className="mt-1 text-center text-[10px] text-dim">

@@ -1,5 +1,3 @@
-import type { DeckId } from '../types'
-
 /**
  * THE COMMENTATOR
  *
@@ -17,12 +15,10 @@ import type { DeckId } from '../types'
  * phone still. Hashing the card id / event seed keeps a line stable for the life
  * of whatever it is attached to.
  *
- * The pools are typed `Record<DeckId, …>` / `Record<GameEvent, …>` on purpose:
- * adding a deck or an event becomes a COMPILE ERROR until it has a voice.
- *
- * Every line carries a `mood`, which the UI turns into an emoji face and an
- * accent colour. Tone is deliberately playful, never cruel, and the Spicy pool
- * stays suggestive without being explicit — it does not raise the deck's heat.
+ * There is one flat quip pool (no categories now), plus one bark pool per game
+ * event. Every line carries a `mood`, which the UI turns into an emoji face and
+ * an accent colour. Tone is deliberately playful, never cruel — quips stay
+ * suggestive without being explicit.
  */
 export type Mood =
   | 'hype'
@@ -77,78 +73,56 @@ export const MOOD_BUBBLE: Record<Mood, string> = {
 const q = (text: string, mood: Mood): Quip => ({ text, mood })
 
 /** One-liners pinned under the card. Tone tracks the deck. */
-export const CARD_QUIPS: Record<DeckId, Quip[]> = {
-  icebreakers: [
-    q('Easy one. Too easy.', 'deadpan'),
-    q('Starters do not get softer than this.', 'deadpan'),
-    q('Answer like your mother is watching.', 'judgy'),
-    q('Low stakes. High judgement.', 'judgy'),
-    q('Warm-up lap. Do not pull a hamstring.', 'hype'),
-    q('You can tell a lot from this answer.', 'suspicious'),
-    q('Gentle. For now.', 'suspicious'),
-    q('This one is basically a handshake.', 'deadpan'),
-  ],
-  destroyers: [
-    q('Someone at this table is in trouble.', 'suspicious'),
-    q('Say it to their face. Coward.', 'judgy'),
-    q('This is how friendships end. Nicely.', 'deadpan'),
-    q('The room already knows the answer.', 'judgy'),
-    q('Name names. Go on.', 'hype'),
-    q('Ooh. Careful now.', 'sympathy'),
-    q('There is no safe answer here.', 'suspicious'),
-    q('Point at someone. We are watching.', 'judgy'),
-  ],
-  spicy: [
-    q('Careful. This one bites.', 'spicy'),
-    q('Oh, we are going there.', 'spicy'),
-    q('Answer honestly. Or lie very well.', 'judgy'),
-    q('Blushing is not an answer.', 'judgy'),
-    q('The room is listening very closely.', 'suspicious'),
-    q('Keep it clean. Ish.', 'spicy'),
-    q('Yikes. Good luck.', 'sympathy'),
-    q('No take-backs on this one.', 'deadpan'),
-  ],
-  unhinged: [
-    q('What is wrong with you people?', 'chaos'),
-    q('This is not a normal question.', 'chaos'),
-    q('Embrace the gremlin within.', 'chaos'),
-    q('There are no rules out here.', 'chaos'),
-    q('Answer it. Regret it later.', 'hype'),
-    q('I have lost control of this game.', 'chaos'),
-    q('Nothing about this makes sense.', 'deadpan'),
-    q('Yes. Obviously yes.', 'hype'),
-  ],
-  confessions: [
-    q('Ooh. That one is heavy.', 'sympathy'),
-    q('No wrong answers. Only honest ones.', 'sympathy'),
-    q('Deep breath. Go.', 'sympathy'),
-    q('The circle is bound by oath.', 'deadpan'),
-    q('You do not have to look at anyone.', 'sympathy'),
-    q('This is the good stuff.', 'hype'),
-    q('Admit it. You will feel better.', 'judgy'),
-    q('We all already assumed that.', 'deadpan'),
-  ],
-  dilemmas: [
-    q('No third option. Choose.', 'judgy'),
-    q('Both are bad. Pick your bad.', 'deadpan'),
-    q('Defend it out loud.', 'hype'),
-    q('The room judges your logic.', 'judgy'),
-    q('There is a right answer. Probably.', 'suspicious'),
-    q('Commit to one. No waffling.', 'judgy'),
-    q('Two doors. One choice.', 'deadpan'),
-    q('Explain yourself. Thoroughly.', 'judgy'),
-  ],
-  chaos: [
-    q('This one is about all of you.', 'hype'),
-    q('Whoever flinches first loses.', 'chaos'),
-    q('Absolute nonsense. Continue.', 'chaos'),
-    q('The group has been summoned.', 'suspicious'),
-    q('Somebody is getting exposed.', 'hype'),
-    q('Point. Accuse. Escalate.', 'hype'),
-    q('Reality is optional here.', 'chaos'),
-    q('Chaos requested. Chaos delivered.', 'chaos'),
-  ],
-}
+export const CARD_QUIPS: Quip[] = [
+  q('Easy one. Too easy.', 'deadpan'),
+  q('Starters do not get softer than this.', 'deadpan'),
+  q('Answer like your mother is watching.', 'judgy'),
+  q('Low stakes. High judgement.', 'judgy'),
+  q('Warm-up lap. Do not pull a hamstring.', 'hype'),
+  q('You can tell a lot from this answer.', 'suspicious'),
+  q('Gentle. For now.', 'suspicious'),
+  q('This one is basically a handshake.', 'deadpan'),
+  q('Someone at this table is in trouble.', 'suspicious'),
+  q('Say it to their face. Coward.', 'judgy'),
+  q('This is how friendships end. Nicely.', 'deadpan'),
+  q('The room already knows the answer.', 'judgy'),
+  q('Name names. Go on.', 'hype'),
+  q('Ooh. Careful now.', 'sympathy'),
+  q('There is no safe answer here.', 'suspicious'),
+  q('Point at someone. We are watching.', 'judgy'),
+  q('Careful. This one bites.', 'spicy'),
+  q('Oh, we are going there.', 'spicy'),
+  q('Answer honestly. Or lie very well.', 'judgy'),
+  q('Blushing is not an answer.', 'judgy'),
+  q('The room is listening very closely.', 'suspicious'),
+  q('Keep it clean. Ish.', 'spicy'),
+  q('Yikes. Good luck.', 'sympathy'),
+  q('No take-backs on this one.', 'deadpan'),
+  q('Ooh. That one is heavy.', 'sympathy'),
+  q('No wrong answers. Only honest ones.', 'sympathy'),
+  q('Deep breath. Go.', 'sympathy'),
+  q('The circle is bound by oath.', 'deadpan'),
+  q('You do not have to look at anyone.', 'sympathy'),
+  q('This is the good stuff.', 'hype'),
+  q('Admit it. You will feel better.', 'judgy'),
+  q('We all already assumed that.', 'deadpan'),
+  q('No third option. Choose.', 'judgy'),
+  q('Both are bad. Pick your bad.', 'deadpan'),
+  q('Defend it out loud.', 'hype'),
+  q('The room judges your logic.', 'judgy'),
+  q('There is a right answer. Probably.', 'suspicious'),
+  q('Commit to one. No waffling.', 'judgy'),
+  q('Two doors. One choice.', 'deadpan'),
+  q('Explain yourself. Thoroughly.', 'judgy'),
+  q('This one is about all of you.', 'hype'),
+  q('Whoever flinches first loses.', 'chaos'),
+  q('Absolute nonsense. Continue.', 'chaos'),
+  q('The group has been summoned.', 'suspicious'),
+  q('Somebody is getting exposed.', 'hype'),
+  q('Point. Accuse. Escalate.', 'hype'),
+  q('Reality is optional here.', 'chaos'),
+  q('Chaos requested. Chaos delivered.', 'chaos'),
+]
 
 /** Barks fired by game events, not by a specific card. */
 export type GameEvent =
@@ -230,13 +204,9 @@ function hash(input: string): number {
  * The line pinned to a card. Stable per (card id, deck): the same card always
  * draws the same joke, and it never changes while the card is on screen.
  */
-export function quipForCard(cardId: string, deck: DeckId): Quip {
-  // The `??` is not paranoia for its own sake: the old meme picker returned null
-  // for an unknown deck and the tests asserted "no throw". DeckId is a closed
-  // union, but a stale persisted card can still carry an id this build no longer
-  // knows, and a party game must never white-screen over a joke.
-  const pool = CARD_QUIPS[deck] ?? CARD_QUIPS.icebreakers
-  return pool[hash(cardId) % pool.length]
+export function quipForCard(cardId: string): Quip {
+  // One flat pool now — no decks, so every card draws from the same voice.
+  return CARD_QUIPS[hash(cardId) % CARD_QUIPS.length]
 }
 
 /**

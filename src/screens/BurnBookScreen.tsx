@@ -17,7 +17,6 @@ import {
   TrendingUp,
   Zap,
 } from 'lucide-react'
-import { deckLabel } from '../data/decks'
 import { verdictFor, type VerdictKind } from '../data/verdicts'
 import { reactionFor } from '../data/commentary'
 import { playerPalette } from '../data/playerColors'
@@ -44,7 +43,6 @@ const VERDICT_ICON: Record<VerdictKind, typeof Ghost> = {
 
 export function BurnBookScreen() {
   const players = useGameStore((s) => s.players)
-  const deckIds = useGameStore((s) => s.deckIds)
   const round = useGameStore((s) => s.round)
   const restart = useGameStore((s) => s.restart)
   const [copied, setCopied] = useState(false)
@@ -70,14 +68,14 @@ export function BurnBookScreen() {
   const summary = useMemo(() => {
     const lines = [
       'TRUTH OR SWIPE — THE BURN BOOK',
-      `Round ${round} · ${deckIds.map(deckLabel).join(' + ')}`,
+      `Round ${round}`,
       '',
       ...roster.map(({ player, verdict }) => `${player.name} — ${verdict.title}: ${verdict.blurb}`),
       '',
       `${totals.brave} answered · ${totals.coward} skipped · ${totals.dares} dares · ${totals.calls} called out`,
     ]
     return lines.join('\n')
-  }, [roster, round, deckIds, totals])
+  }, [roster, round, totals])
 
   async function share() {
     if (navigator.share) {
@@ -119,9 +117,6 @@ export function BurnBookScreen() {
           Round {round} &middot; complete
         </p>
         <h1 className="mt-1 text-4xl font-black tracking-tight">The Burn Book</h1>
-        <p className="mt-2 text-[11px] text-muted">
-          {deckIds.map(deckLabel).join(' + ')}
-        </p>
         <div className="mt-4 flex justify-center">
           <Commentator quip={reactionFor('finish', String(round))} variant="toast" />
         </div>

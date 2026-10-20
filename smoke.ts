@@ -1,5 +1,11 @@
 import { useGameStore } from './src/store/gameStore'
-import { DECKS, dareTier, contentCounts, questionsFor, daresFor, callOutDaresFor } from './src/data/decks'
+import {
+  ALL_CALL_OUT_DARES,
+  ALL_DARES,
+  ALL_QUESTIONS,
+  dareTier,
+  contentCounts,
+} from './src/data/decks'
 import {
   CARD_QUIPS,
   EVENT_QUIPS,
@@ -11,7 +17,7 @@ import {
 } from './src/data/commentary'
 import { PLAYER_PALETTE, playerPalette } from './src/data/playerColors'
 import { verdictFor } from './src/data/verdicts'
-import type { DeckId, Player } from './src/types'
+import type { Player } from './src/types'
 
 const S = () => useGameStore.getState()
 let failures = 0
@@ -25,21 +31,12 @@ function check(label: string, cond: boolean, extra = '') {
   }
 }
 
-const ALL: DeckId[] = DECKS.map((d) => d.id)
-
 console.log('content volumes')
-for (const decks of [...ALL.map((d) => [d] as DeckId[]), ALL]) {
-  const c = contentCounts(decks)
-  console.log(`   ${decks.join('+').padEnd(38)} q=${c.questions} d=${c.dares} c=${c.callOuts}`)
-}
-check('all decks together has > 500 questions', contentCounts(ALL).questions > 500)
-for (const deck of ALL) {
-  const c = contentCounts([deck])
-  check(`${deck} has enough of each pool`, c.questions >= 50 && c.dares >= 20 && c.callOuts >= 10,
-    `q=${c.questions} d=${c.dares} c=${c.callOuts}`)
-}
-check('every registered deck id is coverable', DECKS.every((d) => contentCounts([d.id]).questions > 0),
-  DECKS.map((d) => d.id).join(','))
+const c = contentCounts()
+console.log(`   flat pool q=${c.questions} d=${c.dares} c=${c.callOuts}`)
+check('flat pool has > 40 questions', c.questions > 40)
+check('flat pool has > 10 dares', c.dares > 10)
+check('flat pool has > 5 call-outs', c.callOuts > 5)
 
 console.log('\ncontent integrity')
 function duplicates(items: { id: string; text: string }[]): string[] {
@@ -50,9 +47,9 @@ function duplicates(items: { id: string; text: string }[]): string[] {
   }
   return [...seen.values()].filter((ids) => ids.length > 1).map((ids) => ids.join(' | '))
 }
-const allQ = questionsFor(ALL)
-const allD = daresFor(ALL)
-const allC = callOutDaresFor(ALL)
+const allQ = ALL_QUESTIONS
+const allD = ALL_DARES
+const allC = ALL_CALL_OUT_DARES
 const qDupes = duplicates(allQ)
 const dDupes = duplicates(allD)
 const cDupes = duplicates(allC)
@@ -62,13 +59,12 @@ check('no duplicate call-out text', cDupes.length === 0, cDupes.slice(0, 5).join
 const allIds = [...allQ, ...allD, ...allC].map((x) => x.id)
 check('no duplicate ids', new Set(allIds).size === allIds.length, `total=${allIds.length} unique=${new Set(allIds).size}`)
 check('every card has text', [...allQ, ...allD, ...allC].every((x) => x.text.trim().length > 0))
-check('intensity is always 1..3', [...allD, ...allC].every((x) => x.intensity >= 1 && x.intensity <= 3))
-check('every card is tagged to its deck', [...allQ, ...allD, ...allC].every((x) => ALL.includes(x.deck)))
+check('intensity is always 1..3', [...allQ, ...allD, ...allC].every((x) => x.intensity >= 1 && x.intensity <= 3))
 
 console.log('\ncommentator voice')
-const ALL_QUIPS = [...Object.values(CARD_QUIPS).flat(), ...Object.values(EVENT_QUIPS).flat()]
+const ALL_QUIPS = [...CARD_QUIPS, ...Object.values(EVENT_QUIPS).flat()]
 const EVENTS = Object.keys(EVENT_QUIPS) as (keyof typeof EVENT_QUIPS)[]
-check('every deck owns a card-quip pool', ALL.every((d) => CARD_QUIPS[d].length >= 6))
+check('card quip pool has enough lines', CARD_QUIPS.length >= 6)
 check('every event owns a bark pool', EVENTS.every((e) => EVENT_QUIPS[e].length >= 3))
 check(
   'every mood has an emoji, an accent and a bubble fill',
@@ -76,18 +72,10 @@ check(
     (q) => Boolean(MOOD_EMOJI[q.mood]) && Boolean(MOOD_ACCENT[q.mood]) && Boolean(MOOD_BUBBLE[q.mood]),
   ),
 )
-check('every card draws a quip', allQ.every((q) => quipForCard(q.id, q.deck).text.length > 0))
+check('every card draws a quip', allQ.every((q) => quipForCard(q.id).text.length > 0))
 check(
   'quips are deterministic per card',
-  allQ.every((q) => quipForCard(q.id, q.deck).text === quipForCard(q.id, q.deck).text),
-)
-check(
-  'a deck only ever draws its own quips',
-  ALL.every((deck) =>
-    allQ
-      .filter((q) => q.deck === deck)
-      .every((q) => CARD_QUIPS[deck].includes(quipForCard(q.id, deck))),
-  ),
+  allQ.every((q) => quipForCard(q.id).text === quipForCard(q.id).text),
 )
 check(
   'event barks are deterministic per seed',
@@ -104,7 +92,7 @@ check(
     return new Set(seen).size === seen.length
   })(),
 )
-check('unknown deck still yields a quip, no throw', quipForCard('x', 'nope' as DeckId).text.length > 0)
+check('quipForCard never throws', quipForCard('x').text.length > 0)
 
 console.log('\nplayer identity colours')
 check('palette is stocked', PLAYER_PALETTE.length >= 6)
@@ -124,7 +112,7 @@ check('4 cowards-> tier 3', dareTier(4) === 3)
 check('99 cowards->tier 3', dareTier(99) === 3)
 
 console.log('\nsetup + first draw')
-S().startGame([{ name: 'A' }, { name: 'B' }, { name: 'C' }], ['icebreakers', 'destroyers'])
+S().startGame([{ name: 'A' }, { name: 'B' }, { name: 'C' }])
 check('phase is playing', S().phase === 'playing')
 check('three players created', S().players.length === 3)
 check('a question is dealt', S().currentQuestion !== null)
@@ -205,7 +193,7 @@ check('that dare is max intensity (tier 3)', S().pendingDare?.intensity === 3, `
 
 console.log('\nplay to exhaustion -> burn book')
 S().restart()
-S().startGame([{ name: 'A' }, { name: 'B' }], ['icebreakers'])
+S().startGame([{ name: 'A' }, { name: 'B' }])
 const total = S().pool.length
 let guard = 0
 while (S().phase === 'playing' && guard++ < total * 3 + 20) {

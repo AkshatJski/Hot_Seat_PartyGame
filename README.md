@@ -41,8 +41,8 @@ something? The group can **Call You Out**.
 > Both are fixed in the current release. The live links above are always current.
 
 1. Open the app on one phone and hand it around. That's the whole setup.
-2. Add 2–10 players and pick your decks.
-3. Play until the cards run out — **689 questions** means the game decides how
+2. Add 2–10 players and hit start. No decks to pick.
+3. Play until the cards run out — **137 questions** means the game decides how
    long it lasts.
 4. Survive the Burn Book.
 
@@ -52,9 +52,8 @@ chrome, like a real app:
 - **iOS Safari** — Share → *Add to Home Screen*
 - **Android Chrome** — ⋮ → *Install app* / *Add to Home screen*
 
-> ⚠️ **18+ content warning.** One of the seven decks is explicitly sexual and
-> gated behind an age confirmation. It is opt-in and off by default. The game is
-> intended for adults who know each other; see
+> ⚠️ **Roast warning.** The questions point at the people in the room, so play
+> with adults who know each other and can take a joke. See
 > [Content policy](#content-policy) for the rules the content follows.
 
 ---
@@ -119,21 +118,12 @@ Share the whole thing to the group chat.
 
 ## Content
 
-Seven decks, freely mixable. **689 questions, 218 dares, 116 Call Out dares.**
-
-| Deck | Questions | Dares | Call Out dares | Vibe |
-| --- | ---: | ---: | ---: | --- |
-| **Icebreakers** | 191 | 53 | 28 | Safe-ish, warm-up, works with anyone |
-| **Friendship Destroyers** | 185 | 54 | 28 | Playful, chaotic, room-based roasting |
-| **Spicy 18+** | 93 | 28 | 14 | Explicit and uncomfortable. Opt-in, age-gated, blur-marked |
-| **Unhinged** | 50 | 20 | 10 | Peak cursed energy. Pure chaos |
-| **Confessions** | 54 | 22 | 12 | Secrets, regret, the things you never say out loud |
-| **Would You Rather** | 62 | 21 | 12 | Impossible choices you have to defend out loud |
-| **Chaos** | 54 | 20 | 12 | Absurd hypotheticals pointed at this exact group |
+No categories, no deck picking. **137 questions, 67 dares, 26 Call Out dares** —
+one flat pool of fun, quirky and roasty questions, dealt at random.
 
 Because the whole set is shuffled into one queue and dealt without replacement,
-**no question repeats** in a session. Pick two decks or all seven; the length of
-the game follows from your choice.
+**no question repeats** in a session. The length of the game follows from how
+long the pool lasts.
 
 ### The host
 
@@ -146,10 +136,8 @@ Call Out, a verdict. It's **all text, all offline, zero image assets**:
 - **Deterministic per card.** The line is picked by hashing the card id, so it
   never changes while the player is holding the phone still. (React re-renders
   constantly; a random pick would flicker between two lines under a thumb.)
-- **Curated per deck.** Each deck has its own quip pool, so a spicy card never
-  gets a wholesome line.
-- **Never spoils the reveal.** An 18+ card shows no commentary until it's tapped
-  open.
+- **One flat voice.** Every card draws from the same quip pool, so the host
+  reads the same no matter what it's reviewing.
 - **Mood-driven.** Every line carries a mood — hype, judgy, spicy, chaos,
   sympathy, deadpan or suspicious — which picks its emoji face, its colour block
   and its accent.
@@ -159,9 +147,6 @@ Call Out, a verdict. It's **all text, all offline, zero image assets**:
   length, capitalisation, terminal punctuation, duplicates, and that every mood
   actually has styling.
 
-Adding a deck fails to compile until it has a voice — the pools are typed
-`Record<DeckId, Quip[]>`.
-
 ### Content policy
 
 These are product decisions, not accident — they're written into the code:
@@ -169,12 +154,13 @@ These are product decisions, not accident — they're written into the code:
 1. **Questions carry the heat. Dares are deliberately tame.** There is no "dark"
    dare tier and there won't be one. A dare's intensity is a *difficulty* hint,
    never a risk level.
-2. **No physical risk.** Nothing involving property damage, strangers, animals,
+2. **Fun, quirky and roasty only.** Questions keep it light and point at the
+   people in the room. Anything that asks for deep thinking, regret, confession
+   or intimacy is out.
+3. **Nobody gets targeted on something they can't choose.** No cards about a
+   player's name, identity, health, body, trauma, or finances.
+4. **No physical risk.** Nothing involving property damage, strangers, animals,
    or anyone not in the room.
-3. **Nobody gets targeted.** No cards about a player's name, identity, health,
-   body, trauma, or finances.
-4. **Anything sexual lives in the Spicy deck only**, behind an age confirmation
-   *and* a per-card blur marker.
 5. **The real risk is social, not technical.** A party game can humiliate
    someone having a bad week. That's why the punishments are the game's, and
    why Call Out is resolved by the room rather than by an algorithm.
@@ -277,17 +263,12 @@ src/
 ├─ components/ArcadeBackdrop.tsx the drifting neon wash behind everything
 ├─ store/gameStore.ts            turn machine, scoring, persistence
 ├─ screens/
-│  ├─ SetupScreen.tsx            players, deck mixing, 18+ gate
+│  ├─ SetupScreen.tsx            players + game mode
 │  ├─ GameScreen.tsx             card stack, Call Out window, verdict
 │  └─ BurnBookScreen.tsx         awards, tie handling, share
 ├─ data/
-│  ├─ icebreakers.ts             content
-│  ├─ destroyers.ts              content
-│  ├─ spicy.ts                   content (Desire / Taboo / Brutal honesty)
-│  ├─ unhinged.ts                content
-│  ├─ confessions.ts             content
-│  ├─ dilemmas.ts                content (Would You Rather)
-│  ├─ chaos.ts                   content
+│  ├─ questions.ts               content — one flat question pool
+│  ├─ dares.ts                   content — dares + Call Out dares
 │  ├─ commentary.ts              host quips + event barks, deterministic picker
 │  ├─ playerColors.ts            seat colours across rail / card / Burn Book
 │  └─ decks.ts                   aggregation, Coward ladder, dare picker
@@ -314,8 +295,8 @@ Being straight about these:
   request, so on a phone a drag is the only way to commit a card — the keyboard
   arrows only help a desktop user. That's a deliberate trade for the gesture-first
   feel the game is named after, but it is a real accessibility gap.
-- **The host's voice is finite.** 92 authored lines spread across the decks, so a
-  long session will hear the same bark twice. The pools are cheap to extend — and
+- **The host's voice is finite.** 84 authored lines in one flat pool, so a
+  long session will hear the same bark twice. The pool is cheap to extend — and
   `npm run lint:content` will refuse a duplicate line.
 - **`preserve-3d` on the card is load-bearing.** Anything that flattens the 3D
   rendering context — a missing `transform-style`, or `overflow: hidden` on the
@@ -323,8 +304,6 @@ Being straight about these:
   `render-smoke.tsx` guarding both, because it shipped broken once already.
 - **Haptics don't work on iOS.** `navigator.vibrate` is unsupported on iOS Safari
   everywhere. The visual stamps are the real feedback channel.
-- **The 18+ blur marker isn't DRM.** It stops accidental exposure when someone picks
-  up your unlocked phone. It does not stop anyone determined.
 - **Refresh mid-question skips that card.** Scores survive; the in-flight card
   doesn't, by choice.
 - **The 4-second Call Out window is a guess.** It needs testing with real players.

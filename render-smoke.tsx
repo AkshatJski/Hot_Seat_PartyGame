@@ -47,7 +47,7 @@ const { act } = await import('react')
 const React = await import('react')
 const { default: App } = await import('./src/App')
 const { useGameStore } = await import('./src/store/gameStore')
-const { contentCounts, questionsFor } = await import('./src/data/decks')
+const { contentCounts, ALL_QUESTIONS } = await import('./src/data/decks')
 const { quipForCard } = await import('./src/data/commentary')
 
 // lowercase name so oxlint doesn't mistake this for a component
@@ -83,21 +83,11 @@ await mountApp()
 const setupHtml = container.innerHTML
 check('#root has content', setupHtml.length > 500)
 check('title rendered', setupHtml.includes('Truth or') && setupHtml.includes('Swipe'))
-check('deck labels rendered', setupHtml.includes('Icebreakers') && setupHtml.includes('Friendship Destroyers'))
-check('18+ deck present', setupHtml.includes('Spicy'))
-check('unhinged deck present', setupHtml.includes('Unhinged'))
-check('confessions deck present', setupHtml.includes('Confessions'))
-check('would-you-rather deck present', setupHtml.includes('Would You Rather'))
-check('chaos deck present', setupHtml.includes('Chaos'))
 check('start button present', setupHtml.includes('Start the game'))
-check('no duplicate deck typo', setupHtml.includes('Friendship Destroyers'))
 
-console.log('\nstart a game (2 players, mixed decks, 18+ confirmed)')
+console.log('\nstart a game (2 players)')
 await act(async () => {
-  store().startGame(
-    [{ name: 'Aksha' }, { name: 'Robin' }],
-    ['icebreakers', 'destroyers', 'spicy'],
-  )
+  store().startGame([{ name: 'Aksha' }, { name: 'Robin' }])
 })
 await flush()
 const playHtml = container.innerHTML
@@ -149,10 +139,10 @@ check(
 console.log('\ncommentator quip on the card')
 // Drive a real card so this asserts the rendered host line, not "a quip existed
 // somewhere". The quip is deterministic, so the expected text is knowable.
-const quipCard = questionsFor(['icebreakers', 'destroyers', 'spicy', 'unhinged'])[0]
+const quipCard = ALL_QUESTIONS[0]
 check('found a card to commentate', Boolean(quipCard))
 if (quipCard) {
-  const expected = quipForCard(quipCard.id, quipCard.deck)
+  const expected = quipForCard(quipCard.id)
   await act(async () => {
     useGameStore.setState({ currentQuestion: quipCard, stage: 'question', flipped: false })
   })
@@ -169,21 +159,6 @@ if (quipCard) {
     'commentator does not intercept the swipe gesture',
     (fig?.getAttribute('class') ?? '').includes('pointer-events-none'),
   )
-
-  // A blurred 18+ card must not leak its quip before the tap-to-reveal.
-  const spicyCard = questionsFor(['spicy']).find((q) => q.sensitive)
-  check('found a sensitive card', Boolean(spicyCard))
-  if (spicyCard) {
-    const hidden = quipForCard(spicyCard.id, spicyCard.deck)
-    await act(async () => {
-      useGameStore.setState({ currentQuestion: spicyCard, stage: 'question', flipped: false })
-    })
-    await flush()
-    check(
-      'quip hidden while an 18+ card is still blurred',
-      !container.innerHTML.includes(hidden.text),
-    )
-  }
   await act(async () => {
     useGameStore.setState({ currentQuestion: null })
   })
@@ -338,7 +313,7 @@ check('every player gets a verdict', store().players.every((p) => burnHtml.inclu
 check('no empty-winner placeholder', !burnHtml.includes('Nobody flinched'))
 check('Share button', burnHtml.includes('Share'))
 check('Rematch button', burnHtml.includes('Rematch'))
-check('total cards is large', contentCounts(['icebreakers', 'destroyers', 'spicy', 'unhinged']).questions > 500)
+check('total cards is large', contentCounts().questions > 40)
 
 console.log('\nrematch -> back to setup')
 await act(async () => {
@@ -387,7 +362,6 @@ async function classicTurn(choice: 'truth' | 'dare') {
 await act(async () => {
   store().startGame(
     [{ name: 'Ada' }, { name: 'Bo' }],
-    ['icebreakers', 'destroyers'],
     { gameMode: 'classic', roundsPerPlayer: null },
   )
 })
