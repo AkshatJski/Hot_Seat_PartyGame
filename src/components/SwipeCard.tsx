@@ -212,15 +212,19 @@ export function SwipeCard({
             </span>
           </div>
 
+          {/* The question + host quip live in the flexible middle region, so a
+              long question or a long quip eats the slack instead of shoving the
+              legend row off the bottom of the fixed-height card. */}
+          <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden">
+            <p className="text-[26px] leading-[1.25] font-bold text-balance text-bone">
+              {question?.text ?? 'Called out. Brave does not protect you here.'}
+            </p>
 
+            {quip && <Commentator quip={quip} />}
+          </div>
 
-          <p className="text-[26px] leading-[1.25] font-bold text-balance text-bone">
-            {question?.text ?? 'Called out. Brave does not protect you here.'}
-          </p>
-
-          {quip && <Commentator quip={quip} />}
-
-          <div className="mt-4 flex items-center justify-between border-t-2 border-hairline pt-3 text-[11px] font-black tracking-widest uppercase">
+          {/* Pinned footer: same place on every card regardless of text length. */}
+          <div className="mt-4 flex shrink-0 items-center justify-between border-t-2 border-hairline pt-3 text-[11px] font-black tracking-widest uppercase">
             <span className="flex items-center gap-1.5 text-neon-red">
               <Zap size={12} /> Dare
             </span>
