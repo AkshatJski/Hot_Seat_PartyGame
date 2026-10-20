@@ -151,16 +151,19 @@ Call Out, a verdict. It's **all text, all offline, zero image assets**:
 
 These are product decisions, not accident — they're written into the code:
 
-1. **Questions carry the heat. Dares are deliberately tame.** There is no "dark"
-   dare tier and there won't be one. A dare's intensity is a *difficulty* hint,
-   never a risk level.
+1. **Questions carry the heat. Dares stay doable.** A dare's intensity is a
+   *difficulty* hint, never a risk level — nothing here should hurt anyone.
 2. **Fun, quirky and roasty only.** Questions keep it light and point at the
-   people in the room. Anything that asks for deep thinking, regret, confession
-   or intimacy is out.
+   people in the room, written for an Indian context. Anything that asks for
+   deep thinking, regret, confession or intimacy is out.
 3. **Nobody gets targeted on something they can't choose.** No cards about a
    player's name, identity, health, body, trauma, or finances.
-4. **No physical risk.** Nothing involving property damage, strangers, animals,
-   or anyone not in the room.
+4. **Dares may involve mild physical actions, silly props, or the player's own
+   phone and social media** — and that is a deliberate change from earlier
+   versions. What stays off the table: anything that risks real injury, spills
+   something messy, involves strangers, animals or property damage, or posts
+   publicly without the player doing it themselves. Safety tags like
+   "(gently!)" and "(safely!)" mark the risky edges on purpose.
 5. **The real risk is social, not technical.** A party game can humiliate
    someone having a bad week. That's why the punishments are the game's, and
    why Call Out is resolved by the room rather than by an algorithm.

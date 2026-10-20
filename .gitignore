@@ -7,6 +7,10 @@ decision.md
 Flow.md
 learn.md
 
+# Generated content dump (regenerate with scripts/dump-content.ts).
+# The script is committed; the 250+ line output is not.
+CONTENT-DUMP.txt
+
 # Generated icon PNGs are committed on purpose (see scripts/make-icons.ts).
 # Only the rasteriser itself is ignored.
 scripts/**/*.node
