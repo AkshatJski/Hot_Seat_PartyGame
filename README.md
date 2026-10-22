@@ -67,11 +67,50 @@ chrome, like a real app:
 | **Swipe right** | Brave **+1**. Turn passes. |
 | **Swipe left** | **Free** — the card **flips to a dare** you have to do. Turn passes. |
 | **Reroll** | Swap the card once per turn. Costs nothing. Swapping a *question* does burn it from the deck. |
-| **Chicken out** | Refuse everything: Coward **+1** and the turn ends with no dare. |
+| **Chicken out** | Refuse everything: Coward **+1** and the turn ends with no dare. On a dare, the card goes **up for grabs** for anyone else. |
+| **Done** | Claim a dare. The table then rules **Nailed it** or **Fudged it** in a five-second window. |
 | **Call Out** | The group overruling your answer: Brave **−1** and a punishing dare from a *separate* pool. **You keep the turn.** |
 
 Taking a dare is free **on purpose**: the app rewards doing something over
 refusing everything, and only *chicken out* costs you.
+
+### Dares are judged, not self-reported
+
+Tap **Done** and the group gets five seconds to dispute it:
+
+- **Nailed it** — credit, turn passes.
+- **Fudged it** — no dare credit, Coward **+1**, and your next dare gets harder.
+- Say nothing and it counts as done. **Silence is always lenient** in this app: a
+  quiet room can never cost you a point.
+
+### Chicken out, and nobody does it
+
+When you refuse a dare it doesn't vanish — it goes up for adoption:
+
+- Someone else taps their name and **takes the credit** for doing it.
+- You **keep** the Coward point either way. Refusing in public has to cost
+  something, or "chicken out and hope" becomes the smart play.
+- Tap **Nobody** (or wait nine seconds) and the dare dies with your turn.
+
+### How long is a game?
+
+Pick **Endless**, or **3 / 5 / 8 turns each** at setup. Turns are counted *per
+player*, so "5 each" with six people is 30 turns — and the Burn Book opens when
+everyone is done instead of whenever the deck happens to run out.
+
+Endless really is endless: when the deck is dealt through it reshuffles and keeps
+going (the card reads `· ×2`), and the only ending is the **End** button.
+
+### The dare timer
+
+Dares that need a clock have one: tap the **30s** pill on the dare card. It counts
+down, drains a bar along the bottom edge, and buzzes at zero. Rerolling the dare
+resets it.
+
+### Sound
+
+Five short synthesised blips (no audio files, nothing downloaded). **On by
+default** — toggle the speaker in the game header, and it remembers.
 
 There is **no Answer button and no Dare button**. The card *is* the control —
 that's the whole game. On a keyboard, `←` / `→` raise the exact same internal
@@ -129,8 +168,8 @@ No categories, no deck picking. **135 questions, 85 dares, 33 Call Out dares** �
 one flat pool of fun, quirky and roasty questions, dealt at random.
 
 Because the whole set is shuffled into one queue and dealt without replacement,
-**no question repeats** in a session. The length of the game follows from how
-long the pool lasts.
+**no question repeats within a pass**. When the queue is empty it reshuffles and
+play continues — set a turn limit if you want a definite ending.
 
 ### The host
 
@@ -333,10 +372,14 @@ Being straight about these:
   card — makes the dare render mirrored. There is an assertion in
   `render-smoke.tsx` guarding both, because it shipped broken once already.
 - **Haptics don't work on iOS.** `navigator.vibrate` is unsupported on iOS Safari
-  everywhere. The visual stamps are the real feedback channel.
+  everywhere. The visual stamps are the real feedback channel. Sound does work
+  there, but the first cue of a session depends on `unlockAudio()` firing on a tap.
 - **Refresh mid-question skips that card.** Scores survive; the in-flight card
   doesn't, by choice.
-- **The 4-second Call Out window is a guess.** It needs testing with real players.
+- **The timed windows are guesses.** 4s for Call Out, 5s for the dare verdict, 9s
+  for the adoption offer. They need real tables to tune them.
+- **Chickening out always ends the turn**, even if someone adopts the dare. The
+  adopter gets the credit; the coward gets their turn back next time round.
 - **No PWA offline cache yet.** It's installable and cached opportunistically by
   the browser, but there's no service worker, so it still wants a connection.
 - **Same-device play only.** One phone, everyone huddled. There's no second-screen

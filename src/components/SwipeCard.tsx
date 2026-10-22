@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { animate, motion, useMotionValue, useTransform, type PanInfo } from 'motion/react'
+import { Timer } from 'lucide-react'
 import { quipForCard } from '../data/commentary'
 import { Commentator } from './Commentator'
+import { play } from '../lib/sound'
 import type { Dare, Intensity, Question, SwipeDirection } from '../types'
 
 /** Past this horizontal offset the gesture counts as a real swipe. */
@@ -10,6 +12,8 @@ export const SWIPE_DISTANCE = 110
 export const SWIPE_VELOCITY = 550
 /** Where an answered card gets thrown so it is safely off-screen. */
 const FLY_OFF = 720
+/** Length of the dare timer. One duration, not a picker: it is a nudge, not a stopwatch. */
+export const DARE_TIMER_SECONDS = 30
 
 function buzz(pattern: number | number[]) {
   if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
@@ -47,7 +51,7 @@ interface SwipeCardProps {
   flipped: boolean
   signal?: SwipeSignal | null
   /** Printed card number, like a real deck. `n` is 1-based. */
-  cardNumber?: { n: number; total: number } | null
+  cardNumber?: { n: number; total: number; pass?: number } | null
   onSwipe: (direction: SwipeDirection) => void
   onFlipComplete: () => void
 }
@@ -71,6 +75,8 @@ export function SwipeCard({
 
   const [locked, setLocked] = useState(false)
   const [celebrating, setCelebrating] = useState(false)
+  /** `null` = not started. Counts down to 0, then stops and buzzes. */
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
   const flipStarted = useRef(flipped)
   const lockedRef = useRef(false)
   const lastSignal = useRef(0)
@@ -88,12 +94,40 @@ export function SwipeCard({
     if (!flipped || flipStarted.current) return
     flipStarted.current = true
     buzz([10, 30, 10])
+    play('flip')
     void animate(flip, 1, {
       type: 'spring',
       stiffness: 150,
       damping: 17,
     }).then(() => onFlipComplete())
   }, [flipped, flip, onFlipComplete])
+
+  /**
+   * The dare clock.
+   *
+   * State, not a motion value: it has to be readable as a number, and it stops
+   * dead at zero. A `setTimeout` chain rather than `setInterval` because the
+   * effect re-runs on every tick — which means the timeout is always cleared on
+   * unmount, on a reroll, and when the card flips away.
+   */
+  useEffect(() => {
+    if (secondsLeft === null) return
+    if (secondsLeft <= 0) {
+      buzz([40, 60, 40])
+      play('fudge')
+      return
+    }
+    const t = setTimeout(() => setSecondsLeft(secondsLeft - 1), 1000)
+    return () => clearTimeout(t)
+  }, [secondsLeft])
+
+  // A rerolled dare is a different dare, so the old clock has to go. The card is
+  // NOT remounted by a reroll (the key deliberately excludes the question/dare
+  // id so a skip can flip the same instance), which is precisely why this reset
+  // has to be explicit.
+  useEffect(() => {
+    setSecondsLeft(null)
+  }, [dare?.id])
 
   useEffect(() => {
     if (!signal || signal.id === lastSignal.current || lockedRef.current) return
@@ -127,6 +161,7 @@ export function SwipeCard({
     setLocked(true)
     setCelebrating(true)
     buzz([14, 26, 20])
+    play('swipe')
     await Promise.all([
       animate(x, FLY_OFF, { type: 'spring', stiffness: 230, damping: 24 }),
       animate(y, info.offset.y + info.velocity.y * 0.15, {
@@ -143,6 +178,7 @@ export function SwipeCard({
     lockedRef.current = true
     setLocked(true)
     buzz(34)
+    play('skip')
     await Promise.all([
       animate(x, 0, { type: 'spring', stiffness: 300, damping: 24 }),
       animate(y, 0, { type: 'spring', stiffness: 300, damping: 24 }),
@@ -190,7 +226,11 @@ export function SwipeCard({
           {/* Header: deck number left, player + intensity right. */}
           <div className="flex items-center justify-between gap-2">
             <span className="chip">
-              {cardNumber ? `${cardNumber.n} / ${cardNumber.total}` : 'call out'}
+              {cardNumber
+                ? `${cardNumber.n} / ${cardNumber.total}${
+                    (cardNumber.pass ?? 1) > 1 ? ` · ×${cardNumber.pass}` : ''
+                  }`
+                : 'call out'}
             </span>
             <span className="flex items-center gap-2">
               <span className="font-display text-[12.5px] font-semibold text-muted">
@@ -256,10 +296,45 @@ export function SwipeCard({
             {dare?.text ?? 'No dare loaded.'}
           </p>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
+            {/* The dare clock. It is the only button on the card, and it is
+                allowed to be one because the back face is not draggable — by the
+                time it is visible, `flipped` has switched the drag off. */}
+            <button
+              type="button"
+              onClick={() => {
+                play('flip')
+                setSecondsLeft(
+                  secondsLeft === null || secondsLeft <= 0 ? DARE_TIMER_SECONDS : null,
+                )
+              }}
+              aria-label={
+                secondsLeft !== null && secondsLeft > 0
+                  ? 'Stop the timer'
+                  : `Start a ${DARE_TIMER_SECONDS} second timer`
+              }
+              className={`chip ${
+                secondsLeft !== null && secondsLeft > 0
+                  ? 'bg-sun text-[#4a3200]'
+                  : 'bg-sun/25 text-[#8a5f00]'
+              }`}
+            >
+              <Timer size={11} />
+              {secondsLeft === null ? `${DARE_TIMER_SECONDS}s` : `${Math.max(0, secondsLeft)}s`}
+            </button>
             <span className="font-display text-[12.5px] font-semibold text-muted">{playerName}</span>
-            <span className="text-[11px] font-semibold text-dim">do it, then hit done</span>
           </div>
+
+          {/* A draining bar along the bottom edge, so the timer is legible from
+              arm's length without a giant number eating the card. */}
+          {secondsLeft !== null && (
+            <span className="pointer-events-none absolute inset-x-5 bottom-2 h-1 overflow-hidden rounded-full bg-sun/25">
+              <span
+                className="block h-full rounded-full bg-sun transition-[width] duration-1000 ease-linear"
+                style={{ width: `${(Math.max(0, secondsLeft) / DARE_TIMER_SECONDS) * 100}%` }}
+              />
+            </span>
+          )}
         </div>
       </motion.div>
     </motion.div>

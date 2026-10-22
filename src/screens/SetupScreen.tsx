@@ -6,6 +6,21 @@ import { useGameStore } from '../store/gameStore'
 
 const MAX_PLAYERS = 10
 
+/**
+ * How long a game runs, in turns PER PLAYER.
+ *
+ * `null` is Endless: the deck reshuffles forever and the only ways out are the
+ * End button or the Burn Book. The fixed options exist because the previous only
+ * ending was "all 135 cards are gone", which is 40 minutes into a night and
+ * always arrives as a surprise.
+ */
+const LENGTHS: { value: number | null; label: string }[] = [
+  { value: null, label: 'Endless' },
+  { value: 3, label: '3' },
+  { value: 5, label: '5' },
+  { value: 8, label: '8' },
+]
+
 export function SetupScreen() {
   const startGame = useGameStore((s) => s.startGame)
 
@@ -13,9 +28,19 @@ export function SetupScreen() {
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [gameMode, setGameMode] = useState<'free' | 'classic'>('free')
-  const roundsPerPlayer = null
+  const [turnsEach, setTurnsEach] = useState<number | null>(null)
 
   const cleaned = names.map((n) => n.trim()).filter(Boolean)
+
+  /**
+   * A rough running time, because "5 turns each" means nothing to a table trying
+   * to decide whether to start at 11pm. ~50s per turn covers a question, a dare
+   * and the bickering in between.
+   */
+  const estimate =
+    turnsEach !== null && cleaned.length >= 2
+      ? `about ${Math.max(2, Math.round((turnsEach * cleaned.length * 50) / 60))} min`
+      : null
 
   function addName() {
     const value = draft.trim()
@@ -42,7 +67,7 @@ export function SetupScreen() {
       setError('Two players have the same name.')
       return
     }
-    startGame(cleaned.map((name) => ({ name })), { gameMode, roundsPerPlayer })
+    startGame(cleaned.map((name) => ({ name })), { gameMode, roundsPerPlayer: turnsEach })
   }
 
   return (
@@ -85,6 +110,38 @@ export function SetupScreen() {
         </div>
         <p className="mt-2 pl-1 text-[11.5px] font-medium text-dim">
           {gameMode === 'free' ? 'Pass & swipe as usual.' : 'Fixed turn order. Truth or Dare each turn.'}
+        </p>
+      </section>
+
+      {/* How long -------------------------------------------------------------
+          Turns PER PLAYER, not total: "5 turns each" with six players is 30
+          turns. Endless shuffles the deck forever and stops only when someone
+          presses End, which is stated plainly so it is not a surprise at 2am. */}
+      <section className="mb-5">
+        <div className="mb-2 flex items-center justify-between px-1">
+          <h2 className="font-display text-[13px] font-semibold text-ink">How long?</h2>
+          <span className="chip">{estimate ?? `${cleaned.length || 0} playing`}</span>
+        </div>
+        <div className="flex gap-1 rounded-2xl bg-tint p-1">
+          {LENGTHS.map((option) => (
+            <button
+              key={option.label}
+              type="button"
+              onClick={() => setTurnsEach(option.value)}
+              className={`flex-1 rounded-xl py-2 font-display text-[13px] font-semibold transition-colors ${
+                turnsEach === option.value
+                  ? 'bg-coral text-white shadow-soft'
+                  : 'text-muted active:text-ink'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 pl-1 text-[11.5px] font-medium text-dim">
+          {turnsEach === null
+            ? 'Endless. The deck reshuffles instead of running out.'
+            : `${turnsEach} turns each. The Burn Book opens when everyone is done.`}
         </p>
       </section>
 

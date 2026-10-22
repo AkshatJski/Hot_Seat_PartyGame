@@ -338,16 +338,35 @@ await act(async () => {
   store().completeDare()
 })
 await flush()
+// Done no longer credits anything: the table rules first.
+check('Done stops at the dare verdict', store().stage === 'dareVerdict')
+const dareVerdictHtml = container.innerHTML
+check('the verdict panel offers Nailed it', dareVerdictHtml.includes('Nailed it'))
+check('the verdict panel offers Fudged it', dareVerdictHtml.includes('Fudged it'))
+
+await act(async () => {
+  store().confirmDare()
+})
+await flush()
 check('stage back to question', store().stage === 'question')
 check('a fresh question dealt', store().currentQuestion !== null)
+check('the HUD carries a mute toggle', container.innerHTML.includes('Mute sound'))
 
 console.log('\nrun the whole game to the Burn Book')
+// End it the way a real game now ends: the per-player turn limit. The deck no
+// longer runs out — it reshuffles — so exhaustion is not an ending any more, and
+// a loop that waited for it would spin to its guard.
+await act(async () => {
+  useGameStore.setState({ roundsPerPlayer: 2 })
+})
 let guard = 0
-while (store().phase === 'playing' && guard++ < 2000) {
+while (store().phase === 'playing' && guard++ < 80) {
   const stage = store().stage
   await act(async () => {
     if (stage === 'question') store().answer()
     else if (stage === 'dare' || stage === 'callout') store().completeDare()
+    else if (stage === 'dareVerdict') store().confirmDare()
+    else if (stage === 'dareOffer') store().declineDareOffer()
     else store().acceptCallOut()
   })
 }
@@ -378,6 +397,8 @@ await flush(800)
 await flush(600)
 check('phase is setup', store().phase === 'setup')
 check('setup screen back', container.innerHTML.includes('Start the game'))
+check('setup offers a game length', container.innerHTML.includes('How long?'))
+check('setup offers Endless', container.innerHTML.includes('Endless'))
 
 // ---------------------------------------------------------------------------
 // Setup: duplicate names. The rows are free-text inputs, so the same name could
@@ -430,8 +451,13 @@ async function classicTurn(choice: 'truth' | 'dare') {
   })
   await flush()
   await act(async () => {
-    if (choice === 'truth') store().answer()
-    else store().completeDare()
+    if (choice === 'truth') {
+      store().answer()
+    } else {
+      // A dare is now two steps: the claim, then the table's ruling.
+      store().completeDare()
+      store().confirmDare()
+    }
   })
   await flush()
   if (choice === 'truth') {

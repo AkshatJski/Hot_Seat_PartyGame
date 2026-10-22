@@ -2,6 +2,8 @@ import {
   mergePersisted,
   selectAwaitingCallOutDare,
   selectAwaitingDare,
+  selectDareOffer,
+  selectShowDareVerdict,
   useGameStore,
 } from './src/store/gameStore'
 import {
@@ -161,6 +163,10 @@ S().reroll()
 check('second dare reroll is refused', S().pendingDare!.id === dareAfterReroll, 'reroll must be once per turn')
 
 S().completeDare()
+check('Done stops at the dare verdict', selectShowDareVerdict(S()) === true, `stage=${S().stage}`)
+check('nothing is credited before the table rules', S().players[1].daresCompleted === 0, `got ${S().players[1].daresCompleted}`)
+check('the turn has not advanced', S().turnIndex === 1, `turnIndex=${S().turnIndex}`)
+S().confirmDare()
 check('B daresCompleted = 1', S().players[1].daresCompleted === 1)
 check('advanced to player C', S().turnIndex === 2)
 check('reroll resets for the new turn', S().rerollUsed === false)
@@ -263,6 +269,8 @@ check('swipe-left left flinchCount at 0', S().players[0].flinchCount === 0, `got
 S().chickenOut()
 check('chicken out floored coward at 0 then added 1', S().players[0].coward === 1, `got ${S().players[0].coward}`)
 check('chicken out raised flinchCount to 1', S().players[0].flinchCount === 1, `got ${S().players[0].flinchCount}`)
+check('the refused dare goes up for adoption', selectDareOffer(S()) === true, `stage=${S().stage}`)
+S().declineDareOffer()
 const daresDoneBeforeChicken = S().players[0].daresCompleted
 // Chicken out ends the turn, so step back onto player A and drive them to the
 // dare stage to prove the dare-stage path works for the SAME counter.
@@ -274,6 +282,7 @@ check('swipe-left again still adds no flinch', flinchBeforeDareChicken === 1, `g
 S().chickenOut()
 check('chicken out on the DARE stage still works', S().players[0].flinchCount === flinchBeforeDareChicken + 1, `got ${S().players[0].flinchCount}`)
 check('abandoning a dare earns no completion credit', S().players[0].daresCompleted === daresDoneBeforeChicken)
+S().declineDareOffer()
 
 console.log('\nchicken out during a Call Out still reaches the verdict')
 S().restart()
@@ -294,21 +303,92 @@ check(
 check('the punishment still costs a coward point', S().players[accusedIndex].coward === 1)
 S().acceptCallOut()
 
-console.log('\nplay to exhaustion -> burn book')
+/**
+ * Drive the current turn to its end, whatever stage it happens to land in.
+ *
+ * Written against the stage machine rather than against a fixed script, so the
+ * loops below keep working when a new stage is added — the failure mode this
+ * replaced was a loop that silently did nothing on `dareVerdict` and then span
+ * forever.
+ */
+function playFullTurn() {
+  const startTurn = S().turnIndex
+  const startPhase = S().phase
+  let guard = 0
+  while (guard++ < 14 && S().phase === startPhase && S().turnIndex === startTurn) {
+    const stage = S().stage
+    if (stage === 'question') S().answer()
+    else if (stage === 'answered' || stage === 'calloutVerdict') S().acceptCallOut()
+    else if (stage === 'dare' || stage === 'callout') S().completeDare()
+    else if (stage === 'dareVerdict') S().confirmDare()
+    else if (stage === 'dareOffer') S().declineDareOffer()
+  }
+}
+
+console.log('\nthe deck reshuffles instead of ending')
 S().restart()
 S().startGame([{ name: 'A' }, { name: 'B' }])
 const total = S().pool.length
 let guard = 0
-while (S().phase === 'playing' && guard++ < total * 3 + 20) {
-  const stage = S().stage
-  if (stage === 'question') S().answer()
-  else if (stage === 'dare' || stage === 'callout') S().completeDare()
-  else S().acceptCallOut()
-}
-check('game ended', S().phase === 'burnbook', `phase=${S().phase}`)
-check(`consumed all ${total} questions`, S().poolIndex === total, `poolIndex=${S().poolIndex}`)
-check('cardsLeft is 0', Math.max(0, S().pool.length - S().poolIndex) === 0)
+while (S().deckPass === 1 && guard++ < total * 3) playFullTurn()
+check('the game survived a full deck', S().phase === 'playing', `phase=${S().phase}`)
+check('the deck came round again', S().deckPass >= 2, `deckPass=${S().deckPass}`)
+check('the queue refilled instead of running dry', S().poolIndex < total, `poolIndex=${S().poolIndex}`)
 check('players have scores', S().players.every((p) => p.brave + p.coward > 0))
+
+console.log('\nthe round limit ends the game on purpose')
+S().restart()
+S().startGame([{ name: 'A' }, { name: 'B' }, { name: 'C' }], { roundsPerPlayer: 2 })
+let limitGuard = 0
+while (S().phase === 'playing' && limitGuard++ < 40) playFullTurn()
+check('phase is burnbook', S().phase === 'burnbook', `phase=${S().phase}`)
+check('the limit stopped it, not the deck', S().deckPass === 1, `deckPass=${S().deckPass}`)
+check(
+  'every player took exactly 2 turns (not 2 turns total)',
+  S().players.every((p) => (S().turnsTaken[p.id] ?? 0) === 2),
+  JSON.stringify(S().turnsTaken),
+)
+
+console.log('\ndare verdict: a fudge costs what a refusal costs')
+S().restart()
+S().startGame([{ name: 'A' }, { name: 'B' }])
+S().skip()
+S().completeDare()
+check('stage is the dare verdict', selectShowDareVerdict(S()) === true, `stage=${S().stage}`)
+S().fudgeDare()
+check('no dare credit', S().players[0].daresCompleted === 0, `got ${S().players[0].daresCompleted}`)
+check('coward +1', S().players[0].coward === 1, `got ${S().players[0].coward}`)
+check('flinch +1, so the next dare escalates', S().players[0].flinchCount === 1, `got ${S().players[0].flinchCount}`)
+check('turn advanced', S().turnIndex === 1, `turnIndex=${S().turnIndex}`)
+check('the next turn is a fresh question', S().stage === 'question')
+
+console.log('\na refused dare can be adopted by someone else')
+S().restart()
+S().startGame([{ name: 'A' }, { name: 'B' }, { name: 'C' }])
+S().skip()
+S().chickenOut()
+check('stage is the dare offer', selectDareOffer(S()) === true, `stage=${S().stage}`)
+check('the offer keeps the dare on screen', S().pendingDare !== null)
+S().takeOverDare('not-a-real-player')
+check(
+  'an unknown adopter is ignored',
+  selectDareOffer(S()) === true && S().players[1].daresCompleted === 0,
+)
+S().takeOverDare(S().players[1].id)
+check('the adopter got the dare credit', S().players[1].daresCompleted === 1, `got ${S().players[1].daresCompleted}`)
+check('the coward kept the point', S().players[0].coward === 1, `got ${S().players[0].coward}`)
+check('the coward got no dare credit', S().players[0].daresCompleted === 0)
+check('the turn advanced from the coward', S().turnIndex === 1, `turnIndex=${S().turnIndex}`)
+
+console.log('\nnobody takes the dare')
+S().restart()
+S().startGame([{ name: 'A' }, { name: 'B' }])
+S().skip()
+S().chickenOut()
+S().declineDareOffer()
+check('turn advanced', S().turnIndex === 1, `turnIndex=${S().turnIndex}`)
+check('nobody got a dare credit', S().players.every((p) => p.daresCompleted === 0))
+check('the coward still paid', S().players[0].coward === 1, `got ${S().players[0].coward}`)
 
 console.log('\nrestart resets')
 S().restart()

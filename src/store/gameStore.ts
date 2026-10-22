@@ -16,6 +16,8 @@ import { pickWildcard } from '../data/wildcards'
  *  question        → card front, waiting on a swipe
  *  answered        → swiped right, group may Call Out during this window
  *  dare            → swiped left, card is flipped to a dare
+ *  dareVerdict     → dare reported done, group rules Nailed it / Fudged it
+ *  dareOffer       → the holder chickened out, the dare is up for grabs
  *  callout         → Call Out dare in progress (the accused keeps the turn)
  *  calloutVerdict  → Call Out dare done, group decides if it was deserved
  */
@@ -23,6 +25,8 @@ export type TurnStage =
   | 'question'
   | 'answered'
   | 'dare'
+  | 'dareVerdict'
+  | 'dareOffer'
   | 'callout'
   | 'calloutVerdict'
 
@@ -35,9 +39,14 @@ export interface GameStore {
   players: Player[]
   turnIndex: number
   round: number
-  /** Shuffled question queue. Ends the game when it runs dry. */
+  /** Shuffled question queue. Reshuffles instead of ending, so it never runs dry. */
   pool: Question[]
   poolIndex: number
+  /**
+   * How many times the question queue has been dealt through. Starts at 1.
+   * Surfaced on the card as `· ×2` so the player can tell a reshuffle from a bug.
+   */
+  deckPass: number
 
   // ---- Classic Circle mode --------------------------------------------------
   gameMode: 'free' | 'classic'
@@ -70,6 +79,14 @@ export interface GameStore {
   reroll: () => void
   chickenOut: () => void
   completeDare: () => void
+  /** Credited dare: the group said Nailed it (or the 4s window elapsed). */
+  confirmDare: () => void
+  /** Uncredited dare: nobody believed it. Coward + escalation, no apex credit. */
+  fudgeDare: () => void
+  /** Someone else adopts a chickened-out dare, and takes the credit. */
+  takeOverDare: (playerId: string) => void
+  /** Nobody takes it. The coward keeps the point they already banked. */
+  declineDareOffer: () => void
   callOut: () => void
   acceptCallOut: () => void
   penalizeCaller: (playerId: string) => void
@@ -91,6 +108,8 @@ interface PersistedSlice {
   /** Only ids — the questions themselves are rehydrated from the content library. */
   poolIds: string[]
   poolIndex: number
+  /** Absent in saves written before the reshuffle existed; defaults to 1. */
+  deckPass: number
   gameMode: 'free' | 'classic'
   turnOrder: string[]
   turnsTaken: Record<string, number>
@@ -197,6 +216,7 @@ export function mergePersisted(persisted: unknown, current: GameStore): GameStor
     // change can reference cards that no longer exist, which shortens the queue
     // and would otherwise leave the cursor past the end (and `cardsLeft` negative).
     poolIndex: Math.min(Math.max(0, p.poolIndex ?? 0), pool.length),
+    deckPass: Math.max(1, p.deckPass ?? 1),
     gameMode: p.gameMode ?? 'free',
     turnOrder: p.turnOrder ?? [],
     turnsTaken: p.turnsTaken ?? {},
@@ -208,27 +228,51 @@ export function mergePersisted(persisted: unknown, current: GameStore): GameStor
 export const useGameStore = create<GameStore>()(
   persist(
     (set, get) => {
-      /** Rotate to the next player, then deal. Ends the game when the queue is dry. */
+      /**
+       * Rotate to the next player, then deal the next card.
+       *
+       * Two endings live here, checked in this order:
+       *
+       *  1. The per-player turn limit, if one was chosen. Checked for BOTH modes
+       *     and before anything mode-specific — it used to sit inside the Classic
+       *     branch, which is why free play could only end by exhausting 135 cards
+       *     or pressing End.
+       *  2. Nothing else. The queue reshuffles instead of ending the game (see
+       *     `drawQuestion`), so "Endless" genuinely means endless.
+       *
+       * Turns are recorded in free mode now too. `turnsTaken` only ever fed the
+       * round limit, so not recording them made the limit unreachable there: a
+       * limit of 3 would have been checking a table of zeroes.
+       */
       const advanceTurn = () => {
-        const { players, turnIndex, poolIndex, pool, round, gameMode, turnsTaken, roundsPerPlayer } = get()
+        const { players, turnIndex, round, gameMode, turnsTaken, roundsPerPlayer } = get()
         if (players.length === 0) return
         const next = (turnIndex + 1) % players.length
         const wrapped = next === 0
 
-        // Classic Circle: record the completed turn, honour the round limit, and
-        // route to the "Next up" screen instead of auto-dealing the next card.
+        const currentId = players[turnIndex]?.id
+        const nextTurnsTaken = currentId
+          ? { ...turnsTaken, [currentId]: (turnsTaken[currentId] ?? 0) + 1 }
+          : turnsTaken
+
+        // "5 turns each" with six players ends once everyone has taken five, so
+        // at 30 turns — not at 5. `every` is what encodes "each".
+        const limitReached =
+          roundsPerPlayer != null &&
+          players.every((p) => (nextTurnsTaken[p.id] ?? 0) >= roundsPerPlayer)
+        if (limitReached) {
+          set({
+            turnsTaken: nextTurnsTaken,
+            phase: 'burnbook',
+            classicStage: null,
+            ...blankTurn(),
+          })
+          return
+        }
+
+        // Classic Circle routes through the "Next up" screen rather than dealing
+        // straight away, and re-draws a wildcard at the top of each round.
         if (gameMode === 'classic') {
-          const currentId = players[turnIndex]?.id
-          const nextTurnsTaken = currentId
-            ? { ...turnsTaken, [currentId]: (turnsTaken[currentId] ?? 0) + 1 }
-            : turnsTaken
-          const exhausted = poolIndex >= pool.length
-          const limitReached =
-            roundsPerPlayer != null && players.every((p) => (nextTurnsTaken[p.id] ?? 0) >= roundsPerPlayer)
-          if (exhausted || limitReached) {
-            set({ turnsTaken: nextTurnsTaken, phase: 'burnbook', classicStage: null, ...blankTurn() })
-            return
-          }
           set({
             turnIndex: next,
             turnsTaken: nextTurnsTaken,
@@ -239,16 +283,34 @@ export const useGameStore = create<GameStore>()(
           return
         }
 
-        if (poolIndex >= pool.length) {
-          set({ turnIndex: next, phase: 'burnbook', ...blankTurn() })
-          return
-        }
         set({
           turnIndex: next,
+          turnsTaken: nextTurnsTaken,
           ...(wrapped ? { round: round + 1, banner: `Round ${round + 1}` } : {}),
           ...blankTurn(),
         })
         get().drawQuestion()
+      }
+
+      /**
+       * Award a completed dare to a specific player.
+       *
+       * Takes a player id rather than reading `turnIndex`, because a dare can be
+       * adopted by somebody else when the holder chickens out. The credit has to
+       * follow the person who actually did it.
+       */
+      const creditDare = (playerId: string, dare: Dare) => {
+        set({
+          players: editPlayers(get().players, [
+            {
+              id: playerId,
+              fn: (p) => {
+                p.daresCompleted += 1
+                p.worstDare = higher(p.worstDare, dare.intensity)
+              },
+            },
+          ]),
+        })
       }
 
       const drawDare = (isCallOut: boolean) => {
@@ -278,6 +340,7 @@ turnIndex: 0,
         round: 1,
         pool: [],
         poolIndex: 0,
+        deckPass: 1,
 
         gameMode: 'free',
         turnOrder: [],
@@ -350,6 +413,7 @@ turnIndex: 0,
             round: 1,
             pool: buildQuestionQueue(),
             poolIndex: 0,
+            deckPass: 1,
             recentDareIds: [],
             lastAnsweredText: null,
             gameMode,
@@ -369,16 +433,38 @@ turnIndex: 0,
           get().drawQuestion()
         },
 
+        /**
+         * Deal the next card, reshuffling when the queue is dry.
+         *
+         * The queue looping here (rather than the game ending) is deliberate: 135
+         * cards is roughly 40 minutes with six players, so "cards run out = game
+         * over" was really "the game quietly stops in the middle of the night".
+         * Endless should mean endless, and the turn limit is the honest way to
+         * stop.
+         *
+         * Re-shuffled on each pass, not replayed in order, so a repeat is not
+         * obvious — the second pass is exactly when the jokes have worn off.
+         *
+         * This is the single place the queue is consumed, which is why the
+         * reshuffle lives here: a reroll, a Classic truth and a normal turn all
+         * funnel through it, and all three need the same "there is always a card"
+         * guarantee.
+         */
         drawQuestion: () => {
-          const { pool, poolIndex } = get()
+          let { pool, poolIndex, deckPass } = get()
           if (poolIndex >= pool.length) {
-            set({ phase: 'burnbook', ...blankTurn() })
-            return
+            pool = buildQuestionQueue()
+            poolIndex = 0
+            deckPass += 1
           }
+          const next = pool[poolIndex]
+          if (!next) return
           set({
             ...blankTurn(),
-            currentQuestion: pool[poolIndex],
+            pool,
             poolIndex: poolIndex + 1,
+            deckPass,
+            currentQuestion: next,
             stage: 'question',
           })
         },
@@ -531,30 +617,103 @@ turnIndex: 0,
             set({ stage: 'calloutVerdict', banner: 'Did they deserve that?' })
             return
           }
+          // A dare already on screen does not die with the refusal: it goes up for
+          // grabs. The Coward point was banked above and is NOT refunded if
+          // somebody else takes it — refusing in public has to keep costing
+          // something, or "chicken out and hope" becomes the optimal play.
+          if (stage === 'dare' && get().pendingDare) {
+            set({ stage: 'dareOffer', banner: 'Chickened out. Who takes it?' })
+            return
+          }
           advanceTurn()
         },
 
+        /**
+         * "I did it." Deliberately credits NOTHING yet.
+         *
+         * The group rules first (`dareVerdict`): Done is a claim, and a claim is
+         * the one thing half the table cannot verify. Crediting on the tap would
+         * force `fudgeDare` to subtract afterwards, and a subtract-after-add
+         * cannot undo the `worstDare` high-water mark correctly.
+         *
+         * Call Out dares are the exception. They already resolve through
+         * `calloutVerdict`, and stacking a second verdict on a punishment would
+         * make the table rule twice on one act.
+         */
         completeDare: () => {
           const { players, turnIndex, pendingDare, pendingIsCallOut } = get()
           const player = players[turnIndex]
           if (!player || !pendingDare) return
+          if (pendingIsCallOut) {
+            creditDare(player.id, pendingDare)
+            set({ stage: 'calloutVerdict', banner: 'Did they deserve that?' })
+            return
+          }
+          set({ stage: 'dareVerdict', banner: 'Nailed it, or fudged it?' })
+        },
+
+        /** The group believed it: credit the dare and move on. */
+        confirmDare: () => {
+          const { players, turnIndex, pendingDare } = get()
+          const player = players[turnIndex]
+          // Belt and braces: if the dare has somehow gone, end the turn rather
+          // than leaving the table on a panel whose buttons do nothing.
+          if (!player || !pendingDare) {
+            advanceTurn()
+            return
+          }
+          creditDare(player.id, pendingDare)
+          advanceTurn()
+        },
+
+        /**
+         * Nobody believed it. Same visible punishment as a chicken-out (`coward`)
+         * and the same hidden escalation (`flinchCount`), but the turn ends
+         * normally and the dare earns no credit.
+         *
+         * `brave` is untouched: the player may well have answered a question
+         * earlier in the turn, and that point was honest.
+         */
+        fudgeDare: () => {
+          const { players, turnIndex, gameMode } = get()
+          const player = players[turnIndex]
+          if (!player) return
           set({
             players: editPlayers(players, [
               {
                 id: player.id,
                 fn: (p) => {
-                  p.daresCompleted += 1
-                  p.worstDare = higher(p.worstDare, pendingDare.intensity)
+                  p.coward += 1
+                  p.flinchCount += 1
+                  p.answerStreak = 0
+                  if (gameMode === 'classic') p.truthStreak = 0
                 },
               },
             ]),
           })
-          if (pendingIsCallOut) {
-            set({ stage: 'calloutVerdict', banner: 'Did they deserve that?' })
-            return
-          }
           advanceTurn()
         },
+
+        /**
+         * Somebody else adopts a chickened-out dare. The credit follows whoever
+         * actually does it, and the turn still advances from the coward, so the
+         * next player in order keeps their normal turn.
+         */
+        takeOverDare: (playerId) => {
+          const { pendingDare, players } = get()
+          // Same guarantee as `confirmDare`: never strand the table on the offer
+          // panel. A missing dare means there is nothing to adopt.
+          if (!pendingDare) {
+            advanceTurn()
+            return
+          }
+          if (!players.some((p) => p.id === playerId)) return
+          creditDare(playerId, pendingDare)
+          advanceTurn()
+        },
+
+        /** Nobody took it. The coward keeps the point they already banked. */
+        declineDareOffer: () => advanceTurn(),
 
         callOut: () => {
           const { players, turnIndex } = get()
@@ -621,6 +780,7 @@ turnIndex: 0,
             round: 1,
             pool: [],
             poolIndex: 0,
+            deckPass: 1,
             banner: null,
             lastAnsweredText: null,
             gameMode: 'free',
@@ -650,6 +810,7 @@ turnIndex: 0,
         round: s.round,
         poolIds: s.pool.map((q) => q.id),
         poolIndex: s.poolIndex,
+        deckPass: s.deckPass,
         gameMode: s.gameMode,
         turnOrder: s.turnOrder,
         turnsTaken: s.turnsTaken,
@@ -675,6 +836,18 @@ export const selectCardsLeft = (s: GameStore): number =>
 export const selectCanCallOut = (s: GameStore): boolean => s.stage === 'answered'
 
 export const selectAwaitingDare = (s: GameStore): boolean => s.stage === 'dare'
+
+/** "I did it" has been claimed; the table has not ruled yet. */
+export const selectShowDareVerdict = (s: GameStore): boolean => s.stage === 'dareVerdict'
+
+/** The holder refused; the dare is up for adoption. */
+export const selectDareOffer = (s: GameStore): boolean => s.stage === 'dareOffer'
+
+/** Turns the current player has already taken, for the "3 / 5 turns" HUD. */
+export const selectTurnsTakenByCurrent = (s: GameStore): number => {
+  const player = s.players[s.turnIndex]
+  return player ? (s.turnsTaken[player.id] ?? 0) : 0
+}
 
 /**
  * A Call Out punishment is NOT an ordinary dare. It is deliberately not in

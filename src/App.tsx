@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { motion } from 'motion/react'
 import { BurnBookScreen } from './screens/BurnBookScreen'
 import { GameScreen } from './screens/GameScreen'
@@ -6,11 +7,24 @@ import { SetupScreen } from './screens/SetupScreen'
 import { TruthOrDareScreen } from './screens/TruthOrDareScreen'
 import { TurnIntroScreen } from './screens/TurnIntroScreen'
 import { useGameStore } from './store/gameStore'
+import { unlockAudio } from './lib/sound'
 
 export default function App() {
   const phase = useGameStore((s) => s.phase)
   const gameMode = useGameStore((s) => s.gameMode)
   const classicStage = useGameStore((s) => s.classicStage)
+
+  /**
+   * Browsers only allow an AudioContext to start inside a gesture, and the first
+   * cue of a game (`flip`) fires from an effect *after* the tap that caused it.
+   * Unlocking on the very first pointerdown means that cue is never swallowed.
+   * `once`, and it never makes a sound by itself.
+   */
+  useEffect(() => {
+    const unlock = () => unlockAudio()
+    window.addEventListener('pointerdown', unlock, { once: true })
+    return () => window.removeEventListener('pointerdown', unlock)
+  }, [])
 
   return (
     <div className="min-h-full">

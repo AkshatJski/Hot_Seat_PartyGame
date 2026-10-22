@@ -1,23 +1,36 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
+import { Volume2, VolumeX } from 'lucide-react'
 import { SwipeCard, type SwipeSignal } from '../components/SwipeCard'
 import { Commentator } from '../components/Commentator'
 import { reactionFor, type GameEvent } from '../data/commentary'
 import { dareTier } from '../data/decks'
 import { playerPalette } from '../data/playerColors'
+import { play, useSoundStore } from '../lib/sound'
 import {
   selectAwaitingCallOutDare,
   selectAwaitingDare,
   selectCanCallOut,
   selectCardsLeft,
   selectCurrentPlayer,
+  selectDareOffer,
+  selectShowDareVerdict,
   selectShowVerdict,
+  selectTurnsTakenByCurrent,
   useGameStore,
 } from '../store/gameStore'
 import type { Player } from '../types'
 
 /** How long the group has to Call Out an answer before the turn moves on. */
 const CALL_OUT_MS = 4000
+/**
+ * How long the table has to dispute a dare. Slightly longer than the Call Out
+ * window: this one is a judgement on a person's word, and it needs a beat for
+ * someone to look up from their drink.
+ */
+const DARE_VERDICT_MS = 5000
+/** How long a chickened-out dare stays up for adoption before nobody takes it. */
+const DARE_OFFER_MS = 9000
 
 /**
  * Seat rail: a coloured avatar and two scores per player, the active one lifted
@@ -85,6 +98,10 @@ export function GameScreen() {
   const chickenOut = useGameStore((s) => s.chickenOut)
   const rerollUsed = useGameStore((s) => s.rerollUsed)
   const completeDare = useGameStore((s) => s.completeDare)
+  const confirmDare = useGameStore((s) => s.confirmDare)
+  const fudgeDare = useGameStore((s) => s.fudgeDare)
+  const takeOverDare = useGameStore((s) => s.takeOverDare)
+  const declineDareOffer = useGameStore((s) => s.declineDareOffer)
   const callOut = useGameStore((s) => s.callOut)
   const acceptCallOut = useGameStore((s) => s.acceptCallOut)
   const penalizeCaller = useGameStore((s) => s.penalizeCaller)
@@ -98,6 +115,13 @@ export function GameScreen() {
   const awaitingDare = useGameStore(selectAwaitingDare)
   const awaitingCallOutDare = useGameStore(selectAwaitingCallOutDare)
   const showVerdict = useGameStore(selectShowVerdict)
+  const showDareVerdict = useGameStore(selectShowDareVerdict)
+  const dareOffer = useGameStore(selectDareOffer)
+  const turnsTaken = useGameStore(selectTurnsTakenByCurrent)
+  const roundsPerPlayer = useGameStore((s) => s.roundsPerPlayer)
+  const deckPass = useGameStore((s) => s.deckPass)
+  const muted = useSoundStore((s) => s.muted)
+  const toggleSound = useSoundStore((s) => s.toggle)
   const reduce = useReducedMotion()
 
   /**
@@ -167,6 +191,25 @@ export function GameScreen() {
     return () => clearTimeout(t)
   }, [canCallOut, acceptCallOut])
 
+  // The dare verdict and the adoption offer are the same shape of window: a
+  // short group decision that resolves itself, so a table that is busy arguing
+  // can never be stuck behind a dead screen.
+  //
+  // Silence is ALWAYS lenient. A quiet room must never cost somebody a point for
+  // inaction, so an unanswered verdict counts as "nailed it" and an untaken
+  // offer expires to "nobody".
+  useEffect(() => {
+    if (!showDareVerdict) return
+    const t = setTimeout(() => confirmDare(), DARE_VERDICT_MS)
+    return () => clearTimeout(t)
+  }, [showDareVerdict, confirmDare])
+
+  useEffect(() => {
+    if (!dareOffer) return
+    const t = setTimeout(() => declineDareOffer(), DARE_OFFER_MS)
+    return () => clearTimeout(t)
+  }, [dareOffer, declineDareOffer])
+
   if (!player) return null
 
   /**
@@ -185,25 +228,53 @@ export function GameScreen() {
           : null
   const hostLine = hostEvent ? reactionFor(hostEvent, `${turnIndex}:${round}`) : null
 
+  /**
+   * One visible fuse for every timed group window, so "the table has a moment to
+   * react" always looks the same. Sun on the adoption offer — it is an
+   * invitation, not a punishment — and berry on the two judgement windows.
+   */
+  const fuseMs = canCallOut
+    ? CALL_OUT_MS
+    : showDareVerdict
+      ? DARE_VERDICT_MS
+      : dareOffer
+        ? DARE_OFFER_MS
+        : null
+  const fuseTone = dareOffer ? 'bg-sun' : 'bg-berry'
+
   return (
     <div className="mx-auto flex min-h-full w-full max-w-md flex-col px-4 pt-5 pb-7">
       <header className="mb-3 flex items-center justify-between gap-3">
         <div className="min-w-0">
           <span className="chip mb-1.5">
-            Round {round} &middot; {cardsLeft} left
+            Round {round} &middot;{' '}
+            {roundsPerPlayer != null
+              ? `${turnsTaken} / ${roundsPerPlayer} turns`
+              : `${cardsLeft} left`}
           </span>
           <p className="truncate font-display text-[22px] leading-tight font-semibold text-ink">
             {player.name}
             <span className="text-muted">&rsquo;s turn</span>
           </p>
         </div>
-        <button
-          type="button"
-          onClick={quitToBurnBook}
-          className="btn btn-quiet h-9 shrink-0 px-3 text-[12.5px]"
-        >
-          End
-        </button>
+        <span className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={toggleSound}
+            aria-label={muted ? 'Turn sound on' : 'Mute sound'}
+            title={muted ? 'Sound off' : 'Sound on'}
+            className="btn btn-quiet h-9 w-9 rounded-xl p-0"
+          >
+            {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+          </button>
+          <button
+            type="button"
+            onClick={quitToBurnBook}
+            className="btn btn-quiet h-9 px-3 text-[12.5px]"
+          >
+            End
+          </button>
+        </span>
       </header>
 
       <div className="mb-4">
@@ -252,7 +323,10 @@ export function GameScreen() {
                     <button
                       key={p.id}
                       type="button"
-                      onClick={() => penalizeCaller(p.id)}
+                      onClick={() => {
+                        play('fudge')
+                        penalizeCaller(p.id)
+                      }}
                       className="btn btn-berry h-9 rounded-xl px-3 text-[12px]"
                     >
                       {p.name} &minus;1
@@ -287,6 +361,106 @@ export function GameScreen() {
               </p>
             </div>
           </motion.div>
+        ) : showDareVerdict ? (
+          /* The group rules on a claimed dare. The dare is repeated here so the
+             table is judging the actual words, not their memory of them. */
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+            className="panel flex h-[min(62vh,520px)] w-[min(88vw,380px)] flex-col justify-between p-5"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="chip bg-mint text-[#083a26]">Dare</span>
+              <span className="font-display text-[12.5px] font-semibold text-muted">
+                {player.name} says done
+              </span>
+            </div>
+
+            <div>
+              <p className="text-[11.5px] font-medium text-dim">Did that happen?</p>
+              <p className="mt-1.5 font-display text-[21px] leading-[1.2] font-semibold text-balance text-ink">
+                {pendingDare?.text ?? 'No dare loaded.'}
+              </p>
+            </div>
+
+            <div className="space-y-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  play('point')
+                  confirmDare()
+                }}
+                className="btn btn-mint h-12 w-full text-[15px]"
+              >
+                Nailed it
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  play('fudge')
+                  fudgeDare()
+                }}
+                className="btn btn-berry h-12 w-full text-[13.5px]"
+              >
+                Fudged it &middot; Coward +1
+              </button>
+              <p className="text-center text-[11.5px] font-medium text-dim">
+                Say nothing and it counts as done.
+              </p>
+            </div>
+          </motion.div>
+        ) : dareOffer ? (
+          /* A refused dare is not destroyed — it goes up for adoption. Someone
+             else can take the credit, which is usually funnier than the dare. */
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+            className="panel flex h-[min(62vh,520px)] w-[min(88vw,380px)] flex-col justify-between p-5"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="chip bg-berry/15 text-berry-deep">Chickened out</span>
+              <span className="font-display text-[12.5px] font-semibold text-muted">
+                {player.name}
+              </span>
+            </div>
+
+            <div>
+              <p className="text-[11.5px] font-medium text-dim">The dare is up for grabs</p>
+              <p className="mt-1.5 font-display text-[20px] leading-[1.2] font-semibold text-balance text-ink">
+                {pendingDare?.text ?? 'No dare loaded.'}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[11.5px] font-medium text-dim">Who is taking it?</p>
+              <div className="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
+                {players
+                  .filter((p) => p.id !== player.id)
+                  .map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        play('point')
+                        takeOverDare(p.id)
+                      }}
+                      className="btn btn-quiet h-9 rounded-xl px-3 text-[12.5px]"
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => declineDareOffer()}
+                className="btn btn-berry h-11 w-full text-[13.5px]"
+              >
+                Nobody &middot; let it die
+              </button>
+            </div>
+          </motion.div>
         ) : (
           // The wrapper is sized to the CARD, not to the flex container. The two
           // sheets that sell the "deck" illusion are offset from this box, so
@@ -304,7 +478,9 @@ export function GameScreen() {
               dare={pendingDare}
               flipped={flipped}
               signal={signal}
-              cardNumber={currentQuestion ? { n: poolIndex, total: pool.length } : null}
+              cardNumber={
+                currentQuestion ? { n: poolIndex, total: pool.length, pass: deckPass } : null
+              }
               onSwipe={(direction) => (direction === 'right' ? answer() : skip())}
               onFlipComplete={dismissBanner}
             />
@@ -320,17 +496,19 @@ export function GameScreen() {
         </div>
       )}
 
-      {/* Call Out countdown — a visible fuse for the 4s group-reaction window. */}
-      {canCallOut &&
+      {/* The group's window to react, as one visible fuse. Every timed window in
+          the game shares this bar so "the table has a moment" always looks the
+          same. Sun for the adoption offer (an invitation), berry for judgement. */}
+      {fuseMs !== null &&
         (reduce ? (
-          <div className="mx-auto mt-3 h-2 w-44 rounded-full bg-berry" />
+          <div className={`mx-auto mt-3 h-2 w-44 rounded-full ${fuseTone}`} />
         ) : (
           <motion.div
-            key={`callout-${turnIndex}-${round}`}
+            key={`fuse-${stage}-${turnIndex}-${round}`}
             initial={{ scaleX: 1 }}
             animate={{ scaleX: 0 }}
-            transition={{ duration: CALL_OUT_MS / 1000, ease: 'linear' }}
-            className="mx-auto mt-3 h-2 w-44 origin-left rounded-full bg-berry"
+            transition={{ duration: fuseMs / 1000, ease: 'linear' }}
+            className={`mx-auto mt-3 h-2 w-44 origin-left rounded-full ${fuseTone}`}
           />
         ))}
 
@@ -355,9 +533,13 @@ export function GameScreen() {
           through to the default branch, a queued `signal` would be consumed by
           the next card on mount — silently auto-swiping a fresh question. */}
       <div className="mt-4 flex gap-2">
-        {showVerdict ? (
+        {showVerdict || showDareVerdict || dareOffer ? (
           <p className="w-full py-3 text-center text-[11.5px] font-medium text-dim">
-            verdict decides the turn
+            {showVerdict
+              ? 'verdict decides the turn'
+              : showDareVerdict
+                ? 'the table decides'
+                : 'someone can still take it'}
           </p>
         ) : awaitingCallOutDare ? (
           <button
@@ -406,7 +588,10 @@ export function GameScreen() {
             </button>
             <button
               type="button"
-              onClick={callOut}
+              onClick={() => {
+                play('fudge')
+                callOut()
+              }}
               className="btn btn-berry h-12 flex-1 rounded-2xl text-[14.5px]"
             >
               Call Out
