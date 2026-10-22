@@ -267,7 +267,7 @@ A few decisions worth knowing about if you read the source:
 ```
 src/
 ├─ components/SwipeCard.tsx      the whole mechanic: physics, 3D flip, haptics
-├─ components/Commentator.tsx    the host: an attributed byline, no emoji
+├─ components/Commentator.tsx    the host: drawn face in a speech bubble
 ├─ components/CountUp.tsx        roll-up numbers for the Burn Book
 ├─ store/gameStore.ts            turn machine, scoring, persistence
 ├─ screens/
@@ -291,14 +291,26 @@ scripts/make-icons.ts            icon.svg → PNGs
 
 ### Look and feel
 
-Index cards on a table, printed in a dim room. Warm near-black paper, cream ink,
-and exactly three colours that mean something: **vermillion** = refusal or
-punishment, **ochre** = dare or intensity, **sage** = answered. Everything else is
-ink on paper. One soft shadow, 1-3px radii, no gradients, no glow, no emoji as UI.
+A toy on a table. Warm cream ground with a dot grid, white rounded panels floating
+on it, and chunky buttons that sink onto a solid 4px bottom edge when you press
+them. Rounded display face (Fredoka, bundled), big touch targets, bright colours
+with one job each:
 
-Three easter eggs, and no more: the card prints its own number
-(`no. 042 / 135`), holding the Burn Book title for half a second reveals a
-colophon, and the console says something on boot.
+| Colour | Job |
+| --- | --- |
+| coral | the thing you came here to do — start, done, share |
+| sky | move on / neutral secondary |
+| sun | dare, intensity, wildcard |
+| mint | answered, completed, brave |
+| berry | refusal, punishment, a wrong call |
+| grape | identity only — seat avatars, never a button |
+
+The host is a drawn face in a speech bubble, one expression per mood. No emoji
+anywhere: they render in five different styles on five phones.
+
+Three easter eggs, and no more: the card prints its own number (`42 / 135`),
+holding the Burn Book title for half a second reveals a colophon, and the console
+says something on boot.
 
 ---
 

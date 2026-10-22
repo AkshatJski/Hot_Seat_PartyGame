@@ -2,68 +2,84 @@
 
 /*
  * ===========================================================================
- * HOT SEAT — "index cards on a table, printed in a dim room"
+ * HOT SEAT — "a toy on a table" (neal.fun / skribbl.io energy)
  * ===========================================================================
  *
- * One ground, one paper, three quiet inks. Nothing glows, nothing blurs.
+ * The rule for this pass: everything a finger can hit must look like it can be
+ * PRESSED, and everything a finger can read must look WRITTEN, not typeset.
  *
- * The rule that keeps this from turning back into a theme park: COLOUR CARRIES
- * MEANING, NEVER DECORATION. Vermillion means "this is going to hurt", ochre
- * means "dare", sage means "you did the thing". Anything that isn't one of
- * those three is ink on paper.
- *
- * Radii are 2-3px. There is exactly ONE shadow in the system (the card lift);
- * everything else is separated by a 1px rule, the way print is.
+ * That means: white rounded panels floating on warm cream, chunky buttons with a
+ * solid 4px bottom edge they sink into, a rounded display face, and a bright
+ * palette where each colour owns exactly one job. No hairlines, no monochrome,
+ * no editorial restraint — this is a party game, not a broadsheet.
  */
+
+/*
+ * FREDOKA (SIL Open Font License 1.1 — see public/fonts/OFL-Fredoka.txt).
+ *
+ * Self-hosted and bundled by Vite, so it is a local asset: the app still works
+ * with no network. Rounded terminals are the single biggest lever on whether
+ * this reads as a game website or as a settings screen.
+ *
+ * `font-display: swap` on purpose — a party game must paint immediately, and a
+ * one-frame fallback is invisible next to a blank screen waiting on a font.
+ */
+@font-face {
+  font-family: 'Fredoka';
+  src: url('./assets/fonts/fredoka-latin.woff2') format('woff2');
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
-  /* --- Paper ------------------------------------------------------------ */
-  /* Warm near-black, not blue-black. Newsprint under a lamp. */
-  --color-stage: #121110;
-  /* Recessed strip: player rail, footer bars. One step darker than the sheet. */
-  --color-coal: #0D0C0A;
-  /* The sheet. Cards, panels, anything that reads as "printed on". */
-  --color-panel: #1C1A14;
-  /* Second sheet, for a panel stacked on a panel. Barely a step. */
-  --color-sheet: #23211A;
-  /* The only line colour. 1px, always. */
-  --color-hairline: #37322A;
+  /* --- Ground ------------------------------------------------------------
+     Warm cream. Never pure white — the panels are white, and they need
+     something to sit ON. */
+  --color-cream: #fff7ec;
+  --color-panel: #ffffff;
+  /* Inset blocks: host bubble, selected row, disabled wells. */
+  --color-tint: #fff3e3;
+  --color-line: #f0e3d0;
 
-  /* --- Inks ------------------------------------------------------------- */
-  /* Warm cream. Body copy, card text, primary button fill. */
-  --color-ink: #EDE6D6;
-  --color-muted: #A69E8A;
-  --color-dim: #6E6757;
+  /* --- Ink --------------------------------------------------------------- */
+  --color-ink: #2b2118;
+  --color-muted: #71614f;
+  --color-dim: #8a7962;
 
-  /* --- The three inks that mean something ------------------------------- */
-  /* Vermillion: refusal, punishment, a wrong call. The only loud colour. */
-  --color-accent: #E4472B;
-  /* Ochre: dares and intensity. Quiet enough to sit next to the accent. */
-  --color-ochre: #D9A03C;
-  /* Sage: answered, completed, "you did the thing". */
-  --color-sage: #A6B87F;
+  /* --- Roles -------------------------------------------------------------
+     Each colour means one thing, everywhere. A button's colour tells you what
+     it will do before you read it.
 
-  /*
-   * That is the whole palette. There is no fourth ink and no legacy alias: if a
-   * future screen wants a colour, it has to argue for one of these three. The
-   * old neon set (green/purple/red/amber/cyan/pink/lime/orange) is gone on
-   * purpose — eight accents is eight things that mean nothing.
-   */
+       coral = the thing you came here to do (start, done, share)
+       sky   = move on / neutral secondary
+       sun   = dare, intensity
+       mint  = answered, completed, brave
+       berry = refusal, punishment, a wrong call
+       grape = identity only (seat avatars), never a button
+  */
+  --color-coral: #ff7a59;
+  --color-coral-deep: #d9542f;
+  --color-sky: #4db8f5;
+  --color-sky-deep: #2e8fc7;
+  --color-sun: #ffc93c;
+  --color-sun-deep: #db9e12;
+  --color-mint: #3ecf8e;
+  --color-mint-deep: #22a56d;
+  --color-berry: #ff5c7a;
+  --color-berry-deep: #d23a57;
+  --color-grape: #a78bfa;
+  --color-grape-deep: #7c5ce0;
 
-  /*
-   * ONE shadow, three sizes. Soft and downward — the card sits ON the table and
-   * throws a real shadow. Nothing in here is the hard arcade sticker offset.
-   */
-  --shadow-pop-sm: 0 1px 0 0 rgb(0 0 0 / 0.5), 0 6px 14px -10px rgb(0 0 0 / 0.9);
-  --shadow-pop: 0 1px 0 0 rgb(0 0 0 / 0.55), 0 18px 36px -22px rgb(0 0 0 / 0.95);
-  --shadow-pop-lg: 0 1px 0 0 rgb(0 0 0 / 0.6), 0 30px 64px -30px rgb(0 0 0 / 1);
+  /* --- Type -------------------------------------------------------------- */
+  --font-display: 'Fredoka', ui-rounded, 'Segoe UI', system-ui, sans-serif;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
-  /*
-   * No webfont: this app is offline-first and must not flash or block on a
-   * network request. A grotesk for voice, a monospace for machinery (card
-   * numbers, counters, the small print). That pairing is the whole type system.
-   */
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
+  /* --- Elevation ---------------------------------------------------------
+     Soft and warm, never grey. Panels float; buttons do not — they get their
+     depth from a solid edge instead of a shadow. */
+  --shadow-card: 0 18px 40px -24px rgb(74 52 30 / 0.45);
+  --shadow-soft: 0 8px 20px -12px rgb(74 52 30 / 0.4);
 }
 
 @layer base {
@@ -75,73 +91,162 @@
 
   body {
     margin: 0;
-    background-color: var(--color-stage);
     color: var(--color-ink);
     font-family: var(--font-sans);
+    /* A soft lamp glow at the top, then a dot grid. Fixed so the grid never
+       drifts under a swipe. */
+    background-color: var(--color-cream);
+    background-image:
+      radial-gradient(circle at 50% -12%, #ffe3be 0%, rgb(255 227 190 / 0) 58%),
+      radial-gradient(#ecdfc9 1.1px, transparent 1.1px);
+    background-size:
+      100% 100%,
+      22px 22px;
+    background-attachment: fixed;
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
     -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
+  }
+
+  /* Rounded face for anything that speaks. Body copy stays system sans so long
+     paragraphs (blurbs, the Burn Book) keep their rhythm. */
+  h1,
+  h2,
+  h3,
+  button {
+    font-family: var(--font-display);
   }
 
   button {
-    font-family: inherit;
+    font-weight: 600;
+  }
+
+  ::selection {
+    background: var(--color-sun);
+    color: var(--color-ink);
+  }
+}
+
+@layer components {
+  /*
+   * PANEL — the one surface. White, generously rounded, floating.
+   * There is no second card style: hierarchy comes from size and from what is
+   * inside, not from a second border treatment.
+   */
+  .panel {
+    background: var(--color-panel);
+    border-radius: 26px;
+    box-shadow: var(--shadow-card);
   }
 
   /*
-   * PAPER GRAIN
-   * A single inline SVG turbulence, fixed over everything at 4% opacity. This is
-   * what stops large flat areas reading as a screen and starts them reading as
-   * a printed sheet. `pointer-events: none` so it can never eat a swipe, and it
-   * is skipped entirely under reduced motion (it does not move, but it is
-   * texture, and texture is noise to some people).
+   * BUTTON — the one control.
+   *
+   * The 4px solid edge under a button is the whole trick: pressing it moves the
+   * button DOWN onto its edge and the edge disappears, so the control feels
+   * physical without a single frame of animation. Every button in the app is
+   * built from this, with the colour supplied by a variant.
    */
-  body::after {
+  .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 16px;
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: #fff;
+    background: var(--color-coral);
+    box-shadow: 0 4px 0 var(--btn-shade, var(--color-coral-deep));
+    transition:
+      transform 70ms ease,
+      box-shadow 70ms ease,
+      filter 120ms ease;
+    user-select: none;
+  }
+
+  .btn:active:not(:disabled) {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 var(--btn-shade, var(--color-coral-deep));
+  }
+
+  .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+    transform: none;
+  }
+
+  .btn:not(:disabled):hover {
+    filter: brightness(1.04);
+  }
+
+  .btn-coral {
+    background: var(--color-coral);
+    --btn-shade: var(--color-coral-deep);
+  }
+
+  .btn-sky {
+    background: var(--color-sky);
+    --btn-shade: var(--color-sky-deep);
+  }
+
+  .btn-mint {
+    background: var(--color-mint);
+    --btn-shade: var(--color-mint-deep);
+    color: #083a26;
+  }
+
+  .btn-berry {
+    background: var(--color-berry);
+    --btn-shade: var(--color-berry-deep);
+  }
+
+  .btn-sun {
+    background: var(--color-sun);
+    --btn-shade: var(--color-sun-deep);
+    color: #4a3200;
+  }
+
+  /* Quiet secondary: white, ink text, its edge is the panel hairline colour. */
+  .btn-quiet {
+    background: #fff;
+    color: var(--color-muted);
+    --btn-shade: var(--color-line);
+  }
+
+  /* A small rounded label. Used for card numbers, scores, tier. */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 999px;
+    padding: 0.1875rem 0.5rem;
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.35;
+    background: var(--color-tint);
+    color: var(--color-muted);
+  }
+
+  /* Bubble tail for the host. Two stacked rotated squares = a triangle with a
+     rounder silhouette than clip-path, and no extra element. */
+  .bubble {
+    position: relative;
+    background: var(--color-tint);
+    border-radius: 20px;
+  }
+
+  .bubble::before {
     content: '';
-    position: fixed;
-    inset: 0;
-    z-index: 2147483647;
-    pointer-events: none;
-    opacity: 0.045;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
-}
-
-@layer utilities {
-  /*
-   * Small print: mono, slightly tracked, never shouted. Deliberately carries no
-   * colour of its own — that way `meta text-accent` and `meta text-dim` both mean
-   * what they say instead of fighting the utility layer for the cascade.
-   */
-  .meta {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.06em;
-    line-height: 1;
-  }
-
-  /* A printed rule. 1px, warm, dotted where it should feel cut. */
-  .rule {
-    border-top: 1px solid var(--color-hairline);
-  }
-
-  /*
-   * A stamp: rotated block of accent behind mono text. Used for DARE on the card
-   * back and for the verdict mark. Deliberately imperfect — a real stamp has
-   * landed slightly off.
-   */
-  .stamp {
-    font-family: var(--font-mono);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    border: 2px solid currentColor;
-    padding: 2px 6px;
-    transform: rotate(-4deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body::after {
-    display: none;
+    position: absolute;
+    left: 22px;
+    bottom: -5px;
+    width: 12px;
+    height: 12px;
+    background: inherit;
+    border-radius: 0 0 3px 0;
+    transform: rotate(45deg);
   }
 }

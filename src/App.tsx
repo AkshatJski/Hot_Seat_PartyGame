@@ -21,14 +21,15 @@ export default function App() {
         screen appeared — a bad trade in a party game where the room is waiting.
         Enter-only is instant and cannot get stuck.
 
-        The move is 6px and 160ms, not 10px/200ms: at party speed a big entrance
-        reads as lag. Nothing else in the app animates on its own.
+        A small spring pop, not a slide: the whole card language is physical, so
+        screens should land like a card being dealt rather than fade like a web
+        page. 12px of travel, damped hard enough that it never wobbles.
       */}
       <motion.div
         key={phase}
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.16, ease: 'easeOut' }}
+        initial={{ opacity: 0, y: 12, scale: 0.99 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 30, mass: 0.7 }}
       >
         {phase === 'setup' && <SetupScreen />}
         {phase === 'playing' && gameMode === 'classic' && classicStage === 'intro' && <TurnIntroScreen />}

@@ -18,6 +18,7 @@ import {
   quipForCard,
   reactionFor,
 } from './src/data/commentary'
+import { PLAYER_PALETTE, playerPalette } from './src/data/playerColors'
 import { verdictFor } from './src/data/verdicts'
 import type { Player } from './src/types'
 
@@ -93,6 +94,23 @@ check(
   })(),
 )
 check('quipForCard never throws', quipForCard('x').text.length > 0)
+
+console.log('\nseat colours')
+check('palette is stocked', PLAYER_PALETTE.length >= 6)
+check(
+  'palette entries carry every class the UI reads',
+  PLAYER_PALETTE.every((p) => p.name && p.text && p.bg && p.soft && p.border),
+)
+check(
+  'seat colours cycle safely',
+  playerPalette(0).name === PLAYER_PALETTE[0].name &&
+    playerPalette(PLAYER_PALETTE.length).name === PLAYER_PALETTE[0].name,
+)
+check(
+  'negative seats wrap, not crash',
+  playerPalette(-1).name === PLAYER_PALETTE.at(-1)!.name &&
+    playerPalette(-PLAYER_PALETTE.length).name === PLAYER_PALETTE[0].name,
+)
 
 console.log('\ndare tier ladder')
 check('0 cowards -> tier 1', dareTier(0) === 1)

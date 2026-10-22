@@ -17,14 +17,14 @@ function buzz(pattern: number | number[]) {
   }
 }
 
-/** Three filled squares, printed. Ochre because intensity is dare-coloured. */
+/** Three rounded bars. Sun because intensity belongs to the dare side. */
 function IntensityPips({ level }: { level: Intensity }) {
   return (
     <span className="flex items-center gap-[3px]" aria-label={`intensity ${level} of 3`}>
       {[1, 2, 3].map((n) => (
         <span
           key={n}
-          className={`h-[7px] w-[7px] ${n <= level ? 'bg-ochre' : 'bg-hairline'}`}
+          className={`h-[6px] w-[10px] rounded-full ${n <= level ? 'bg-sun' : 'bg-line'}`}
         />
       ))}
     </span>
@@ -78,8 +78,8 @@ export function SwipeCard({
   const rotateY = useTransform(flip, [0, 1], [0, 180])
   const answerStamp = useTransform(x, [30, SWIPE_DISTANCE], [0, 1])
   const dareStamp = useTransform(x, [-30, -SWIPE_DISTANCE], [0, 1])
-  const answerTilt = useTransform(x, [0, SWIPE_DISTANCE], [0, 8])
-  const dareTilt = useTransform(x, [-SWIPE_DISTANCE, 0], [-8, 0])
+  const answerTilt = useTransform(x, [0, SWIPE_DISTANCE], [0, 7])
+  const dareTilt = useTransform(x, [-SWIPE_DISTANCE, 0], [-7, 0])
 
   // No reset effect on purpose: the parent remounts the card via `key` whenever
   // a new question is dealt, so every instance starts with clean state anyway.
@@ -159,14 +159,13 @@ export function SwipeCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18, ease: 'easeOut' }}
-      // The ONE soft shadow in the app lives on the wrapper, not the card: the
-      // card sets preserve-3d, and keeping its box free of extra paint work
-      // avoids any browser that flattens a 3D context when the element gets a
-      // shadow.
-      className="relative mx-auto w-[min(88vw,380px)] shadow-pop-lg"
+      initial={{ opacity: 0, y: 12, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+      // The panel shadow lives on the wrapper, not the card: the card sets
+      // preserve-3d, and keeping its box free of extra paint work avoids any
+      // browser that flattens a 3D context when the element gets a shadow.
+      className="relative mx-auto w-[min(88vw,380px)] shadow-card"
     >
       <motion.div
         drag={locked || flipped ? false : 'x'}
@@ -184,53 +183,51 @@ export function SwipeCard({
         // rotateY(180deg) renders as literal reversed text on top of the front.
         // Also note nothing on this element may set overflow:hidden — that
         // flattens the context again and re-breaks the flip.
-        className="relative h-[min(62vh,520px)] w-full touch-pan-y border border-hairline bg-panel transform-3d"
+        className="relative h-[min(62vh,520px)] w-full touch-pan-y rounded-[28px] bg-panel transform-3d"
       >
         {/* FRONT — the question, or a Called Out notice when there is none. */}
-        <div className="absolute inset-0 flex flex-col bg-panel p-6 [backface-visibility:hidden] [-webkit-backface-visibility:hidden]">
-          {/* Header: card number left, player + intensity right. Mono, quiet. */}
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="meta text-muted">
-              {cardNumber
-                ? `no. ${String(cardNumber.n).padStart(3, '0')} / ${cardNumber.total}`
-                : 'call out'}
+        <div className="absolute inset-0 flex flex-col rounded-[28px] bg-panel p-5 [backface-visibility:hidden] [-webkit-backface-visibility:hidden]">
+          {/* Header: deck number left, player + intensity right. */}
+          <div className="flex items-center justify-between gap-2">
+            <span className="chip">
+              {cardNumber ? `${cardNumber.n} / ${cardNumber.total}` : 'call out'}
             </span>
             <span className="flex items-center gap-2">
-              <span className="meta text-muted">{playerName}</span>
+              <span className="font-display text-[12.5px] font-semibold text-muted">
+                {playerName}
+              </span>
               <IntensityPips level={question?.intensity ?? 1} />
             </span>
           </div>
 
-          <div className="mt-5 h-px w-full bg-hairline" />
-
-          {/* The question + host line live in the flexible middle region, so a
-              long question eats the slack instead of shoving the footer off the
+          {/* The question + host line share the flexible middle region, so a long
+              question eats the slack instead of shoving the footer off the
               bottom of the fixed-height card. */}
-          <div className="mt-5 flex min-h-0 flex-1 flex-col overflow-hidden">
-            <p className="text-[25px] leading-[1.22] font-semibold tracking-[-0.01em] text-balance text-ink">
+          <div className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden">
+            <p className="font-display text-[26px] leading-[1.16] font-semibold tracking-[-0.01em] text-balance text-ink">
               {question?.text ?? 'Called out. Brave does not protect you here.'}
             </p>
 
             {quip && <Commentator quip={quip} />}
           </div>
 
-          {/* Pinned footer. The gesture legend, in small print, not a button row. */}
-          <div className="mt-4 flex shrink-0 items-baseline justify-between border-t border-hairline pt-3">
-            <span className="meta text-muted">&larr; dare</span>
-            <span className="meta text-dim">or</span>
-            <span className="meta text-muted">answer &rarr;</span>
+          {/* Pinned footer: the gesture legend, as two little pills. */}
+          <div className="mt-3 flex shrink-0 items-center justify-between">
+            <span className="chip bg-sun/25 text-[#8a5f00]">&larr; dare</span>
+            <span className="text-[11px] font-semibold text-dim">or</span>
+            <span className="chip bg-mint/20 text-[#0d6b47]">answer &rarr;</span>
           </div>
 
-          {/* Swipe stamps: rotated type, no filled blocks. */}
+          {/* Swipe stamps: rotated type over the card, no filled blocks. */}
           <motion.div
             style={{ opacity: dareStamp, rotate: dareTilt }}
-            className="stamp pointer-events-none absolute top-16 left-6 border-accent text-lg font-bold text-accent"
+            className="pointer-events-none absolute top-16 left-5 rounded-xl border-[3px] border-berry px-2.5 py-1 font-display text-[17px] font-bold tracking-wide text-berry uppercase"
           >
             Dare
           </motion.div>
           <motion.div
             style={{ opacity: answerStamp, rotate: answerTilt }}
-            className="stamp pointer-events-none absolute top-16 right-6 border-sage text-lg font-bold text-sage"
+            className="pointer-events-none absolute top-16 right-5 rounded-xl border-[3px] border-mint px-2.5 py-1 font-display text-[17px] font-bold tracking-wide text-mint-deep uppercase"
           >
             Answer
           </motion.div>
@@ -239,31 +236,29 @@ export function SwipeCard({
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="pointer-events-none absolute inset-0 border-2 border-sage"
+              className="pointer-events-none absolute inset-0 rounded-[28px] border-4 border-mint"
             />
           )}
         </div>
 
-        {/* BACK — the dare, revealed by the 3D flip.
-            Same paper as the front. The only thing that changes is the stamp and
-            the ink, which is how a real card would work: same sheet, new printing.
+        {/* BACK — the dare, revealed by the 3D flip. Same card, warm printing, so
+            it reads as the other side of one object rather than a new screen.
             The rotateY(180deg) pre-mirrors this face so that once the parent
             reaches 180deg the two cancel and the text reads forwards. It only
             works because the parent sets preserve-3d. */}
-        <div className="absolute inset-0 flex flex-col justify-between bg-panel p-6 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)]">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="stamp border-accent text-[11px] font-bold text-accent">Dare</span>
+        <div className="absolute inset-0 flex flex-col justify-between rounded-[28px] bg-[#FFFBEF] p-5 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="chip bg-sun text-[#4a3200]">DARE</span>
             <IntensityPips level={dare?.intensity ?? 1} />
           </div>
 
-          <p className="text-[25px] leading-[1.22] font-semibold tracking-[-0.01em] text-balance text-ink">
+          <p className="font-display text-[26px] leading-[1.16] font-semibold tracking-[-0.01em] text-balance text-ink">
             {dare?.text ?? 'No dare loaded.'}
           </p>
 
-          <div className="border-t border-hairline pt-3">
-            <span className="meta text-muted">
-              {playerName} &middot; do it, then hit done
-            </span>
+          <div className="flex items-center justify-between">
+            <span className="font-display text-[12.5px] font-semibold text-muted">{playerName}</span>
+            <span className="text-[11px] font-semibold text-dim">do it, then hit done</span>
           </div>
         </div>
       </motion.div>

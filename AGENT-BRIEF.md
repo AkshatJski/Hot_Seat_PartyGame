@@ -126,7 +126,7 @@ src/
 ├─ store/gameStore.ts         turn machine, scoring, persistence, all game actions
 ├─ components/
 │  ├─ SwipeCard.tsx           THE mechanic: drag physics, 3D flip, stamps, footer legend
-│  ├─ Commentator.tsx         the host, as an attributed byline (deterministic quip)
+│  ├─ Commentator.tsx         the host: drawn face in a speech bubble
 │  └─ ...                     CountUp
 ├─ screens/
 │  ├─ SetupScreen.tsx         names + game mode (no decks, no 18+ gate)

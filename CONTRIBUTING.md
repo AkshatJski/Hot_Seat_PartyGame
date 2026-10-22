@@ -58,12 +58,16 @@ Match what's already there. In short:
 - Strict TypeScript. `erasableSyntaxOnly` is on: no `enum`, no parameter
   properties.
 - Tailwind utilities for styling. The palette lives in `@theme` in
-  `src/index.css` (`bg-panel`, `text-ink`, `text-accent`, `border-hairline`, …).
+  `src/index.css` (`bg-panel`, `text-ink`, `bg-coral`, `text-mint-deep`, …).
   Don't hardcode hex values in components.
-- **Colour carries meaning, never decoration.** `accent` = refusal/punishment,
-  `ochre` = dare/intensity, `sage` = answered. If a new surface needs a colour
-  that isn't one of those three, use ink (`ink` / `muted` / `dim`) — don't add a
-  fourth. Radii stay at 1-3px, and `shadow-pop-lg` is reserved for the card.
+- **Every control is a `.btn`.** The component classes in `@layer components` of
+  `src/index.css` (`.panel`, `.btn` + `btn-coral`/`btn-sky`/`btn-mint`/`btn-berry`/
+  `btn-sun`/`btn-quiet`, `.chip`, `.bubble`) own the press behaviour — a 4px solid
+  bottom edge the button sinks into. Don't build a new button shape by hand; pick
+  a variant.
+- **Each colour has one job**: coral = primary action, sky = move on, sun = dare,
+  mint = success, berry = refusal/punishment, grape = identity only. A new surface
+  that isn't one of those is `ink` / `muted` / `dim` on a `panel`.
 - Motion values (`useMotionValue` / `useTransform`) for anything driven by a
   gesture or animation. Never React state per frame — that's the whole reason
   dragging costs zero re-renders here.
