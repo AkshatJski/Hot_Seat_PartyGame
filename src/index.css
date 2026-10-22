@@ -1,37 +1,69 @@
 @import 'tailwindcss';
 
+/*
+ * ===========================================================================
+ * HOT SEAT — "index cards on a table, printed in a dim room"
+ * ===========================================================================
+ *
+ * One ground, one paper, three quiet inks. Nothing glows, nothing blurs.
+ *
+ * The rule that keeps this from turning back into a theme park: COLOUR CARRIES
+ * MEANING, NEVER DECORATION. Vermillion means "this is going to hurt", ochre
+ * means "dare", sage means "you did the thing". Anything that isn't one of
+ * those three is ink on paper.
+ *
+ * Radii are 2-3px. There is exactly ONE shadow in the system (the card lift);
+ * everything else is separated by a 1px rule, the way print is.
+ */
 @theme {
-  /* Stage floor — a deep indigo so the app reads as a venue, not a page. */
-  --color-stage: #120e1f;
-  --color-coal: #111118;
-  /* Raised surfaces. Solid on purpose — no backdrop-blur, no white/10 glass. */
-  --color-panel: #1c1730;
-  --color-hairline: #2a2a38;
-  /* Outlines and hard shadows. Near-black, never a blur. */
-  --color-ink: #05050a;
-  --color-muted: #9a93b8;
-  --color-dim: #6b6688;
-  --color-neon-green: #2bff88;
-  --color-neon-purple: #b44dff;
-  --color-neon-red: #ff2d55;
-  --color-neon-amber: #ffb020;
-  --color-neon-cyan: #38e8ff;
-  --color-neon-pink: #ff5cc8;
-  --color-neon-lime: #b6ff3d;
-  --color-neon-orange: #ff8a3d;
-  --color-bone: #eceaf5;
+  /* --- Paper ------------------------------------------------------------ */
+  /* Warm near-black, not blue-black. Newsprint under a lamp. */
+  --color-stage: #121110;
+  /* Recessed strip: player rail, footer bars. One step darker than the sheet. */
+  --color-coal: #0D0C0A;
+  /* The sheet. Cards, panels, anything that reads as "printed on". */
+  --color-panel: #1C1A14;
+  /* Second sheet, for a panel stacked on a panel. Barely a step. */
+  --color-sheet: #23211A;
+  /* The only line colour. 1px, always. */
+  --color-hairline: #37322A;
+
+  /* --- Inks ------------------------------------------------------------- */
+  /* Warm cream. Body copy, card text, primary button fill. */
+  --color-ink: #EDE6D6;
+  --color-muted: #A69E8A;
+  --color-dim: #6E6757;
+
+  /* --- The three inks that mean something ------------------------------- */
+  /* Vermillion: refusal, punishment, a wrong call. The only loud colour. */
+  --color-accent: #E4472B;
+  /* Ochre: dares and intensity. Quiet enough to sit next to the accent. */
+  --color-ochre: #D9A03C;
+  /* Sage: answered, completed, "you did the thing". */
+  --color-sage: #A6B87F;
 
   /*
-   * Hard offset shadows — the arcade "sticker" lift. Solid, never blurred, so
-   * every surface looks physically stuck to the stage. Buttons press into them
-   * (`active:translate-y-[Npx] active:shadow-none`) instead of merely scaling.
+   * That is the whole palette. There is no fourth ink and no legacy alias: if a
+   * future screen wants a colour, it has to argue for one of these three. The
+   * old neon set (green/purple/red/amber/cyan/pink/lime/orange) is gone on
+   * purpose — eight accents is eight things that mean nothing.
    */
-  --shadow-pop-sm: 0 3px 0 0 #05050a;
-  --shadow-pop: 0 5px 0 0 #05050a;
-  --shadow-pop-lg: 0 8px 0 0 #05050a;
 
-  --font-sans:
-    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  /*
+   * ONE shadow, three sizes. Soft and downward — the card sits ON the table and
+   * throws a real shadow. Nothing in here is the hard arcade sticker offset.
+   */
+  --shadow-pop-sm: 0 1px 0 0 rgb(0 0 0 / 0.5), 0 6px 14px -10px rgb(0 0 0 / 0.9);
+  --shadow-pop: 0 1px 0 0 rgb(0 0 0 / 0.55), 0 18px 36px -22px rgb(0 0 0 / 0.95);
+  --shadow-pop-lg: 0 1px 0 0 rgb(0 0 0 / 0.6), 0 30px 64px -30px rgb(0 0 0 / 1);
+
+  /*
+   * No webfont: this app is offline-first and must not flash or block on a
+   * network request. A grotesk for voice, a monospace for machinery (card
+   * numbers, counters, the small print). That pairing is the whole type system.
+   */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
 }
 
 @layer base {
@@ -44,7 +76,7 @@
   body {
     margin: 0;
     background-color: var(--color-stage);
-    color: var(--color-bone);
+    color: var(--color-ink);
     font-family: var(--font-sans);
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
@@ -55,53 +87,61 @@
   button {
     font-family: inherit;
   }
-}
 
-/*
- * ARCADIA BACKDROP
- * Three slow-blurred neon blobs drifting behind the whole app. Pure CSS so it
- * costs nothing per frame and can be switched off wholesale for anyone who asks
- * their OS for reduced motion.
- */
-@keyframes aura-drift {
-  0% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(7%, -5%, 0) scale(1.18);
-  }
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-}
-
-.aura-blob {
-  animation: aura-drift 19s ease-in-out infinite;
-  will-change: transform;
-}
-
-/* Confetti bits thrown on a brave answer — each piece gets its own drift. */
-@keyframes confetti-fly {
-  0% {
-    transform: translate3d(0, 0, 0) scale(0.6) rotate(0deg);
-    opacity: 0;
-  }
-  15% {
-    opacity: 1;
-  }
-  100% {
-    transform: translate3d(var(--dx), var(--dy), 0) scale(1.1) rotate(var(--rot));
-    opacity: 0;
+  /*
+   * PAPER GRAIN
+   * A single inline SVG turbulence, fixed over everything at 4% opacity. This is
+   * what stops large flat areas reading as a screen and starts them reading as
+   * a printed sheet. `pointer-events: none` so it can never eat a swipe, and it
+   * is skipped entirely under reduced motion (it does not move, but it is
+   * texture, and texture is noise to some people).
+   */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    pointer-events: none;
+    opacity: 0.045;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 }
 
-.confetti-bit {
-  animation: confetti-fly 900ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+@layer utilities {
+  /*
+   * Small print: mono, slightly tracked, never shouted. Deliberately carries no
+   * colour of its own — that way `meta text-accent` and `meta text-dim` both mean
+   * what they say instead of fighting the utility layer for the cascade.
+   */
+  .meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    line-height: 1;
+  }
+
+  /* A printed rule. 1px, warm, dotted where it should feel cut. */
+  .rule {
+    border-top: 1px solid var(--color-hairline);
+  }
+
+  /*
+   * A stamp: rotated block of accent behind mono text. Used for DARE on the card
+   * back and for the verdict mark. Deliberately imperfect — a real stamp has
+   * landed slightly off.
+   */
+  .stamp {
+    font-family: var(--font-mono);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    border: 2px solid currentColor;
+    padding: 2px 6px;
+    transform: rotate(-4deg);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .aura-blob,
-  .confetti-bit {
-    animation: none !important;
+  body::after {
+    display: none;
   }
 }

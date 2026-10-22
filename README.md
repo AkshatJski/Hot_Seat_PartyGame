@@ -267,30 +267,38 @@ A few decisions worth knowing about if you read the source:
 ```
 src/
 ├─ components/SwipeCard.tsx      the whole mechanic: physics, 3D flip, haptics
-├─ components/Commentator.tsx    the host: emoji face + one-line review
+├─ components/Commentator.tsx    the host: an attributed byline, no emoji
 ├─ components/CountUp.tsx        roll-up numbers for the Burn Book
-├─ components/ConfettiBurst.tsx  emoji confetti on an answered card
-├─ components/ArcadeBackdrop.tsx the drifting neon wash behind everything
 ├─ store/gameStore.ts            turn machine, scoring, persistence
 ├─ screens/
 │  ├─ SetupScreen.tsx            players + game mode
 │  ├─ GameScreen.tsx             card stack, Call Out window, verdict
-│  └─ BurnBookScreen.tsx         awards, tie handling, share
+│  └─ BurnBookScreen.tsx         awards, tie handling, share, colophon
 ├─ data/
 │  ├─ questions.ts               content — one flat question pool
 │  ├─ dares.ts                   content — dares + Call Out dares
 │  ├─ commentary.ts              host quips + event barks, deterministic picker
-│  ├─ playerColors.ts            seat colours across rail / card / Burn Book
 │  └─ decks.ts                   aggregation, Coward ladder, dare picker
 ├─ types.ts                      the vocabulary
 ├─ App.tsx                       phase router
-└─ index.css                     Tailwind @theme — palette, hard shadows, keyframes
+└─ index.css                     Tailwind @theme — palette, the one shadow, grain
 
 smoke.ts                         store suite
 render-smoke.tsx                 jsdom DOM suite
 scripts/lint-content.ts          the content + host-voice quality gate
 scripts/make-icons.ts            icon.svg → PNGs
 ```
+
+### Look and feel
+
+Index cards on a table, printed in a dim room. Warm near-black paper, cream ink,
+and exactly three colours that mean something: **vermillion** = refusal or
+punishment, **ochre** = dare or intensity, **sage** = answered. Everything else is
+ink on paper. One soft shadow, 1-3px radii, no gradients, no glow, no emoji as UI.
+
+Three easter eggs, and no more: the card prints its own number
+(`no. 042 / 135`), holding the Burn Book title for half a second reveals a
+colophon, and the console says something on boot.
 
 ---
 

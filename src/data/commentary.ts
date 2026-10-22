@@ -16,9 +16,10 @@
  * of whatever it is attached to.
  *
  * There is one flat quip pool (no categories now), plus one bark pool per game
- * event. Every line carries a `mood`, which the UI turns into an emoji face and
- * an accent colour. Tone is deliberately playful, never cruel — quips stay
- * suggestive without being explicit.
+ * event. Every line carries a `mood`. The mood used to drive an emoji face and
+ * an accent colour; the UI now renders the host as a plain attributed byline, so
+ * the mood survives only as metadata — a cheap way to see the tonal mix of the
+ * deck, and a guard the content linter still checks every line against.
  */
 export type Mood =
   | 'hype'
@@ -29,45 +30,20 @@ export type Mood =
   | 'deadpan'
   | 'suspicious'
 
+/** Runtime list of moods, used by the content linter to validate every line. */
+export const MOODS: Mood[] = [
+  'hype',
+  'judgy',
+  'spicy',
+  'chaos',
+  'sympathy',
+  'deadpan',
+  'suspicious',
+]
+
 export interface Quip {
   text: string
   mood: Mood
-}
-
-export const MOOD_EMOJI: Record<Mood, string> = {
-  hype: '🔥',
-  judgy: '😏',
-  spicy: '😳',
-  chaos: '🫠',
-  sympathy: '😬',
-  deadpan: '😐',
-  suspicious: '👀',
-}
-
-/** Tailwind text-colour class per mood. Also read by the content linter. */
-export const MOOD_ACCENT: Record<Mood, string> = {
-  hype: 'text-neon-amber',
-  judgy: 'text-neon-purple',
-  spicy: 'text-neon-red',
-  chaos: 'text-neon-lime',
-  sympathy: 'text-neon-cyan',
-  deadpan: 'text-muted',
-  suspicious: 'text-neon-pink',
-}
-
-/**
- * Solid fill for the mood's emoji face. The poppy counterpart to `MOOD_ACCENT`:
- * the host's face sits on a block of colour, not a translucent chip. Also read
- * by the content linter, so a new mood cannot ship without a face colour.
- */
-export const MOOD_BUBBLE: Record<Mood, string> = {
-  hype: 'bg-neon-green',
-  judgy: 'bg-neon-purple',
-  spicy: 'bg-neon-red',
-  chaos: 'bg-neon-lime',
-  sympathy: 'bg-neon-cyan',
-  deadpan: 'bg-bone',
-  suspicious: 'bg-neon-pink',
 }
 
 const q = (text: string, mood: Mood): Quip => ({ text, mood })

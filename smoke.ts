@@ -14,13 +14,10 @@ import {
 import {
   CARD_QUIPS,
   EVENT_QUIPS,
-  MOOD_ACCENT,
-  MOOD_BUBBLE,
-  MOOD_EMOJI,
+  MOODS,
   quipForCard,
   reactionFor,
 } from './src/data/commentary'
-import { PLAYER_PALETTE, playerPalette } from './src/data/playerColors'
 import { verdictFor } from './src/data/verdicts'
 import type { Player } from './src/types'
 
@@ -72,10 +69,8 @@ const EVENTS = Object.keys(EVENT_QUIPS) as (keyof typeof EVENT_QUIPS)[]
 check('card quip pool has enough lines', CARD_QUIPS.length >= 6)
 check('every event owns a bark pool', EVENTS.every((e) => EVENT_QUIPS[e].length >= 3))
 check(
-  'every mood has an emoji, an accent and a bubble fill',
-  ALL_QUIPS.every(
-    (q) => Boolean(MOOD_EMOJI[q.mood]) && Boolean(MOOD_ACCENT[q.mood]) && Boolean(MOOD_BUBBLE[q.mood]),
-  ),
+  'every line carries a known mood',
+  ALL_QUIPS.every((q) => MOODS.includes(q.mood)),
 )
 check('every card draws a quip', allQ.every((q) => quipForCard(q.id).text.length > 0))
 check(
@@ -98,15 +93,6 @@ check(
   })(),
 )
 check('quipForCard never throws', quipForCard('x').text.length > 0)
-
-console.log('\nplayer identity colours')
-check('palette is stocked', PLAYER_PALETTE.length >= 6)
-check(
-  'palette entries carry every class the UI reads',
-  PLAYER_PALETTE.every((p) => p.text && p.bg && p.soft && p.border),
-)
-check('seat colours cycle safely', playerPalette(0).name === PLAYER_PALETTE[0].name && playerPalette(PLAYER_PALETTE.length).name === PLAYER_PALETTE[0].name)
-check('negative seats wrap, not crash', playerPalette(-1).name === PLAYER_PALETTE[PLAYER_PALETTE.length - 1].name)
 
 console.log('\ndare tier ladder')
 check('0 cowards -> tier 1', dareTier(0) === 1)

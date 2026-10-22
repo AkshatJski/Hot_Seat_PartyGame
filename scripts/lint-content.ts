@@ -7,14 +7,7 @@
  * Run:  npm run lint:content   (also part of `npm run check`)
  */
 import { ALL_CALL_OUT_DARES, ALL_DARES, ALL_QUESTIONS } from '../src/data/decks'
-import {
-  CARD_QUIPS,
-  EVENT_QUIPS,
-  MOOD_ACCENT,
-  MOOD_BUBBLE,
-  MOOD_EMOJI,
-  type Quip,
-} from '../src/data/commentary'
+import { CARD_QUIPS, EVENT_QUIPS, MOODS, type Quip } from '../src/data/commentary'
 
 type Pool = 'question' | 'dare' | 'callout'
 
@@ -170,8 +163,8 @@ function checkQuip(where: string, quip: Quip) {
   if (!/^[A-Z0-9]/.test(t)) violations.push(`[quip-shape] ${where} — not capitalised: "${t}"`)
   if (!QUIP_END.test(t)) violations.push(`[quip-shape] ${where} — no terminal punctuation: "${t}"`)
   if (/\s{2,}/.test(t)) violations.push(`[quip-space] ${where} — double space: "${t}"`)
-  if (!MOOD_EMOJI[quip.mood] || !MOOD_ACCENT[quip.mood] || !MOOD_BUBBLE[quip.mood])
-    violations.push(`[quip-mood] ${where} — no styling for mood "${quip.mood}"`)
+  if (!MOODS.includes(quip.mood))
+    violations.push(`[quip-mood] ${where} — unknown mood "${quip.mood}"`)
   const key = t.toLowerCase()
   const prior = quipSeen.get(key)
   if (prior) violations.push(`[quip-dupe] ${where} — same as ${prior}: "${t}"`)

@@ -1,5 +1,4 @@
 import { motion } from 'motion/react'
-import { ArcadeBackdrop } from './components/ArcadeBackdrop'
 import { BurnBookScreen } from './screens/BurnBookScreen'
 import { GameScreen } from './screens/GameScreen'
 import { NextUpScreen } from './screens/NextUpScreen'
@@ -15,19 +14,21 @@ export default function App() {
 
   return (
     <div className="min-h-full">
-      <ArcadeBackdrop />
       {/*
         Keyed on `phase` so each screen animates in on mount. Deliberately NOT
         wrapped in AnimatePresence: `mode="wait"` holds the old screen on screen
         until its exit finishes, which added ~220ms of dead time before the new
         screen appeared — a bad trade in a party game where the room is waiting.
         Enter-only is instant and cannot get stuck.
+
+        The move is 6px and 160ms, not 10px/200ms: at party speed a big entrance
+        reads as lag. Nothing else in the app animates on its own.
       */}
       <motion.div
         key={phase}
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2, ease: 'easeOut' }}
+        transition={{ duration: 0.16, ease: 'easeOut' }}
       >
         {phase === 'setup' && <SetupScreen />}
         {phase === 'playing' && gameMode === 'classic' && classicStage === 'intro' && <TurnIntroScreen />}

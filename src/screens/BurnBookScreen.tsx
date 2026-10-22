@@ -1,51 +1,42 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { motion } from 'motion/react'
-import {
-  AlertTriangle,
-  ArrowLeft,
-  Bird,
-  BookOpen,
-  Dice5,
-  Eye,
-  Flame,
-  Ghost,
-  RotateCcw,
-  Share2,
-  Star,
-  Target,
-  ThumbsUp,
-  TrendingUp,
-  Zap,
-} from 'lucide-react'
-import { verdictFor, type VerdictKind } from '../data/verdicts'
+import { verdictFor } from '../data/verdicts'
 import { reactionFor } from '../data/commentary'
-import { playerPalette } from '../data/playerColors'
 import { Commentator } from '../components/Commentator'
 import { CountUp } from '../components/CountUp'
 import { useGameStore } from '../store/gameStore'
 
-/** One icon per archetype — kept here so `src/data/verdicts.ts` stays pure. */
-const VERDICT_ICON: Record<VerdictKind, typeof Ghost> = {
-  ghost: Ghost,
-  flincher: Bird,
-  reckless: Flame,
-  nuclear: Zap,
-  noRegrets: ThumbsUp,
-  onATear: TrendingUp,
-  openBook: BookOpen,
-  cryWolf: Eye,
-  publicEnemy: AlertTriangle,
-  yesMachine: Star,
-  dodger: ArrowLeft,
-  sus: Target,
-  allRounder: Dice5,
-}
+/** How long the title must be held before the colophon appears. */
+const HOLD_MS = 550
 
 export function BurnBookScreen() {
   const players = useGameStore((s) => s.players)
   const round = useGameStore((s) => s.round)
   const restart = useGameStore((s) => s.restart)
   const [copied, setCopied] = useState(false)
+  const [colophon, setColophon] = useState(false)
+  const holdTimer = useRef<number | null>(null)
+
+  /**
+   * EASTER EGG #2 — hold the title for the colophon.
+   *
+   * A real printed thing has a page at the back that tells you who set the type.
+   * Nobody needs it, so it lives behind a long-press on the title: unreachable
+   * by accident, unmissable to anyone who pokes at things. Fires on
+   * pointerdown and must be cancelled on up/leave/cancel, or a scroll that
+   * starts on the title would open it.
+   */
+  function beginHold() {
+    cancelHold()
+    holdTimer.current = window.setTimeout(() => setColophon(true), HOLD_MS)
+  }
+
+  function cancelHold() {
+    if (holdTimer.current !== null) {
+      window.clearTimeout(holdTimer.current)
+      holdTimer.current = null
+    }
+  }
 
   const roster = useMemo(
     () =>
@@ -97,12 +88,12 @@ export function BurnBookScreen() {
 
   if (players.length === 0) {
     return (
-      <div className="flex min-h-full flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="text-sm text-muted">No game played yet.</p>
+      <div className="flex min-h-full flex-col items-center justify-center gap-5 px-6 text-center">
+        <p className="text-[13px] text-muted">No game played yet.</p>
         <button
           type="button"
           onClick={restart}
-          className="rounded-2xl border-2 border-ink bg-neon-green px-6 py-3 font-black text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
+          className="flex h-12 items-center justify-center bg-ink px-6 text-[14px] font-semibold text-stage active:translate-y-[1px]"
         >
           Start a game
         </button>
@@ -112,93 +103,117 @@ export function BurnBookScreen() {
 
   return (
     <div className="mx-auto w-full max-w-md px-5 pt-8 pb-8">
-      <header className="mb-6 text-center">
-        <p className="text-[10px] font-black tracking-widest text-neon-red uppercase">
-          Round {round} &middot; complete
-        </p>
-        <h1 className="mt-1 text-4xl font-black tracking-tight">The Burn Book</h1>
-        <div className="mt-4 flex justify-center">
-          <Commentator quip={reactionFor('finish', String(round))} variant="toast" />
+      <header className="mb-7">
+        <div className="flex items-baseline justify-between">
+          <span className="meta text-dim">Round {round}</span>
+          <span className="meta text-dim">complete</span>
         </div>
+
+        <h1
+          onPointerDown={beginHold}
+          onPointerUp={cancelHold}
+          onPointerLeave={cancelHold}
+          onPointerCancel={cancelHold}
+          onContextMenu={(e) => e.preventDefault()}
+          className="mt-3 touch-manipulation text-[36px] leading-[1.02] font-semibold tracking-[-0.03em] text-ink select-none"
+        >
+          The Burn Book
+        </h1>
+
+        <div className="mt-4 h-px w-full bg-hairline" />
+
+        {colophon ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-4 border border-hairline bg-sheet px-4 py-3"
+          >
+            <p className="meta text-dim">colophon</p>
+            <p className="mt-2 font-mono text-[10.5px] leading-relaxed text-muted">
+              HOT SEAT — first printing, 2026.
+              <br />
+              Set in system-ui and ui-monospace.
+              <br />
+              Printed by hand, in a dim room.
+              <br />
+              No images, no webfonts, no analytics.
+            </p>
+            <button
+              type="button"
+              onClick={() => setColophon(false)}
+              className="meta mt-2.5 text-dim active:text-ink"
+            >
+              close
+            </button>
+          </motion.div>
+        ) : (
+          <div className="mt-4">
+            <Commentator quip={reactionFor('finish', String(round))} />
+          </div>
+        )}
       </header>
 
-      <div className="mb-6 grid grid-cols-4 gap-2">
+      {/* Totals as a ruled ledger row, not four coloured tiles. */}
+      <div className="mb-7 grid grid-cols-4 border-y border-hairline">
         {[
-          { label: 'Brave', value: totals.brave, colour: 'text-neon-green' },
-          { label: 'Coward', value: totals.coward, colour: 'text-neon-red' },
-          { label: 'Dares', value: totals.dares, colour: 'text-neon-amber' },
-          { label: 'Called out', value: totals.calls, colour: 'text-neon-purple' },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-2xl border-2 border-ink bg-panel py-3 text-center shadow-pop-sm"
-          >
-            <p className={`text-xl font-black ${stat.colour}`}>
+          { label: 'brave', value: totals.brave, colour: 'text-sage' },
+          { label: 'coward', value: totals.coward, colour: 'text-accent' },
+          { label: 'dares', value: totals.dares, colour: 'text-ochre' },
+          { label: 'called out', value: totals.calls, colour: 'text-ink' },
+        ].map((stat, i) => (
+          <div key={stat.label} className={`py-3 ${i > 0 ? 'border-l border-hairline pl-3' : ''}`}>
+            <p className={`text-[20px] leading-none font-semibold ${stat.colour}`}>
               <CountUp value={stat.value} />
             </p>
-            <p className="mt-0.5 text-[9px] font-black tracking-widest text-dim uppercase">
-              {stat.label}
-            </p>
+            <p className="meta mt-1.5 text-dim">{stat.label}</p>
           </div>
         ))}
       </div>
 
-      <p className="mb-2.5 text-[10px] font-black tracking-widest text-muted uppercase">
-        The verdicts
-      </p>
-      <div className="mb-6 space-y-2.5">
-        {roster.map(({ player, verdict }, i) => {
-          const Icon = VERDICT_ICON[verdict.kind]
-          const palette = playerPalette(i)
-          return (
-            <motion.div
-              key={player.id}
-              data-verdict={verdict.kind}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07 }}
-              className="relative overflow-hidden rounded-3xl border-2 border-ink bg-panel p-4 shadow-pop-lg"
-            >
-              <div className="flex items-start gap-3">
-                <span
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border-2 border-ink ${palette.bg} text-ink`}
-                >
-                  <Icon size={19} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-black tracking-widest text-muted uppercase">
-                    {verdict.title}
-                  </p>
-                  <p className={`mt-0.5 truncate text-lg font-black ${verdict.accent}`}>
-                    {player.name}
-                  </p>
-                  <p className="text-[11px] text-muted">{verdict.blurb}</p>
-                  <p className="mt-1.5 text-[10px] font-bold text-dim">
-                    <CountUp value={player.brave} className="text-neon-green" /> brave &middot;{' '}
-                    <CountUp value={player.coward} className="text-neon-red" /> chickened out &middot;{' '}
-                    <CountUp value={player.daresCompleted} className="text-neon-amber" /> dares
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          )
-        })}
+      <p className="meta mb-3 text-dim">The verdicts</p>
+      <div className="mb-7 border-t border-hairline">
+        {roster.map(({ player, verdict }, i) => (
+          <motion.div
+            key={player.id}
+            data-verdict={verdict.kind}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: i * 0.05 }}
+            className="border-b border-hairline py-4"
+          >
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="meta text-dim">{verdict.title}</p>
+              <span className="meta text-dim">{String(i + 1).padStart(2, '0')}</span>
+            </div>
+
+            <p className="mt-1 text-[19px] leading-tight font-semibold tracking-[-0.01em] text-ink">
+              {player.name}
+            </p>
+            <p className="mt-1 text-[12.5px] leading-snug text-muted">{verdict.blurb}</p>
+
+            <p className="mt-2 font-mono text-[10px] leading-none text-dim">
+              <CountUp value={player.brave} className="text-sage" /> brave &middot;{' '}
+              <CountUp value={player.coward} className="text-accent" /> chickened out &middot;{' '}
+              <CountUp value={player.daresCompleted} className="text-ochre" /> dares
+            </p>
+          </motion.div>
+        ))}
       </div>
 
-      <div className="flex gap-2.5">
+      <div className="flex gap-2">
         <button
           type="button"
           onClick={share}
-          className="flex h-13 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-neon-purple font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
+          className="flex h-12 flex-1 items-center justify-center bg-ink text-[14px] font-semibold text-stage active:translate-y-[1px]"
         >
-          <Share2 size={17} /> {copied ? 'Copied!' : 'Share'}
+          {copied ? 'Copied!' : 'Share'}
         </button>
         <button
           type="button"
           onClick={restart}
-          className="flex h-13 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-coal font-black tracking-wide text-muted shadow-pop active:translate-y-[5px] active:shadow-none"
+          className="flex h-12 flex-1 items-center justify-center border border-hairline text-[14px] font-semibold text-muted active:bg-sheet"
         >
-          <RotateCcw size={17} /> Rematch
+          Rematch
         </button>
       </div>
     </div>

@@ -1,7 +1,6 @@
 import { motion } from 'motion/react'
 import { Commentator } from '../components/Commentator'
 import { reactionFor } from '../data/commentary'
-import { playerPalette } from '../data/playerColors'
 import { useGameStore, selectCurrentPlayer } from '../store/gameStore'
 
 export function TurnIntroScreen() {
@@ -16,7 +15,6 @@ export function TurnIntroScreen() {
     return null
   }
 
-  const palette = playerPalette(turnIndex)
   const quip = reactionFor('roundStart', `${turnIndex}:${round}`)
 
   const next = () => {
@@ -26,35 +24,39 @@ export function TurnIntroScreen() {
   return (
     <div className="mx-auto flex min-h-full w-full max-w-md flex-col justify-center px-5">
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
-        className="flex flex-col items-center gap-6 rounded-3xl border-2 border-ink bg-panel p-8 text-center shadow-pop-lg"
+        className="flex flex-col gap-7 border border-hairline bg-panel p-7 shadow-pop-lg"
       >
-        <div className="text-[11px] font-black tracking-widest text-muted uppercase">
-          Classic Circle &middot; Round {round}
+        <div className="flex items-baseline justify-between">
+          <span className="meta text-dim">Classic Circle</span>
+          <span className="meta text-dim">round {round}</span>
         </div>
-        <h1 className="text-4xl leading-tight font-black">
-          It's <span className={palette.text}>{currentPlayer.name}</span>'s turn
-        </h1>
-        <Commentator quip={quip} variant="toast" />
-        <p className="text-sm text-muted">Hand the phone to them.</p>
+
+        <div>
+          <h1 className="text-[34px] leading-[1.05] font-semibold tracking-[-0.02em] text-ink">
+            {currentPlayer.name}
+            <span className="block text-[28px] text-muted">&rsquo;s turn</span>
+          </h1>
+          <p className="mt-3 text-[13px] text-muted">Hand the phone to them.</p>
+        </div>
+
+        <Commentator quip={quip} />
 
         {wildcard && (
-          <div className="w-full rounded-2xl border-2 border-neon-amber bg-[#3a2d0f] px-4 py-3 shadow-pop-sm">
-            <div className="text-[10px] font-black tracking-widest text-neon-amber uppercase">
-              Wildcard Round
-            </div>
-            <p className="mt-1 text-[13px] leading-snug text-bone">{wildcard}</p>
+          <div className="border-l-2 border-ochre pl-3">
+            <p className="meta text-ochre">Wildcard Round</p>
+            <p className="mt-1.5 text-[12.5px] leading-snug text-muted">{wildcard}</p>
           </div>
         )}
 
         <button
           type="button"
           onClick={next}
-          className="mt-2 rounded-2xl border-2 border-ink bg-neon-purple px-6 py-3 text-base font-black text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
+          className="flex h-12 items-center justify-center bg-ink text-[14px] font-semibold text-stage transition-transform active:translate-y-[1px]"
         >
-          Start Turn →
+          Start Turn &rarr;
         </button>
       </motion.div>
     </div>

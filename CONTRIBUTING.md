@@ -57,9 +57,13 @@ Match what's already there. In short:
   reason.
 - Strict TypeScript. `erasableSyntaxOnly` is on: no `enum`, no parameter
   properties.
-- Tailwind utilities for styling. The neon palette lives in `@theme` in
-  `src/index.css` (`bg-coal`, `text-neon-green`, `border-neon-purple`, …).
+- Tailwind utilities for styling. The palette lives in `@theme` in
+  `src/index.css` (`bg-panel`, `text-ink`, `text-accent`, `border-hairline`, …).
   Don't hardcode hex values in components.
+- **Colour carries meaning, never decoration.** `accent` = refusal/punishment,
+  `ochre` = dare/intensity, `sage` = answered. If a new surface needs a colour
+  that isn't one of those three, use ink (`ink` / `muted` / `dim`) — don't add a
+  fourth. Radii stay at 1-3px, and `shadow-pop-lg` is reserved for the card.
 - Motion values (`useMotionValue` / `useTransform`) for anything driven by a
   gesture or animation. Never React state per frame — that's the whole reason
   dragging costs zero re-renders here.

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { ArrowRight, Flame, Plus, X } from 'lucide-react'
-import { playerPalette } from '../data/playerColors'
+import { Plus, X } from 'lucide-react'
 import { useGameStore } from '../store/gameStore'
 
 const MAX_PLAYERS = 10
@@ -47,63 +46,68 @@ export function SetupScreen() {
 
   return (
     <div className="mx-auto flex min-h-full w-full max-w-md flex-col px-5 pt-10 pb-8">
-      <header className="mb-8 text-center">
-        <h1 className="text-4xl font-black tracking-tight">
-          Truth or <span className="text-neon-red">Swipe</span>
+      <header className="mb-9">
+        <div className="mb-4 flex items-baseline justify-between">
+          <span className="meta text-dim">hot seat</span>
+          <span className="meta text-dim">party edition</span>
+        </div>
+
+        <h1 className="text-[40px] leading-[1.02] font-semibold tracking-[-0.03em] text-ink">
+          Truth or Swipe
         </h1>
-        <p className="mt-2 text-[11px] font-black tracking-widest text-dim uppercase">
+
+        <div className="mt-4 h-px w-full bg-hairline" />
+
+        <p className="mt-4 text-[13px] leading-snug text-muted">
           Pass the phone. Swipe right to answer.
-        </p>
-        <p className="mt-2 text-[11px] leading-relaxed text-muted">
-          A trash-talking host will be watching. Do not embarrass yourself.
+          <br />A trash-talking host will be watching. Do not embarrass yourself.
         </p>
       </header>
 
-      {/* Game Mode ----------------------------------------------------------- */}
-      <section className="mb-6">
-        <h2 className="mb-3 text-[11px] font-black tracking-widest text-muted uppercase">
-          Game Mode
-        </h2>
-        <div className="flex gap-2 rounded-2xl border-2 border-ink bg-panel p-1.5 shadow-pop-sm">
+      {/* Game Mode -----------------------------------------------------------
+          Two words in a hairline box. The selected one is inverted, like a
+          circled option on a paper form — not a coloured pill. */}
+      <section className="mb-7">
+        <h2 className="meta mb-2.5 text-dim">Game Mode</h2>
+        <div className="flex border border-hairline p-1">
           <button
             type="button"
             onClick={() => setGameMode('free')}
-            className={`flex-1 rounded-xl px-3 py-2 text-sm font-black transition ${gameMode === 'free' ? 'bg-neon-cyan text-ink' : 'text-dim'}`}
+            className={`flex-1 px-3 py-2 text-[13px] font-semibold transition-colors ${
+              gameMode === 'free' ? 'bg-ink text-stage' : 'text-dim active:text-ink'
+            }`}
           >
             Free Play (Legacy)
           </button>
           <button
             type="button"
             onClick={() => setGameMode('classic')}
-            className={`flex-1 rounded-xl px-3 py-2 text-sm font-black transition ${gameMode === 'classic' ? 'bg-neon-purple text-ink' : 'text-dim'}`}
+            className={`flex-1 px-3 py-2 text-[13px] font-semibold transition-colors ${
+              gameMode === 'classic' ? 'bg-ink text-stage' : 'text-dim active:text-ink'
+            }`}
           >
             Classic Circle
           </button>
         </div>
-        <p className="mt-2 text-[11px] text-muted">
+        <p className="mt-2 text-[12px] leading-snug text-muted">
           {gameMode === 'free' ? 'Pass & swipe as usual.' : 'Fixed turn order. Truth or Dare each turn.'}
         </p>
       </section>
 
-      {/* Players ------------------------------------------------------------ */}
+      {/* Players --------------------------------------------------------------
+          A sign-up sheet: numbered lines, not a stack of coloured avatar cards. */}
       <section className="mb-7">
-        <h2 className="mb-3 text-[11px] font-black tracking-widest text-muted uppercase">
-          Players
-        </h2>
+        <h2 className="meta mb-2.5 text-dim">Players</h2>
 
-        <div className="mb-3 space-y-2">
+        <div className="border-t border-hairline">
           {names.map((name, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-2 rounded-xl border-2 border-ink bg-panel px-3 py-2.5 shadow-pop-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center gap-3 border-b border-hairline py-2.5"
             >
-              <span
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-ink text-xs font-black text-ink ${playerPalette(i).bg}`}
-              >
-                {(name || '?').slice(0, 1).toUpperCase()}
-              </span>
+              <span className="meta w-5 shrink-0 text-dim">{String(i + 1).padStart(2, '0')}</span>
               <input
                 value={name}
                 placeholder={`Player ${i + 1}`}
@@ -114,16 +118,16 @@ export function SetupScreen() {
                   setNames(next)
                   setError(null)
                 }}
-                className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-dim"
+                className="min-w-0 flex-1 bg-transparent text-[15px] font-medium text-ink outline-none placeholder:font-normal placeholder:text-dim"
               />
               {names.length > 2 && (
                 <button
                   type="button"
                   aria-label={`Remove ${name || 'player'}`}
                   onClick={() => setNames(names.filter((_, idx) => idx !== i))}
-                  className="text-dim active:text-neon-red"
+                  className="shrink-0 p-1 text-dim active:text-accent"
                 >
-                  <X size={15} />
+                  <X size={14} />
                 </button>
               )}
             </motion.div>
@@ -131,7 +135,8 @@ export function SetupScreen() {
         </div>
 
         {names.length < MAX_PLAYERS && (
-          <div className="flex gap-2">
+          <div className="mt-3 flex items-center gap-3 border-b border-hairline pb-2.5">
+            <span className="meta w-5 shrink-0 text-dim">+</span>
             <input
               value={draft}
               placeholder="Add a name…"
@@ -140,32 +145,32 @@ export function SetupScreen() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') addName()
               }}
-              className="min-w-0 flex-1 rounded-xl border-2 border-dashed border-hairline bg-panel px-3 py-2.5 text-sm outline-none placeholder:text-dim focus:border-neon-purple"
+              className="min-w-0 flex-1 bg-transparent text-[15px] font-medium text-ink outline-none placeholder:font-normal placeholder:text-dim"
             />
             <button
               type="button"
               onClick={addName}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-ink bg-neon-purple text-ink shadow-pop-sm active:translate-y-[3px] active:shadow-none"
+              aria-label="Add player"
+              className="shrink-0 p-1 text-dim active:text-ink"
             >
-              <Plus size={18} />
+              <Plus size={15} />
             </button>
           </div>
         )}
       </section>
 
-      {error && <p className="mb-3 text-center text-xs font-black text-neon-red">{error}</p>}
+      {error && <p className="mb-3 text-[12px] font-medium text-accent">{error}</p>}
 
       <button
         type="button"
         onClick={begin}
-        className="mt-auto flex items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-neon-green py-4 text-base font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none disabled:opacity-30"
+        className="mt-auto flex h-14 items-center justify-center bg-ink text-[15px] font-semibold text-stage transition-transform active:translate-y-[1px] disabled:opacity-30"
       >
-        <Flame size={19} /> Start the game
-        <ArrowRight size={19} />
+        Start the game
       </button>
 
-      {names.length > 0 && cleaned.length > 0 && (
-        <p className="mt-1 text-center text-[10px] text-dim">
+      {cleaned.length > 0 && (
+        <p className="mt-2 text-center font-mono text-[10px] text-dim">
           {cleaned.length} in the room
         </p>
       )}

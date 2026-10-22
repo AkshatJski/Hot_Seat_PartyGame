@@ -1,25 +1,27 @@
 import { motion, useReducedMotion } from 'motion/react'
-import { MOOD_ACCENT, MOOD_BUBBLE, MOOD_EMOJI, type Quip } from '../data/commentary'
+import type { Quip } from '../data/commentary'
 
 interface CommentatorProps {
+  /** `card` sits inline under a question; `toast` is a standalone line. */
   quip: Quip
-  /** `card` sits inline under a question; `toast` is a standalone bark. */
   variant?: 'card' | 'toast'
 }
 
 /**
- * The host: a mood-emoji face in a speech bubble with a one-line review of
- * whatever is happening. This is the replacement for the old reaction meme.
+ * The host, as a byline.
  *
- * Styled as an arcade sticker, not a glass panel: solid fill, 2px ink outline,
- * hard offset shadow, no translucency and no backdrop-blur.
+ * This used to be an emoji face in a rounded speech bubble with a hard shadow —
+ * three separate tells at once. It is now what it always should have been: an
+ * attributed line of type. An em dash, the word HOST in mono, the review in
+ * italic. Nothing to draw, nothing to colour, and it reads like the caption in a
+ * magazine rather than like a chat app.
  *
  * Deliberately `pointer-events-none`: a swipe is a drag across the whole card,
  * and anything that catches a pointer here eats the gesture. The host is
  * decoration, never a control.
  *
- * `key` on the figure is the quip text, so a new line gets a fresh pop-in while
- * an unchanged one (same object out of the deterministic pool) stays put.
+ * `key` on the figure is the quip text, so a new line gets a fresh fade while an
+ * unchanged one (same object out of the deterministic pool) stays put.
  */
 export function Commentator({ quip, variant = 'card' }: CommentatorProps) {
   const reduce = useReducedMotion()
@@ -29,24 +31,16 @@ export function Commentator({ quip, variant = 'card' }: CommentatorProps) {
     <motion.figure
       key={quip.text}
       data-commentator={quip.mood}
-      initial={reduce ? false : { opacity: 0, y: 10, scale: 0.94 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 240, damping: 18, delay: toast ? 0 : 0.1 }}
-      className={`pointer-events-none flex max-w-full items-start gap-2.5 ${toast ? '' : 'mt-3'}`}
+      initial={reduce ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, delay: toast ? 0 : 0.08 }}
+      className={`pointer-events-none max-w-full ${toast ? 'text-center' : 'mt-5'}`}
     >
-      <span
-        aria-hidden
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border-2 border-ink text-base leading-none shadow-pop-sm ${MOOD_BUBBLE[quip.mood]}`}
-      >
-        {MOOD_EMOJI[quip.mood]}
-      </span>
-      <figcaption className="min-w-0 rounded-2xl rounded-tl-sm border-2 border-ink bg-panel px-3 py-1.5 shadow-pop-sm">
+      <figcaption className={toast ? 'mx-auto max-w-sm' : 'border-l border-hairline pl-3'}>
+        <span className="meta">&mdash; host</span>
         <span
-          className={`mr-1.5 align-middle text-[9px] font-black tracking-[0.15em] uppercase ${MOOD_ACCENT[quip.mood]}`}
+          className={`text-muted italic ${toast ? 'block text-[12.5px] leading-snug' : 'mt-1 block text-[13px] leading-snug'}`}
         >
-          Host
-        </span>
-        <span className="align-middle text-[12px] leading-snug font-bold text-bone italic">
           {quip.text}
         </span>
       </figcaption>

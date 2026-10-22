@@ -1,19 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
-import {
-  Check,
-  Flame,
-  Gavel,
-  Minus,
-  RefreshCw,
-  ShieldAlert,
-  SkipForward,
-} from 'lucide-react'
 import { SwipeCard, type SwipeSignal } from '../components/SwipeCard'
 import { Commentator } from '../components/Commentator'
-import { ConfettiBurst } from '../components/ConfettiBurst'
 import { reactionFor, type GameEvent } from '../data/commentary'
-import { playerPalette } from '../data/playerColors'
 import { dareTier } from '../data/decks'
 import {
   selectAwaitingCallOutDare,
@@ -24,60 +13,57 @@ import {
   selectShowVerdict,
   useGameStore,
 } from '../store/gameStore'
-import type { Intensity, Player } from '../types'
+import type { Player } from '../types'
 
 /** How long the group has to Call Out an answer before the turn moves on. */
 const CALL_OUT_MS = 4000
 
-function Pips({ level }: { level: Intensity }) {
-  return (
-    <span className="flex items-center gap-1">
-      {[1, 2, 3].map((n) => (
-        <span
-          key={n}
-          className={`h-1.5 w-1.5 rounded-sm ${
-            n <= level ? 'bg-neon-amber' : 'bg-hairline'
-          }`}
-        />
-      ))}
-    </span>
-  )
-}
-
+/**
+ * Seat rail.
+ *
+ * This used to be six pastel identity hues, which is the single fastest way to
+ * make an app look machine-assembled: colour that carries no meaning. A printed
+ * scorecard does not colour its rows — it numbers them and inverts the one you
+ * are on. So: mono numerals, cream block for the active seat, everything else
+ * dim. Identity comes from the name.
+ */
 function PlayerRail({ players, turnIndex }: { players: Player[]; turnIndex: number }) {
   return (
-    <div className="flex w-full gap-2 overflow-x-auto pb-1">
+    <div className="flex w-full gap-px overflow-x-auto">
       {players.map((p, i) => {
         const active = i === turnIndex
-        const palette = playerPalette(i)
         return (
           <div
             key={p.id}
-            className={`flex min-w-[104px] flex-1 flex-col gap-1.5 rounded-xl border-2 p-2.5 ${
-              active ? `${palette.border} ${palette.soft} shadow-pop-sm` : 'border-hairline bg-coal'
+            className={`flex min-w-[68px] flex-1 flex-col gap-1 px-2 py-1.5 ${
+              active ? 'bg-ink text-stage' : 'text-dim'
             }`}
           >
-            <div className="flex items-center gap-1.5">
-              <span
-                className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-black ${
-                  active ? `border border-ink text-ink ${palette.bg}` : `${palette.soft} ${palette.text}`
-                }`}
-              >
-                {p.name.slice(0, 1).toUpperCase()}
+            <span className="flex items-baseline gap-1 font-mono text-[10px] leading-none">
+              <span className={active ? 'opacity-55' : 'opacity-45'}>
+                {String(i + 1).padStart(2, '0')}
               </span>
-              <span className="truncate text-[11px] font-bold">{p.name}</span>
-            </div>
-            <div className="flex gap-1.5 text-[10px] font-black">
-              <span className="text-neon-green">+{p.brave}</span>
-              <span className="text-neon-red">-{p.coward}</span>
-            </div>
-            <Pips level={p.deepestAnswered} />
+              <span className="truncate">{p.name}</span>
+            </span>
+            <span className="flex items-baseline gap-1.5 font-mono text-[10px] leading-none">
+              <span className={active ? 'opacity-90' : 'text-sage'}>+{p.brave}</span>
+              <span className={active ? 'opacity-55' : 'text-accent'}>-{p.coward}</span>
+            </span>
           </div>
         )
       })}
     </div>
   )
 }
+
+/* Shared button shapes. Three, not thirty: a primary, a refusal, a quiet one.
+   No borders-and-shadow-on-everything — that uniform treatment was the tell. */
+const BTN_PRIMARY =
+  'flex h-12 items-center justify-center bg-ink text-[14px] font-semibold text-stage transition-transform active:translate-y-[1px]'
+const BTN_REFUSE =
+  'flex h-12 items-center justify-center border border-accent text-[14px] font-semibold text-accent transition-colors active:bg-accent active:text-stage'
+const BTN_QUIET =
+  'flex h-12 items-center justify-center px-3 font-mono text-[11px] text-muted transition-colors active:text-ink'
 
 export function GameScreen() {
   const phase = useGameStore((s) => s.phase)
@@ -90,6 +76,8 @@ export function GameScreen() {
   const pendingDare = useGameStore((s) => s.pendingDare)
   const flipped = useGameStore((s) => s.flipped)
   const stage = useGameStore((s) => s.stage)
+  const pool = useGameStore((s) => s.pool)
+  const poolIndex = useGameStore((s) => s.poolIndex)
 
   const answer = useGameStore((s) => s.answer)
   const skip = useGameStore((s) => s.skip)
@@ -181,8 +169,6 @@ export function GameScreen() {
 
   if (!player) return null
 
-  const palette = playerPalette(turnIndex)
-
   /**
    * The host barks once per moment, not per card: an answer, a dare, a Call Out
    * or the verdict. Seeded by the turn so the line is stable for that beat but
@@ -201,22 +187,22 @@ export function GameScreen() {
 
   return (
     <div className="mx-auto flex min-h-full w-full max-w-md flex-col px-5 pt-6 pb-8">
-      <header className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-[10px] font-bold tracking-widest text-dim uppercase">
-            Round {round} &middot; {cardsLeft} cards left
+      <header className="mb-4 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="meta text-dim">
+            round {round} &middot; {cardsLeft} left
           </p>
-          <p className="mt-0.5 text-lg font-black">
+          <p className="mt-1.5 truncate text-xl font-semibold tracking-[-0.01em] text-ink">
             {player.name}
-            <span className={palette.text}>'s turn</span>
+            <span className="text-muted">&rsquo;s turn</span>
           </p>
         </div>
         <button
           type="button"
           onClick={quitToBurnBook}
-          className="rounded-xl border-2 border-ink bg-coal px-3 py-1.5 text-[10px] font-black tracking-widest text-muted uppercase shadow-pop-sm active:translate-y-[3px] active:shadow-none"
+          className="meta shrink-0 border border-hairline px-2.5 py-1.5 text-muted active:bg-sheet"
         >
-          End
+          end
         </button>
       </header>
 
@@ -225,82 +211,89 @@ export function GameScreen() {
       </div>
 
       {gameMode === 'classic' && wildcard && (
-        <div className="mb-4 flex items-center gap-2 rounded-xl border-2 border-neon-amber bg-panel px-3 py-2 shadow-pop-sm">
-          <span className="text-[9px] font-black tracking-widest text-neon-amber uppercase">
-            Wildcard
-          </span>
-          <span className="text-[11px] leading-snug text-bone">{wildcard}</span>
+        <div className="mb-4 border-l-2 border-ochre pl-3">
+          <p className="meta text-ochre">wildcard</p>
+          <p className="mt-1 text-[12px] leading-snug text-muted">{wildcard}</p>
         </div>
       )}
 
       <div className="relative flex flex-1 items-center justify-center">
         {showVerdict ? (
           <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex h-[min(62vh,520px)] w-[min(88vw,380px)] flex-col items-center justify-center gap-3 rounded-[28px] border-[3px] border-ink bg-panel px-3 text-center shadow-pop-lg"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex h-[min(62vh,520px)] w-[min(88vw,380px)] flex-col justify-between border border-hairline bg-panel p-6 shadow-pop-lg"
           >
-            <Gavel size={32} className="text-neon-red" />
-            <p className="px-5 text-sm font-black">Did {player.name} deserve that?</p>
-            <button
-              type="button"
-              onClick={acceptCallOut}
-              className="rounded-xl border-2 border-ink bg-neon-green px-5 py-2.5 text-xs font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
-            >
-              Deserved it
-            </button>
-            <p className="text-[10px] font-bold tracking-widest text-dim uppercase">
-              Wrong call? Pick who called it out
-            </p>
-            <div className="flex flex-wrap justify-center gap-1.5 px-4">
-              {players
-                .filter((p) => p.id !== player.id)
-                .map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => penalizeCaller(p.id)}
-                    className="rounded-lg border-2 border-ink bg-neon-red px-3 py-1.5 text-[11px] font-black text-ink shadow-pop-sm active:translate-y-[3px] active:shadow-none"
-                  >
-                    {p.name} &minus;1
-                  </button>
-                ))}
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="meta text-accent">call out</span>
+              <span className="meta text-dim">{player.name}</span>
             </div>
-            <p className="px-5 text-[10px] font-bold text-dim">
-              {player.name} gets the Brave point back.
-            </p>
+
+            <div>
+              <p className="text-[25px] leading-[1.2] font-semibold tracking-[-0.01em] text-balance text-ink">
+                Did {player.name} deserve that?
+              </p>
+              <p className="mt-3 border-l border-hairline pl-3 text-[12.5px] leading-snug text-muted">
+                Wrong call? Pick whoever called it out — they take the point instead.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button type="button" onClick={acceptCallOut} className={`${BTN_PRIMARY} w-full`}>
+                Deserved it
+              </button>
+              <div className="flex flex-wrap gap-1.5">
+                {players
+                  .filter((p) => p.id !== player.id)
+                  .map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => penalizeCaller(p.id)}
+                      className="border border-accent px-2.5 py-1.5 font-mono text-[11px] text-accent active:bg-accent active:text-stage"
+                    >
+                      {p.name} &minus;1
+                    </button>
+                  ))}
+              </div>
+              <p className="meta text-dim">{player.name} gets the brave point back.</p>
+            </div>
           </motion.div>
         ) : stage === 'answered' ? (
           <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="relative flex h-[min(62vh,520px)] w-[min(88vw,380px)] flex-col items-center justify-center gap-3 rounded-[28px] border-[3px] border-neon-green bg-panel px-6 text-center shadow-pop-lg"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex h-[min(62vh,520px)] w-[min(88vw,380px)] flex-col justify-between border border-sage/50 bg-panel p-6 shadow-pop-lg"
           >
-            <ConfettiBurst />
-            <Check size={32} className="text-neon-green" />
-            <p className="text-sm font-black">{player.name} answered</p>
-            <p className="text-[11px] font-bold leading-relaxed text-muted">
-              Group decides: was it honest?
-            </p>
-            <p className="mt-1 text-[10px] font-bold tracking-widest text-dim uppercase">
-              passing over to the next player
-            </p>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="meta text-sage">answered</span>
+              <span className="meta text-dim">{player.name}</span>
+            </div>
+
+            <div>
+              <p className="text-[25px] leading-[1.2] font-semibold tracking-[-0.01em] text-balance text-ink">
+                {player.name} answered.
+              </p>
+              <p className="mt-3 border-l border-hairline pl-3 text-[12.5px] leading-snug text-muted">
+                Group decides: was it honest? Passing over to the next player.
+              </p>
+            </div>
           </motion.div>
         ) : (
           <>
-            {/* two static cards behind, to sell the stack */}
-            <div className="absolute inset-x-6 bottom-2 h-6 rounded-[28px] border-2 border-ink bg-coal" />
-            <div className="absolute inset-x-3 bottom-1 h-6 rounded-[28px] border-2 border-ink bg-coal" />
+            {/* two thin sheets behind, to sell the stack without a second shadow */}
+            <div className="absolute inset-x-6 bottom-2 h-5 border border-hairline bg-coal" />
+            <div className="absolute inset-x-3 bottom-1 h-5 border border-hairline bg-coal" />
             <SwipeCard
               // No `stage` in the key: a skip must keep the SAME card instance
               // so the 3D flip animates instead of remounting mid-reveal.
               key={`${currentQuestion?.id ?? 'callout'}-${turnIndex}`}
               question={currentQuestion}
               playerName={player.name}
-              accent={palette}
               dare={pendingDare}
               flipped={flipped}
               signal={signal}
+              cardNumber={currentQuestion ? { n: poolIndex, total: pool.length } : null}
               onSwipe={(direction) => (direction === 'right' ? answer() : skip())}
               onFlipComplete={dismissBanner}
             />
@@ -319,14 +312,14 @@ export function GameScreen() {
       {/* Call Out countdown — a visible fuse for the 4s group-reaction window. */}
       {canCallOut &&
         (reduce ? (
-          <div className="mx-auto mt-3 h-1.5 w-44 rounded-full bg-neon-red" />
+          <div className="mx-auto mt-3 h-px w-44 bg-accent" />
         ) : (
           <motion.div
             key={`callout-${turnIndex}-${round}`}
             initial={{ scaleX: 1 }}
             animate={{ scaleX: 0 }}
             transition={{ duration: CALL_OUT_MS / 1000, ease: 'linear' }}
-            className="mx-auto mt-3 h-1.5 w-44 origin-left rounded-full bg-neon-red"
+            className="mx-auto mt-3 h-px w-44 origin-left bg-accent"
           />
         ))}
 
@@ -350,19 +343,17 @@ export function GameScreen() {
           `showVerdict` must be checked explicitly. If it were allowed to fall
           through to the default branch, a queued `signal` would be consumed by
           the next card on mount — silently auto-swiping a fresh question. */}
-      <div className="mt-4 flex gap-3">
+      <div className="mt-5 flex gap-2">
         {showVerdict ? (
-          <p className="w-full py-3 text-center text-[10px] font-bold tracking-widest text-dim uppercase">
-            verdict decides the turn
-          </p>
+          <p className="meta w-full py-3 text-center text-dim">verdict decides the turn</p>
         ) : awaitingCallOutDare ? (
           <button
             type="button"
             onClick={completeDare}
             title="A Call Out dare cannot be rerolled or refused"
-            className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-neon-green text-base font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
+            className={`${BTN_PRIMARY} w-full`}
           >
-            <Check size={19} /> Done &middot; no passing
+            Done &middot; no passing
           </button>
         ) : awaitingDare ? (
           <>
@@ -371,43 +362,29 @@ export function GameScreen() {
               onClick={reroll}
               disabled={rerollUsed}
               title={rerollUsed ? 'Reroll already used this turn' : 'Swap this dare once'}
-              className={`flex h-14 items-center justify-center gap-2 rounded-2xl border-2 border-ink px-3 text-sm font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-40 disabled:shadow-pop-sm ${
-                rerollUsed ? 'bg-coal' : 'bg-neon-amber'
-              }`}
+              className={`${BTN_QUIET} disabled:cursor-not-allowed disabled:text-dim disabled:opacity-50`}
             >
-              <RefreshCw size={17} /> Reroll
+              Reroll
             </button>
             <button
               type="button"
               onClick={chickenOut}
               title="Refuse the dare — costs a point and ends the turn"
-              className="flex h-14 items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-neon-red px-3 text-sm font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
+              className={`${BTN_REFUSE} shrink-0 px-3`}
             >
-              <Minus size={17} /> Chicken out
+              Chicken out
             </button>
-            <button
-              type="button"
-              onClick={completeDare}
-              className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-neon-green text-base font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
-            >
-              <Check size={19} /> Done
+            <button type="button" onClick={completeDare} className={`${BTN_PRIMARY} flex-1`}>
+              Done
             </button>
           </>
         ) : stage === 'answered' ? (
           <>
-            <button
-              type="button"
-              onClick={acceptCallOut}
-              className="h-14 flex-1 rounded-2xl border-2 border-ink bg-coal text-sm font-black text-muted shadow-pop-sm active:translate-y-[3px] active:shadow-none"
-            >
+            <button type="button" onClick={acceptCallOut} className={`${BTN_QUIET} flex-1`}>
               Next player
             </button>
-            <button
-              type="button"
-              onClick={callOut}
-              className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-neon-red text-base font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
-            >
-              <Gavel size={19} /> Call Out
+            <button type="button" onClick={callOut} className={`${BTN_REFUSE} flex-1`}>
+              Call Out
             </button>
           </>
         ) : (
@@ -417,36 +394,21 @@ export function GameScreen() {
               onClick={reroll}
               disabled={rerollUsed}
               title={rerollUsed ? 'Reroll already used this turn' : 'Swap this question once'}
-              className={`flex h-14 items-center justify-center gap-2 rounded-2xl border-2 border-ink px-4 text-sm font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-40 disabled:shadow-pop-sm ${
-                rerollUsed ? 'bg-coal' : 'bg-neon-amber'
-              }`}
+              className={`${BTN_QUIET} disabled:cursor-not-allowed disabled:text-dim disabled:opacity-50`}
             >
-              <RefreshCw size={17} /> Reroll
+              Reroll
             </button>
-            <button
-              type="button"
-              onClick={chickenOut}
-              title="Refuse both the question and the dare — costs a point"
-              className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-neon-red text-sm font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
-            >
-              <Minus size={17} /> Chicken out &middot; &minus;1
+            <button type="button" onClick={chickenOut} className={`${BTN_REFUSE} flex-1`}>
+              Chicken out &middot; &minus;1
             </button>
           </>
         )}
       </div>
 
-      <div className="mt-3 flex items-center justify-center gap-4 text-[10px] font-bold tracking-widest text-dim uppercase">
-        <span className="flex items-center gap-1">
-          <Flame size={10} /> tier {dareTier(player.flinchCount ?? 0)}
-        </span>
-        {(player.flinchCount ?? 0) >= 4 && (
-          <span className="flex items-center gap-1 text-neon-red">
-            <ShieldAlert size={10} /> on thin ice
-          </span>
-        )}
-        <span className="flex items-center gap-1">
-          <SkipForward size={10} /> cards run out = game over
-        </span>
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-[10px] leading-none text-dim">
+        <span>tier {dareTier(player.flinchCount ?? 0)}</span>
+        {(player.flinchCount ?? 0) >= 4 && <span className="text-accent">on thin ice</span>}
+        <span>cards run out = game over</span>
       </div>
     </div>
   )

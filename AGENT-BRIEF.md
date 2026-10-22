@@ -126,22 +126,21 @@ src/
 ├─ store/gameStore.ts         turn machine, scoring, persistence, all game actions
 ├─ components/
 │  ├─ SwipeCard.tsx           THE mechanic: drag physics, 3D flip, stamps, footer legend
-│  ├─ Commentator.tsx         the trash-talking host (deterministic quip per card)
-│  └─ ...                     CountUp, ConfettiBurst, ArcadeBackdrop
+│  ├─ Commentator.tsx         the host, as an attributed byline (deterministic quip)
+│  └─ ...                     CountUp
 ├─ screens/
 │  ├─ SetupScreen.tsx         names + game mode (no decks, no 18+ gate)
 │  ├─ GameScreen.tsx          card stack, Call Out window, verdict
 │  ├─ TurnIntroScreen.tsx     Classic Circle: round intro / wildcard
 │  ├─ TruthOrDareScreen.tsx   Classic Circle: Truth or Dare choice
 │  ├─ NextUpScreen.tsx        Classic Circle: pass-the-phone screen
-│  └─ BurnBookScreen.tsx      per-player verdicts + share
+│  └─ BurnBookScreen.tsx      per-player verdicts + share + colophon easter egg
 └─ data/
    ├─ questions.ts            content — flat question pool
    ├─ dares.ts                content — dares + call-out dares
    ├─ commentary.ts           host quips + event barks (deterministic hash picker)
    ├─ wildcards.ts            Classic Circle round modifiers
-   ├─ verdicts.ts             Burn Book archetypes
-   ├─ playerColors.ts         seat colours
+   ├─ verdicts.ts             Burn Book archetypes (pure, no colour)
    └─ decks.ts                aggregation + Coward ladder + dare picker
 ```
 
