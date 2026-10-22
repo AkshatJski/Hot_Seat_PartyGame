@@ -3,10 +3,12 @@ import { QUESTIONS } from './questions'
 import { DARES, CALL_OUT_DARES } from './dares'
 
 /**
- * CONTENT POLICY (agreed 2026-10-04, restated 2026-10-19)
+ * CONTENT POLICY (agreed 2026-10-04, restated 2026-10-19, dares revised 2026-10-21)
  * - Questions carry the heat: funny, quirky, roasty.
- * - Dares are deliberately TAME: comedic, embarrassing, zero physical risk,
- *   zero humiliation of anyone outside the room. No "dark" tier of dare.
+ * - Dares are comedic and embarrassing, never dangerous: mild physical action
+ *   (silly poses, holding something, going to another room), the player's own
+ *   phone or social media, and zero humiliation of anyone outside the room.
+ *   There is deliberately no "dark" tier of dare.
  * - Intensity on a dare is a difficulty hint for the player, not a risk level.
  *
  * Categories are gone. There is ONE flat question pool and ONE flat dare pool,
@@ -37,12 +39,15 @@ export function shuffle<T>(items: readonly T[]): T[] {
 }
 
 /**
- * Coward Meter → dare difficulty tier.
- * 0-1 cowards → tier 1 (trivial dares), 2-3 → tier 2, 4+ → tier 3 (hardest).
+ * Flinch count → dare difficulty tier.
+ * 0-1 flinches → tier 1 (trivial dares), 2-3 → tier 2, 4+ → tier 3 (hardest).
  * Escalates as the player chickens out, and can never exceed 3.
+ *
+ * Driven by the HIDDEN `flinchCount`, not the visible `coward` score: taking a
+ * dare is free, so only refusing escalates. See `chickenOut()` in the store.
  */
-export function dareTier(coward: number): Intensity {
-  const tier = 1 + Math.floor(coward / 2)
+export function dareTier(flinchCount: number): Intensity {
+  const tier = 1 + Math.floor(flinchCount / 2)
   return Math.min(3, Math.max(1, tier)) as Intensity
 }
 

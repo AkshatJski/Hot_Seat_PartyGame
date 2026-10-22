@@ -72,7 +72,7 @@ export function BurnBookScreen() {
       '',
       ...roster.map(({ player, verdict }) => `${player.name} — ${verdict.title}: ${verdict.blurb}`),
       '',
-      `${totals.brave} answered · ${totals.coward} skipped · ${totals.dares} dares · ${totals.calls} called out`,
+      `${totals.brave} answered · ${totals.coward} chickened out · ${totals.dares} dares · ${totals.calls} called out`,
     ]
     return lines.join('\n')
   }, [roster, round, totals])
@@ -175,7 +175,7 @@ export function BurnBookScreen() {
                   <p className="text-[11px] text-muted">{verdict.blurb}</p>
                   <p className="mt-1.5 text-[10px] font-bold text-dim">
                     <CountUp value={player.brave} className="text-neon-green" /> brave &middot;{' '}
-                    <CountUp value={player.coward} className="text-neon-red" /> skipped &middot;{' '}
+                    <CountUp value={player.coward} className="text-neon-red" /> chickened out &middot;{' '}
                     <CountUp value={player.daresCompleted} className="text-neon-amber" /> dares
                   </p>
                 </div>

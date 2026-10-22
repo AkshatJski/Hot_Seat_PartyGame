@@ -157,6 +157,54 @@ function blankTurn() {
   }
 }
 
+/**
+ * Rebuild live state from a save.
+ *
+ * Exported (rather than inlined in the `persist` config) purely so `smoke.ts` can
+ * unit-test it. That matters: `poolIndex` was once written by `partialize` and
+ * then silently dropped here, so refreshing mid-game kept the scores but rewound
+ * the queue to card 1. Nothing in the UI could catch that — only a test of this
+ * function can.
+ */
+export function mergePersisted(persisted: unknown, current: GameStore): GameStore {
+  const p = persisted as PersistedSlice | undefined
+  if (!p || p.phase !== 'playing' || !Array.isArray(p.poolIds)) return current
+  const byId = new Map(ALL_QUESTIONS.map((q) => [q.id, q]))
+  const pool = p.poolIds.map((id) => byId.get(id)).filter((q): q is Question => Boolean(q))
+  return {
+    ...current,
+    phase: 'playing' as GamePhase,
+    players: (p.players ?? []).map((pl) => {
+      // Backfill stats added after this save was written. `callOutsMade` was the
+      // pre-2026-10-19 name for `timesCalledOut` (same behaviour).
+      const legacy = pl as Player & { callOutsMade?: number }
+      return {
+        ...pl,
+        timesCalledOut: legacy.timesCalledOut ?? legacy.callOutsMade ?? 0,
+        falseAccusations: legacy.falseAccusations ?? 0,
+        bestStreak: legacy.bestStreak ?? 0,
+        answerStreak: legacy.answerStreak ?? 0,
+        truthStreak: legacy.truthStreak ?? 0,
+        // Games saved before this field existed: seed the hidden escalator from
+        // the old visible counter, which is what used to drive it.
+        flinchCount: legacy.flinchCount ?? pl.coward ?? 0,
+      }
+    }),
+    turnIndex: p.turnIndex ?? 0,
+    round: p.round ?? 1,
+    pool,
+    // Clamped because `pool` is rebuilt from ids: a save written before a content
+    // change can reference cards that no longer exist, which shortens the queue
+    // and would otherwise leave the cursor past the end (and `cardsLeft` negative).
+    poolIndex: Math.min(Math.max(0, p.poolIndex ?? 0), pool.length),
+    gameMode: p.gameMode ?? 'free',
+    turnOrder: p.turnOrder ?? [],
+    turnsTaken: p.turnsTaken ?? {},
+    roundsPerPlayer: p.roundsPerPlayer ?? null,
+    wildcard: p.wildcard ?? null,
+  }
+}
+
 export const useGameStore = create<GameStore>()(
   persist(
     (set, get) => {
@@ -446,13 +494,17 @@ turnIndex: 0,
          * Works on the question AND dare stage (Option A): abandoning a dare you
          * refuse to do simply ends the turn; it earns no dare-completion credit.
          *
+         * On a Call Out punishment it does NOT end the turn: it still routes to
+         * `calloutVerdict`, because the verdict is about whether the call was
+         * deserved, which is a separate question from whether the dare was done.
+         *
          * It increments `flinchCount` as well as `coward`. `coward` is the visible
          * score; `flinchCount` is the hidden difficulty driver, so dodging
          * repeatedly still escalates future dares even though the score shape
          * changed when taking a dare became free.
          */
         chickenOut: () => {
-          const { players, turnIndex } = get()
+          const { players, turnIndex, gameMode, stage } = get()
           const player = players[turnIndex]
           if (!player) return
           set({
@@ -463,10 +515,22 @@ turnIndex: 0,
                   p.coward += 1
                   p.flinchCount += 1
                   p.answerStreak = 0
+                  // Classic only: refusing everything is not a truth, so the
+                  // truth streak breaks here exactly as it does in skip().
+                  if (gameMode === 'classic') p.truthStreak = 0
                 },
               },
             ]),
           })
+          // A Call Out punishment always resolves through the verdict. Bailing
+          // straight to `advanceTurn()` here would mean the group never rules on
+          // the call, so `penalizeCaller` could never be reached. The UI no longer
+          // offers this button during a call out, but the invariant belongs in the
+          // machine, not in one render branch.
+          if (stage === 'callout') {
+            set({ stage: 'calloutVerdict', banner: 'Did they deserve that?' })
+            return
+          }
           advanceTurn()
         },
 
@@ -524,8 +588,11 @@ turnIndex: 0,
             {
               id: playerId,
               fn: (p: Player) => {
-                p.coward += 1
-                // The caller was overruled — a false accusation for the record.
+                // Deliberately does NOT touch `coward`. That counter now means
+                // one thing only — chicken-outs — because the Burn Book reads it
+                // as "skipped" and `verdictFor` treats it as skips. An overruled
+                // call is already recorded by `falseAccusations`, which has its
+                // own verdict ("Cry Wolf").
                 p.falseAccusations += 1
               },
             },
@@ -589,42 +656,7 @@ turnIndex: 0,
         roundsPerPlayer: s.roundsPerPlayer,
         wildcard: s.wildcard,
       }),
-      merge: (persisted, current) => {
-        const p = persisted as PersistedSlice | undefined
-        if (!p || p.phase !== 'playing' || !Array.isArray(p.poolIds)) return current
-        const byId = new Map(ALL_QUESTIONS.map((q) => [q.id, q]))
-        const pool = p.poolIds
-          .map((id) => byId.get(id))
-          .filter((q): q is Question => Boolean(q))
-        return {
-          ...current,
-          phase: 'playing' as GamePhase,
-          players: (p.players ?? []).map((pl) => {
-            // Backfill stats added after this save was written. `callOutsMade`
-            // was the pre-2026-10-19 name for `timesCalledOut` (same behaviour).
-            const legacy = pl as Player & { callOutsMade?: number }
-            return {
-              ...pl,
-              timesCalledOut: legacy.timesCalledOut ?? legacy.callOutsMade ?? 0,
-              falseAccusations: legacy.falseAccusations ?? 0,
-              bestStreak: legacy.bestStreak ?? 0,
-              answerStreak: legacy.answerStreak ?? 0,
-              truthStreak: legacy.truthStreak ?? 0,
-              // Games saved before this field existed: seed the hidden escalator
-              // from the old visible counter, which is what used to drive it.
-              flinchCount: legacy.flinchCount ?? pl.coward ?? 0,
-            }
-          }),
-          turnIndex: p.turnIndex ?? 0,
-          round: p.round ?? 1,
-          pool,
-          gameMode: p.gameMode ?? 'free',
-          turnOrder: p.turnOrder ?? [],
-          turnsTaken: p.turnsTaken ?? {},
-          roundsPerPlayer: p.roundsPerPlayer ?? null,
-          wildcard: p.wildcard ?? null,
-        }
-      },
+      merge: mergePersisted,
     },
   ),
 )
@@ -642,8 +674,16 @@ export const selectCardsLeft = (s: GameStore): number =>
 
 export const selectCanCallOut = (s: GameStore): boolean => s.stage === 'answered'
 
-export const selectAwaitingDare = (s: GameStore): boolean =>
-  s.stage === 'dare' || s.stage === 'callout'
+export const selectAwaitingDare = (s: GameStore): boolean => s.stage === 'dare'
+
+/**
+ * A Call Out punishment is NOT an ordinary dare. It is deliberately not in
+ * `selectAwaitingDare`: that would put Reroll and Chicken out on screen, and
+ * chickening out of a punishment calls `advanceTurn()` directly — skipping
+ * `calloutVerdict` entirely, so the group could never rule on the call and
+ * `penalizeCaller` would be unreachable. Call Out is "no passing": only Done.
+ */
+export const selectAwaitingCallOutDare = (s: GameStore): boolean => s.stage === 'callout'
 
 export const selectShowVerdict = (s: GameStore): boolean =>
   s.stage === 'calloutVerdict'

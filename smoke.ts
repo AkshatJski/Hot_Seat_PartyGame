@@ -1,4 +1,9 @@
-import { useGameStore } from './src/store/gameStore'
+import {
+  mergePersisted,
+  selectAwaitingCallOutDare,
+  selectAwaitingDare,
+  useGameStore,
+} from './src/store/gameStore'
 import {
   ALL_CALL_OUT_DARES,
   ALL_DARES,
@@ -199,6 +204,8 @@ check('Brave docked back to 0', S().players[2].brave === 0, `got ${S().players[2
 check('timesCalledOut = 1', S().players[2].timesCalledOut === 1, `got ${S().players[2].timesCalledOut}`)
 check('call-out dare loaded', S().pendingDare !== null && S().pendingIsCallOut === true)
 check('turn did NOT rotate', S().turnIndex === 2)
+check('a call out is NOT an ordinary dare', selectAwaitingDare(S()) === false)
+check('a call out gets its own-only-Done bar', selectAwaitingCallOutDare(S()) === true)
 S().completeDare()
 check('stage is calloutVerdict', S().stage === 'calloutVerdict')
 check('C daresCompleted = 1', S().players[2].daresCompleted === 1)
@@ -208,7 +215,11 @@ const callerId = S().players[0].id
 const braveBefore = S().players[2].brave
 const callerCowardBefore = S().players[0].coward
 S().penalizeCaller(callerId)
-check('caller A coward +1', S().players[0].coward === callerCowardBefore + 1)
+check(
+  'caller A coward is NOT charged (chicken-outs only)',
+  S().players[0].coward === callerCowardBefore,
+  `got ${S().players[0].coward}`,
+)
 check('caller A falseAccusations = 1', S().players[0].falseAccusations === 1, `got ${S().players[0].falseAccusations}`)
 check('accused Brave restored', S().players[2].brave === braveBefore + 1)
 check('turn advanced to A', S().turnIndex === 0)
@@ -260,6 +271,25 @@ S().chickenOut()
 check('chicken out on the DARE stage still works', S().players[0].flinchCount === flinchBeforeDareChicken + 1, `got ${S().players[0].flinchCount}`)
 check('abandoning a dare earns no completion credit', S().players[0].daresCompleted === daresDoneBeforeChicken)
 
+console.log('\nchicken out during a Call Out still reaches the verdict')
+S().restart()
+S().startGame([{ name: 'A' }, { name: 'B' }])
+S().answer()
+S().callOut()
+const accusedIndex = S().turnIndex
+const dareCreditBeforeChicken = S().players[accusedIndex].daresCompleted
+check('stage is callout', S().stage === 'callout', `got ${S().stage}`)
+check('call out is excluded from the dare bar', selectAwaitingDare(S()) === false)
+S().chickenOut()
+check('chicken out routes to the verdict', S().stage === 'calloutVerdict', `got ${S().stage}`)
+check(
+  'refusing the punishment earns no dare credit',
+  S().players[accusedIndex].daresCompleted === dareCreditBeforeChicken,
+  `got ${S().players[accusedIndex].daresCompleted}`,
+)
+check('the punishment still costs a coward point', S().players[accusedIndex].coward === 1)
+S().acceptCallOut()
+
 console.log('\nplay to exhaustion -> burn book')
 S().restart()
 S().startGame([{ name: 'A' }, { name: 'B' }])
@@ -282,12 +312,60 @@ check('phase back to setup', S().phase === 'setup')
 check('players cleared', S().players.length === 0)
 check('pool cleared', S().pool.length === 0)
 
+console.log('\nrehydration keeps progression, not just scores')
+S().startGame([{ name: 'A' }, { name: 'B' }])
+S().answer()
+S().acceptCallOut()
+S().answer()
+S().acceptCallOut()
+const live = S()
+const save = {
+  phase: 'playing' as const,
+  players: live.players,
+  turnIndex: live.turnIndex,
+  round: live.round,
+  poolIds: live.pool.map((q) => q.id),
+  poolIndex: live.poolIndex,
+  gameMode: live.gameMode,
+  turnOrder: live.turnOrder,
+  turnsTaken: live.turnsTaken,
+  roundsPerPlayer: live.roundsPerPlayer,
+  wildcard: live.wildcard,
+}
+const restored = mergePersisted(save, { ...live, phase: 'setup', players: [], pool: [], poolIndex: 0 })
+check('pool is rebuilt from saved ids', restored.pool.length === live.pool.length, `got ${restored.pool.length}`)
+check(
+  'poolIndex survives a refresh',
+  restored.poolIndex === live.poolIndex,
+  `got ${restored.poolIndex} want ${live.poolIndex}`,
+)
+check('scores survive a refresh', restored.players[0]?.brave === live.players[0].brave)
+check('cardsLeft survives a refresh', restored.pool.length - restored.poolIndex === live.pool.length - live.poolIndex)
+
+const pruned = mergePersisted({ ...save, poolIds: [...save.poolIds, 'gone'], poolIndex: 999 }, S())
+check(
+  'poolIndex is clamped to the rebuilt pool',
+  pruned.poolIndex === pruned.pool.length,
+  `got ${pruned.poolIndex} of ${pruned.pool.length}`,
+)
+check('a non-playing save is ignored', mergePersisted({ phase: 'setup' }, S()).phase === S().phase)
+
+console.log('\nclassic: chicken out breaks the truth streak')
+S().restart()
+S().startGame([{ name: 'A' }, { name: 'B' }], { gameMode: 'classic' })
+S().beginClassicTurn()
+S().classicChooseTruth()
+check('truth streak is 1', S().players[0].truthStreak === 1, `got ${S().players[0].truthStreak}`)
+S().chickenOut()
+check('chicken out resets truthStreak', S().players[0].truthStreak === 0, `got ${S().players[0].truthStreak}`)
+
 console.log('\nburn book verdict ladder')
 const mk = (over: Partial<Player>): Player => ({
   id: 'x',
   name: 'X',
   brave: 0,
   coward: 0,
+  flinchCount: 0,
   daresCompleted: 0,
   timesCalledOut: 0,
   falseAccusations: 0,
@@ -300,7 +378,12 @@ const mk = (over: Partial<Player>): Player => ({
 })
 const kind = (over: Partial<Player>) => verdictFor(mk(over)).kind
 check('all-zero -> Ghost', kind({}) === 'ghost')
-check('skips only -> Serial Flincher', kind({ coward: 3 }) === 'flincher')
+check('chicken-outs only -> Serial Flincher', kind({ coward: 3 }) === 'flincher')
+check(
+  'false call-outs alone are NOT chicken-outs',
+  kind({ brave: 2, daresCompleted: 2, falseAccusations: 1 }) === 'noRegrets',
+  `got ${kind({ brave: 2, daresCompleted: 2, falseAccusations: 1 })}`,
+)
 check('nuclear dare -> The Reckless', kind({ brave: 1, worstDare: 3 }) === 'reckless')
 check('nuclear question -> Went Nuclear', kind({ brave: 1, deepestAnswered: 3 }) === 'nuclear')
 check('no skips, both -> No Regrets', kind({ brave: 3, daresCompleted: 2 }) === 'noRegrets')

@@ -16,6 +16,7 @@ import { reactionFor, type GameEvent } from '../data/commentary'
 import { playerPalette } from '../data/playerColors'
 import { dareTier } from '../data/decks'
 import {
+  selectAwaitingCallOutDare,
   selectAwaitingDare,
   selectCanCallOut,
   selectCardsLeft,
@@ -107,6 +108,7 @@ export function GameScreen() {
   const cardsLeft = useGameStore(selectCardsLeft)
   const canCallOut = useGameStore(selectCanCallOut)
   const awaitingDare = useGameStore(selectAwaitingDare)
+  const awaitingCallOutDare = useGameStore(selectAwaitingCallOutDare)
   const showVerdict = useGameStore(selectShowVerdict)
   const reduce = useReducedMotion()
 
@@ -339,6 +341,12 @@ export function GameScreen() {
             - Done         — confirm a dare
             - Call Out     — the group's vote, and its verdict
 
+          A Call Out punishment gets its OWN branch with only Done. It is not a
+          dare you may refuse: chickening out there would `advanceTurn()` past
+          `calloutVerdict`, so the group could never rule on the call and
+          `penalizeCaller` was unreachable. Reroll would not work either — it only
+          handles the question and dare stages. "No passing" means no passing.
+
           `showVerdict` must be checked explicitly. If it were allowed to fall
           through to the default branch, a queued `signal` would be consumed by
           the next card on mount — silently auto-swiping a fresh question. */}
@@ -347,6 +355,15 @@ export function GameScreen() {
           <p className="w-full py-3 text-center text-[10px] font-bold tracking-widest text-dim uppercase">
             verdict decides the turn
           </p>
+        ) : awaitingCallOutDare ? (
+          <button
+            type="button"
+            onClick={completeDare}
+            title="A Call Out dare cannot be rerolled or refused"
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl border-2 border-ink bg-neon-green text-base font-black tracking-wide text-ink shadow-pop active:translate-y-[5px] active:shadow-none"
+          >
+            <Check size={19} /> Done &middot; no passing
+          </button>
         ) : awaitingDare ? (
           <>
             <button

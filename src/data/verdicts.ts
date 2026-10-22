@@ -47,7 +47,9 @@ const v = (
 
 export function verdictFor(p: Player): Verdict {
   const brave = p.brave ?? 0
-  const skips = p.coward ?? 0
+  // `coward` counts chicken-outs only. A wrong Call Out is recorded separately in
+  // `falseAccusations`, so it does not leak in here and block "No Regrets".
+  const chickenOuts = p.coward ?? 0
   const dares = p.daresCompleted ?? 0
   const calledOut = p.timesCalledOut ?? 0
   const falseCalls = p.falseAccusations ?? 0
@@ -55,27 +57,27 @@ export function verdictFor(p: Player): Verdict {
   const deep = p.deepestAnswered ?? 1
   const worst = p.worstDare ?? 1
 
-  const faced = brave + dares + skips
+  const faced = brave + dares + chickenOuts
   const plural = (n: number, one: string, many: string) => (n === 1 ? one : many)
 
   // 1 — never engaged at all.
   if (faced === 0) return v('ghost', 'The Ghost', 'Never touched a card.', 'text-muted')
   // 2 — flinched, but never answered or dared.
   if (brave + dares === 0) {
-    return v('flincher', 'Serial Flincher', `Skipped all ${skips}.`, 'text-neon-red')
+    return v('flincher', 'Serial Flincher', `Chickened out on all ${chickenOuts}.`, 'text-neon-red')
   }
   // 3 — took a nuclear dare.
   if (worst === 3) return v('reckless', 'The Reckless', 'Took the nuclear dare.', 'text-neon-amber')
   // 4 — answered a nuclear question.
   if (deep === 3) return v('nuclear', 'Went Nuclear', 'Answered to the bottom.', 'text-neon-red')
   // 5 — did both, never ducked.
-  if (skips === 0 && brave > 0 && dares > 0) {
-    return v('noRegrets', 'No Regrets', 'Never skipped. Not once.', 'text-neon-green')
+  if (chickenOuts === 0 && brave > 0 && dares > 0) {
+    return v('noRegrets', 'No Regrets', 'Never chickened out. Not once.', 'text-neon-green')
   }
   // 6 — the heater.
   if (best >= 5) return v('onATear', 'On a Tear', `Answered ${best} in a row.`, 'text-neon-amber')
   // 7 — all truth, no dare, no flinch.
-  if (skips === 0 && brave > 0) {
+  if (chickenOuts === 0 && brave > 0) {
     return v('openBook', 'Open Book', 'All truth, no dare.', 'text-neon-cyan')
   }
   // 8 — kept making calls that got overruled.
@@ -96,8 +98,8 @@ export function verdictFor(p: Player): Verdict {
     )
   }
   // 11 — left is their favourite direction.
-  if (skips > brave) {
-    return v('dodger', 'The Dodger', `Skipped ${skips}, answered ${brave}.`, 'text-neon-amber')
+  if (chickenOuts > brave) {
+    return v('dodger', 'The Dodger', `Chickened out ${chickenOuts}, answered ${brave}.`, 'text-neon-amber')
   }
   // 12 — called out at least once, but not enough for Public Enemy.
   if (calledOut >= 1) {

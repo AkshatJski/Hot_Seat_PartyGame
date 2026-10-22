@@ -255,6 +255,11 @@ check('stage is callout', store().stage === 'callout')
 check('dare text is on screen', (store().pendingDare?.text.length ?? 0) > 0)
 check('dare card rendered', calloutHtml.includes('Dare'))
 check('Done button visible', calloutHtml.includes('Done'))
+// "No passing": a Call Out punishment must not offer Reroll or Chicken out.
+// Chickening out there used to skip `calloutVerdict` entirely, so the group could
+// never rule on the call and `penalizeCaller` was unreachable.
+check('no Reroll button during a call out', !/>Reroll</.test(calloutHtml))
+check('no Chicken out button during a call out', !calloutHtml.includes('Chicken out'))
 
 console.log('\ncomplete call-out dare -> verdict screen')
 await act(async () => {
@@ -288,7 +293,14 @@ check(
   seats < 3 || store().players[store().turnIndex]!.id !== callerId,
   `seats=${seats} turnIndex=${store().turnIndex}`,
 )
-check('Robin got a coward point', store().players.find((p) => p.name === 'Robin')!.coward === 1)
+// `coward` means chicken-outs only, so a wrong call must NOT touch it — it is
+// recorded in `falseAccusations`, which has its own verdict ("Cry Wolf").
+check(
+  'Robin got a false accusation, not a coward point',
+  store().players.find((p) => p.name === 'Robin')!.falseAccusations === 1 &&
+    store().players.find((p) => p.name === 'Robin')!.coward === 0,
+  `falseAccusations=${store().players.find((p) => p.name === 'Robin')!.falseAccusations} coward=${store().players.find((p) => p.name === 'Robin')!.coward}`,
+)
 
 // Regression: during the verdict the action bar used to fall through to the
 // default branch, leaving Dare/Answer live. A queued `signal` was then consumed
@@ -366,6 +378,34 @@ await flush(800)
 await flush(600)
 check('phase is setup', store().phase === 'setup')
 check('setup screen back', container.innerHTML.includes('Start the game'))
+
+// ---------------------------------------------------------------------------
+// Setup: duplicate names. The rows are free-text inputs, so the same name could
+// be typed twice; `begin()` used to check only the count, not uniqueness.
+// ---------------------------------------------------------------------------
+console.log('\nsetup rejects duplicate names')
+const nameInputs = Array.from(container.querySelectorAll('input')).filter((el) =>
+  el.placeholder.startsWith('Player'),
+) as HTMLInputElement[]
+check('two editable name rows', nameInputs.length >= 2, `got ${nameInputs.length}`)
+const nativeValue = Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, 'value')!.set!
+await act(async () => {
+  // Deliberately different casing: the guard is case-insensitive.
+  nativeValue.call(nameInputs[0], 'Same')
+  nameInputs[0].dispatchEvent(new dom.window.Event('input', { bubbles: true }))
+  nativeValue.call(nameInputs[1], 'same')
+  nameInputs[1].dispatchEvent(new dom.window.Event('input', { bubbles: true }))
+})
+await flush()
+const startBtn = Array.from(container.querySelectorAll('button')).find((b) =>
+  (b.textContent ?? '').includes('Start the game'),
+) as HTMLButtonElement | undefined
+await act(async () => {
+  startBtn?.click()
+})
+await flush()
+check('duplicate names keep you on setup', store().phase === 'setup', `phase=${store().phase}`)
+check('duplicate message shown', container.innerHTML.includes('same name'))
 
 // ---------------------------------------------------------------------------
 // Classic Circle. This flow shipped once with a dead "Start Turn" button and a

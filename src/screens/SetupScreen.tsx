@@ -35,6 +35,13 @@ export function SetupScreen() {
       setError('Add at least two players.')
       return
     }
+    // Rows are free-text inputs, so names can be duplicated by typing the same
+    // thing twice. `addName` guards its own path; this guards the Start button.
+    const lowered = cleaned.map((n) => n.toLowerCase())
+    if (new Set(lowered).size !== lowered.length) {
+      setError('Two players have the same name.')
+      return
+    }
     startGame(cleaned.map((name) => ({ name })), { gameMode, roundsPerPlayer })
   }
 

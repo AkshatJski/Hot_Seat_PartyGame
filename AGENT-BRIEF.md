@@ -58,8 +58,9 @@ The app is mid-refactor, and this is what an agent must understand before touchi
      `rerollUsed` (reset in `blankTurn()`). A question reroll consumes a card from
      the queue; a dare reroll does not.
    - **Chicken out (−1)** — refuses *both* the question and the dare: `coward +1`,
-     `answerStreak = 0`, turn ends, **no dare drawn**. Harsher than a swipe-left,
-     which still forces a dare.
+     `flinchCount +1`, `answerStreak = 0`, turn ends, **no dare drawn**. Harsher
+     than a swipe-left, which still forces a dare. Not offered during a Call Out
+     (and the store routes it to the verdict if it ever is).
 
    These are the only buttons; there is still deliberately **no Answer/Dare
    button pair** — the card remains the swipe control.
@@ -82,21 +83,29 @@ setup → playing → burnbook
          │
          ├── stage: question  ──swipe right──▶ answered ──(4s Call Out window)──▶ next turn
          │                    ──swipe left───▶ dare (card 3D-flips) ──Done──▶ next turn
-         └── callOut on an answered card ──▶ callout (punishing dare) ──Done──▶ calloutVerdict
-                                                                              ↳ Deserved → next turn
-                                                                              ↳ Wrong call → caller takes a Coward point
+         └── callOut on an answered card ──▶ callout (punishing dare, Done-only)
+                                                   ──Done──▶ calloutVerdict
+                                                              ↳ Deserved → next turn
+                                                              ↳ Wrong call → caller gets falseAccusations +1
 ```
 
 **Scoring / stakes:**
 - Swipe right → `brave +1`.
-- Swipe left → `coward +1`, and the card flips to a dare you must do.
-- Chicken out → `coward +1`, no dare, turn ends. Reroll → swaps the card once per
-  turn, no score change either way.
+- Swipe left → **free**, and the card flips to a dare you must do. (Dares are
+  incentivised; only refusing costs you.)
+- Chicken out → `coward +1` **and** `flinchCount +1`, no dare, turn ends. Reroll →
+  swaps the card once per turn, no score change either way.
 - Call Out → `brave −1`, `timesCalledOut +1`, and a dare from the separate
-  `CALL_OUT_DARES` pool. The accused keeps the turn.
-- The Coward count raises the **dare tier** (`1 + floor(coward/2)`, capped at 3)
-  — that tier is a *floor* on dare intensity, so a chronic skipper can't be let
-  off with an easy dare. It degrades gracefully if hard dares run out.
+  `CALL_OUT_DARES` pool. The accused keeps the turn. That dare is **not** a normal
+  dare: `selectAwaitingDare` excludes it, the action bar is Done-only, and
+  `chickenOut()` during it routes to `calloutVerdict` rather than ending the turn —
+  otherwise the verdict (and `penalizeCaller`) would be unreachable.
+- `flinchCount` (hidden) raises the **dare tier** (`1 + floor(flinchCount/2)`,
+  capped at 3) — a *floor* on dare intensity, so a chronic dodger can't be let off
+  with an easy dare. It degrades gracefully if hard dares run out. The visible
+  `coward` score is **not** an input to this.
+- A wrong call increments `falseAccusations` only. It deliberately does not touch
+  `coward`, which `verdictFor()` reads as chicken-outs.
 
 **Randomness:** the whole question pool is Fisher-Yates shuffled into a queue
 (`buildQuestionQueue()`), dealt without replacement. **"Cards run out = game

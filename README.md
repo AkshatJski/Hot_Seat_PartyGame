@@ -65,8 +65,13 @@ chrome, like a real app:
 | You do | You get |
 | --- | --- |
 | **Swipe right** | Brave **+1**. Turn passes. |
-| **Swipe left** | Coward **+1**, and the card **flips to a dare** you have to do. Turn passes. |
+| **Swipe left** | **Free** — the card **flips to a dare** you have to do. Turn passes. |
+| **Reroll** | Swap the card once per turn. Costs nothing. Swapping a *question* does burn it from the deck. |
+| **Chicken out** | Refuse everything: Coward **+1** and the turn ends with no dare. |
 | **Call Out** | The group overruling your answer: Brave **−1** and a punishing dare from a *separate* pool. **You keep the turn.** |
+
+Taking a dare is free **on purpose**: the app rewards doing something over
+refusing everything, and only *chicken out* costs you.
 
 There is **no Answer button and no Dare button**. The card *is* the control —
 that's the whole game. On a keyboard, `←` / `→` raise the exact same internal
@@ -78,18 +83,20 @@ After you swipe right there's a **four-second window**. If the room thinks your
 answer was weak or a lie, someone hits Call Out:
 
 - Your Brave point is gone.
-- You get a dare from the Call Out pool. There is no passing.
+- You get a dare from the Call Out pool. **There is no passing** — no reroll, no
+  chicken out. It's you and the dare.
 - When you're done, the group renders a verdict: **"Did they deserve that?"**
   - **Deserved it** → turn passes, life goes on.
-  - **Wrong call** → the caller who overreached takes a **Coward** point, and
-    your Brave point comes back. Overturned means the penalty was illegitimate,
-    so it never should have applied.
+  - **Wrong call** → the caller who overreached is flagged with a **false
+    accusation**, and your Brave point comes back. Overturned means the penalty
+    was illegitimate, so it never should have applied.
 
-### The Coward ladder
+### The difficulty ladder
 
-Coward points aren't just a scoreboard. They raise the stakes:
+Dodging raises the stakes, but the counter behind it is **hidden** — separate from
+the Coward score you can see:
 
-| Cowards | Dare tier |
+| Times you chickened out | Dare tier |
 | --- | --- |
 | 0–1 | 1 — surface level |
 | 2–3 | 2 — got spicy |
@@ -106,11 +113,11 @@ picked from their own stats, so nobody leaves empty-handed and there are no
 arbitrary tie-breaks:
 
 - **The Reckless** — took the nuclear dare
-- **No Regrets** — never skipped once
+- **No Regrets** — never chickened out once
 - **On a Tear** — the longest unbroken run of answers
 - **Cry Wolf** — kept calling people out and getting overruled
 - **The Ghost** — never touched a card
-- and a dozen more, driven by skips, dares, depth, and being called out
+- and a dozen more, driven by chicken-outs, dares, depth, and being called out
 
 Share the whole thing to the group chat.
 
@@ -118,7 +125,7 @@ Share the whole thing to the group chat.
 
 ## Content
 
-No categories, no deck picking. **137 questions, 67 dares, 26 Call Out dares** —
+No categories, no deck picking. **135 questions, 85 dares, 33 Call Out dares** —
 one flat pool of fun, quirky and roasty questions, dealt at random.
 
 Because the whole set is shuffled into one queue and dealt without replacement,
