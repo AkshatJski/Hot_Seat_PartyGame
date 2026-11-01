@@ -24,33 +24,42 @@ forces a punishing dare. At the end, every player gets a verdict in the
 
 The app is mid-refactor, and this is what an agent must understand before touching it:
 
-1. **Categories / decks are GONE.** There used to be seven decks (Icebreakers,
-   Destroyers, Spicy 18+, Confessions, Would You Rather, Chaos, Unhinged) with a
-   deck picker on Setup and an 18+ age gate. All of that has been removed. There
-   is **no `DeckId`, no `Deck`, no `deck` field, no `sensitive` field** anywhere.
-   Do not reintroduce them.
+1. **Categories / decks are GONE, and so is Classic Circle.** There used to be
+   seven decks (Icebreakers, Destroyers, Spicy 18+, Confessions, Would You Rather,
+   Chaos, Unhinged) with a deck picker, an 18+ gate and a second game mode called
+   Classic Circle (fixed turn order, Truth-or-Dare choice, wildcard per round).
+   All of it has been removed. There is **no `DeckId`, no `Deck`, no `deck` field,
+   no `sensitive` field, no `gameMode`, no `classicStage`, no `wildcard`, no
+   `truthStreak`** anywhere. Do not reintroduce them.
 
-2. **There is ONE flat pool per content type:**
-   - `src/data/questions.ts` → `QUESTIONS` (137 questions)
-   - `src/data/dares.ts` → `DARES` (67) and `CALL_OUT_DARES` (26)
-   - `src/data/decks.ts` re-exports them as `ALL_QUESTIONS` / `ALL_DARES` /
-     `ALL_CALL_OUT_DARES` and owns the shuffler, the Coward ladder and the dare
-     picker. (The file is still called `decks.ts` for history; it no longer has
-     anything to do with decks.)
+2. **What replaced categories is the VIBE.** Three complete, separate content
+   libraries — `family`, `friends`, `boys` — chosen once on Setup and never mixed
+   during a game:
+   - `src/data/packs/family.ts` → 84 questions / 48 dares / 22 call-outs
+   - `src/data/packs/friends.ts` → 135 / 85 / 33
+   - `src/data/packs/boys.ts` → 88 / 48 / 22 (18+)
+   - `src/data/decks.ts` owns `VIBES`, `poolFor(vibe)`, `buildQuestionQueue(vibe)`,
+     `dareTier`, `pickDare` and `contentCounts(vibe)`. The name is kept for
+     history; it no longer has anything to do with decks.
+   A card carries no `vibe` field: **the pack it lives in IS its vibe**. Ids are
+   prefixed (`fam-`, `frn-`, `boy-`) so they stay unique across shelves.
 
 3. **Content policy is enforced by a linter, not by vibes.** `npm run lint:content`
    (`scripts/lint-content.ts`) rejects cards for length, capitalisation, missing
-   punctuation, duplicates, vague wording, and anything touching a player's
-   finances / body / health. It reads the same flat pools the app does. If you add
-   content, this gate must stay green.
+   punctuation, duplicates (within and ACROSS shelves), vague wording, and
+   anything touching a player's finances / body / health. It also applies a
+   **tone gate**: the family shelf must contain zero profanity, zero adult content
+   and no romance; the friends shelf must not swear or get explicit; the boys
+   shelf is unrestricted. The host's barks are checked against the strictest gate,
+   because the same voice speaks to every shelf. If you add content, this gate
+   must stay green.
 
 4. **Questions are intentionally fun / quirky / roasty.** Deep-thinking, regret,
    confession and intimate questions were deliberately stripped out. The roasty
    questions point at the people in the room and are deliberately punchy.
 
-5. **Dares and Classic Circle are KEPT.** Only the *question categories* were
-   removed. Dares, the Call Out mechanic, the Coward ladder and the Classic
-   Circle mode still exist and still work.
+5. **Dares, Call Out, the Coward ladder and the turn limit are KEPT.** Only the
+   second game mode and the question categories were removed.
 
 6. **Two extra controls exist on a question turn** (added on request):
    - **Reroll** — swaps the card, **once per turn**, covering both sides: a new
@@ -69,14 +78,11 @@ The app is mid-refactor, and this is what an agent must understand before touchi
 
 ## How a game flows (the real mechanics)
 
-**Two modes**, chosen on Setup:
+**One mode, three shelves.** Setup picks the vibe (Family / Friends / Boys) and
+an optional turn limit, then everything is the swipe loop below. The vibe decides
+which question pool, dare pool and call-out pool the whole game draws from.
 
-- **Free Play (`gameMode: 'free'`)** — the swipe loop below.
-- **Classic Circle (`gameMode: 'classic'`)** — fixed turn order, each turn the
-  player picks Truth or Dare, a wildcard modifier applies to the round, and 3
-  truths in a row locks you into a forced dare.
-
-**The Free Play loop** (`src/store/gameStore.ts` — one state machine):
+**The loop** (`src/store/gameStore.ts` — one state machine):
 
 ```
 setup → playing → burnbook
@@ -107,13 +113,18 @@ setup → playing → burnbook
 - A wrong call increments `falseAccusations` only. It deliberately does not touch
   `coward`, which `verdictFor()` reads as chicken-outs.
 
-**Randomness:** the whole question pool is Fisher-Yates shuffled into a queue
-(`buildQuestionQueue()`), dealt without replacement. **"Cards run out = game
-over"** is both the end condition and the anti-repetition mechanism.
+**Randomness + ending:** the chosen vibe's question pool is Fisher-Yates shuffled
+into a queue (`buildQuestionQueue(vibe)`), dealt without replacement. When the
+queue dries it **reshuffles the same vibe's pool** instead of ending the game
+(`· ×2` on the card tells you which pass you are on), so the only ending is the
+per-player turn limit or the End button.
 
 **Persistence:** Zustand `persist` stores only **question IDs** (not the
-question objects) plus scores, so queue order survives a refresh while content
-stays live. The in-flight card is deliberately not persisted.
+question objects) plus scores and the chosen `vibe`, so queue order survives a
+refresh while content stays live. The in-flight card is deliberately not
+persisted. A save written before vibes existed has no `vibe` and dead ids: the
+pool rebuilds empty, `poolIndex` clamps to 0, scores survive, and the next draw
+reshuffles.
 
 ---
 
@@ -121,27 +132,25 @@ stays live. The in-flight card is deliberately not persisted.
 
 ```
 src/
-├─ App.tsx                    phase router (also branches Classic Circle sub-stages)
-├─ types.ts                   the vocabulary — Question/Dare/Player/GamePhase/Intensity
+├─ App.tsx                    phase router (setup | playing | burnbook)
+├─ types.ts                   the vocabulary — Vibe/VibePack/Question/Dare/Player/GamePhase/Intensity
 ├─ store/gameStore.ts         turn machine, scoring, persistence, all game actions
 ├─ components/
 │  ├─ SwipeCard.tsx           THE mechanic: drag physics, 3D flip, stamps, footer legend
 │  ├─ Commentator.tsx         the host: drawn face in a speech bubble
 │  └─ ...                     CountUp
 ├─ screens/
-│  ├─ SetupScreen.tsx         names + game mode (no decks, no 18+ gate)
+│  ├─ SetupScreen.tsx         names + vibe picker (with the 18+ warning) + length
 │  ├─ GameScreen.tsx          card stack, Call Out window, verdict
-│  ├─ TurnIntroScreen.tsx     Classic Circle: round intro / wildcard
-│  ├─ TruthOrDareScreen.tsx   Classic Circle: Truth or Dare choice
-│  ├─ NextUpScreen.tsx        Classic Circle: pass-the-phone screen
 │  └─ BurnBookScreen.tsx      per-player verdicts + share + colophon easter egg
 └─ data/
-   ├─ questions.ts            content — flat question pool
-   ├─ dares.ts                content — dares + call-out dares
+   ├─ packs/family.ts         content — the family shelf (written clean)
+   ├─ packs/friends.ts        content — the friends shelf
+   ├─ packs/boys.ts           content — the 18+ shelf
    ├─ commentary.ts           host quips + event barks (deterministic hash picker)
-   ├─ wildcards.ts            Classic Circle round modifiers
    ├─ verdicts.ts             Burn Book archetypes (pure, no colour)
-   └─ decks.ts                aggregation + Coward ladder + dare picker
+   ├─ playerColors.ts         seat palette
+   └─ decks.ts                shelf lookup + queue + Coward ladder + dare picker
 ```
 
 ---

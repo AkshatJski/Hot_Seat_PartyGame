@@ -2,17 +2,12 @@ import { useEffect } from 'react'
 import { motion } from 'motion/react'
 import { BurnBookScreen } from './screens/BurnBookScreen'
 import { GameScreen } from './screens/GameScreen'
-import { NextUpScreen } from './screens/NextUpScreen'
 import { SetupScreen } from './screens/SetupScreen'
-import { TruthOrDareScreen } from './screens/TruthOrDareScreen'
-import { TurnIntroScreen } from './screens/TurnIntroScreen'
 import { useGameStore } from './store/gameStore'
 import { unlockAudio } from './lib/sound'
 
 export default function App() {
   const phase = useGameStore((s) => s.phase)
-  const gameMode = useGameStore((s) => s.gameMode)
-  const classicStage = useGameStore((s) => s.classicStage)
 
   /**
    * Browsers only allow an AudioContext to start inside a gesture, and the first
@@ -46,11 +41,7 @@ export default function App() {
         transition={{ type: 'spring', stiffness: 320, damping: 30, mass: 0.7 }}
       >
         {phase === 'setup' && <SetupScreen />}
-        {phase === 'playing' && gameMode === 'classic' && classicStage === 'intro' && <TurnIntroScreen />}
-        {phase === 'playing' && gameMode === 'classic' && classicStage === 'choice' && <TruthOrDareScreen />}
-        {phase === 'playing' && gameMode === 'classic' && (classicStage === 'playing' || classicStage === null) && <GameScreen />}
-        {phase === 'playing' && gameMode === 'classic' && classicStage === 'nextup' && <NextUpScreen />}
-        {phase === 'playing' && gameMode === 'free' && <GameScreen />}
+        {phase === 'playing' && <GameScreen />}
         {phase === 'burnbook' && <BurnBookScreen />}
       </motion.div>
     </div>

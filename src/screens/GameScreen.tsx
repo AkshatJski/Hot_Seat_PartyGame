@@ -19,7 +19,14 @@ import {
   selectTurnsTakenByCurrent,
   useGameStore,
 } from '../store/gameStore'
-import type { Player } from '../types'
+import type { Player, Vibe } from '../types'
+
+/** Shown in the header chip. The vibe is fixed for the game, so this is static. */
+const VIBE_LABEL: Record<Vibe, string> = {
+  family: 'Family',
+  friends: 'Friends',
+  boys: '18+ Boys',
+}
 
 /** How long the group has to Call Out an answer before the turn moves on. */
 const CALL_OUT_MS = 4000
@@ -83,8 +90,7 @@ export function GameScreen() {
   const players = useGameStore((s) => s.players)
   const turnIndex = useGameStore((s) => s.turnIndex)
   const round = useGameStore((s) => s.round)
-  const gameMode = useGameStore((s) => s.gameMode)
-  const wildcard = useGameStore((s) => s.wildcard)
+  const vibe = useGameStore((s) => s.vibe)
   const currentQuestion = useGameStore((s) => s.currentQuestion)
   const pendingDare = useGameStore((s) => s.pendingDare)
   const flipped = useGameStore((s) => s.flipped)
@@ -250,7 +256,8 @@ export function GameScreen() {
             Round {round} &middot;{' '}
             {roundsPerPlayer != null
               ? `${turnsTaken} / ${roundsPerPlayer} turns`
-              : `${cardsLeft} left`}
+              : `${cardsLeft} left`}{' '}
+            &middot; {VIBE_LABEL[vibe]}
           </span>
           <p className="truncate font-display text-[22px] leading-tight font-semibold text-ink">
             {player.name}
@@ -280,13 +287,6 @@ export function GameScreen() {
       <div className="mb-4">
         <PlayerRail players={players} turnIndex={turnIndex} />
       </div>
-
-      {gameMode === 'classic' && wildcard && (
-        <div className="mb-3 flex items-start gap-2 rounded-2xl bg-sun/20 px-3 py-2">
-          <span className="chip shrink-0 bg-sun text-[#4a3200]">Wildcard</span>
-          <span className="text-[12px] leading-snug font-medium text-muted">{wildcard}</span>
-        </div>
-      )}
 
       <div className="relative flex flex-1 items-center justify-center">
         {showVerdict ? (

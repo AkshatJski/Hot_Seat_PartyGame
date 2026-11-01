@@ -1,19 +1,24 @@
 /**
- * CONTENT LINTER — the objective quality gate for every card in the flat pool.
+ * CONTENT LINTER — the objective quality gate for every card in every vibe.
  *
- * Categories are gone: there is ONE question pool, ONE dare pool and ONE
- * call-out pool. The linter now checks those flat pools plus the host's voice.
+ * Three shelves, three complete libraries. The linter checks each one on its
+ * own (shape, length, vagueness, duplicates, template fatigue) AND against the
+ * others (no card may appear on two shelves), then applies the TONE GATE: the
+ * one rule that cannot be eyeballed reliably across 250+ cards is that a family
+ * game never swears and a friends game never gets explicit.
  *
  * Run:  npm run lint:content   (also part of `npm run check`)
  */
-import { ALL_CALL_OUT_DARES, ALL_DARES, ALL_QUESTIONS } from '../src/data/decks'
+import { VIBES, poolFor } from '../src/data/decks'
 import { CARD_QUIPS, EVENT_QUIPS, MOODS, type Quip } from '../src/data/commentary'
+import type { Vibe } from '../src/types'
 
 type Pool = 'question' | 'dare' | 'callout'
 
 interface Card {
   id: string
   text: string
+  intensity?: number
 }
 
 const violations: string[] = []
@@ -34,6 +39,8 @@ const WORD_MAX = 30
 /** No single opening-4-words bucket may exceed this share of a pool. */
 const TEMPLATE_SHARE = 0.12
 const TEMPLATE_FLOOR = 4
+/** A shelf nobody can play for an evening is a broken shelf. */
+const MIN_CARDS = { question: 60, dare: 40, callout: 18 } as const
 // ---- card shapes ------------------------------------------------------------
 // A card is a valid prompt if it asks something (contains "?") or opens with an
 // imperative verb: "Describe your ideal Sunday." is a card, not a broken question.
@@ -43,11 +50,13 @@ const IMPERATIVE = new Set([
   'admit', 'confess', 'pitch', 'write', 'draw', 'roast', 'defend', 'argue',
   'share', 'read', 'spell', 'design', 'cast', 'create', 'show', 'answer',
   'deliver', 'announce', 'perform', 'improvise', 'narrate', 'recount', 'swap',
+  // "Point at the person most likely to..." is the single most-used prompt
+  // shape in the game. It is an imperative, so it belongs here — it used to fail
+  // the shape gate unless the card also ended in a question mark.
+  'point',
 ])
 const isImperative = (t: string) => IMPERATIVE.has(firstWord(t))
 
-// "Would You Rather" no longer exists as a deck, so no genre is exempt from the
-// opener-variety check.
 const VAGUE: [RegExp, string][] = [
   [/\bsomething\b/i, 'vague payload "something"'],
   [/\banything\b/i, 'vague payload "anything"'],
@@ -75,15 +84,62 @@ const POLICY: [RegExp, string][] = [
   ],
 ]
 
+// ---- the tone gate ----------------------------------------------------------
+/**
+ * HARD PROFANITY. Banned from Family and Friends outright; allowed on Boys.
+ * Word-boundary matched so "class" is not "ass" and "Scunthorpe" is not a bug.
+ */
+const PROFANITY =
+  /\b(f+u+c+k\w*|shit\w*|bullshit|bitch\w*|bastard\w*|dick\w*|cock\w*|pussy|cunt\w*|asshole\w*|arsehole\w*|whore\w*|slut\w*|porn\w*|boobs?|tits?|wank\w*)\b/i
+
+/** Sexual content and substance use. Banned from Family; fine for Friends. */
+const ADULT =
+  /\b(sex\w*|horny|hookups?|hook-ups?|one-night stand|drunk\w*|booze|alcohol|vodka|whisky|beer|weed|marijuana|hangover\w*)\b/i
+
+/**
+ * Dating and romance. Deliberately absent from the Family shelf.
+ *
+ * `ex` is spelled out rather than written as `ex-?\w+`: the greedy version
+ * matched "escape", "exactly", "excuse", "exit" and "explain", which flagged six
+ * perfectly innocent family cards. Word boundaries only.
+ */
+const ROMANCE = /\b(dating|crush\w*|girlfriends?|boyfriends?|ex|exes|kiss\w*)\b/i
+
+/**
+ * The gate itself. Explicit per vibe rather than a shared "mild" list, so adding
+ * a shelf means making a decision rather than inheriting one by accident.
+ */
+const TONE: Record<Vibe, { label: string; rules: [RegExp, string][] }> = {
+  family: {
+    label: 'family = zero profanity, zero adult content, no romance',
+    rules: [
+      [PROFANITY, 'family shelf must be completely clean'],
+      [ADULT, 'family shelf must not mention sex or substances'],
+      [ROMANCE, 'family shelf must not mention dating or crushes'],
+    ],
+  },
+  friends: {
+    label: 'friends = no hard profanity, nothing explicit',
+    rules: [
+      [PROFANITY, 'friends shelf must not swear'],
+      [/\b(porn\w*|hookup|hook-up|one-night)\b/i, 'friends shelf must not get explicit'],
+    ],
+  },
+  boys: { label: 'boys = 18+, no tone restriction', rules: [] },
+}
+
 // ---- load -------------------------------------------------------------------
-const pools: { name: Pool; cards: Card[] }[] = [
-  { name: 'question', cards: ALL_QUESTIONS as Card[] },
-  { name: 'dare', cards: ALL_DARES as Card[] },
-  { name: 'callout', cards: ALL_CALL_OUT_DARES as Card[] },
-]
+const pools: { vibe: Vibe; name: Pool; cards: Card[] }[] = VIBES.flatMap((vibe) => {
+  const pack = poolFor(vibe)
+  return [
+    { vibe, name: 'question' as Pool, cards: pack.questions as Card[] },
+    { vibe, name: 'dare' as Pool, cards: pack.dares as Card[] },
+    { vibe, name: 'callout' as Pool, cards: pack.callouts as Card[] },
+  ]
+})
 
 // ---- rules ------------------------------------------------------------------
-function checkText(card: Card, pool: Pool) {
+function checkText(card: Card, pool: Pool, vibe: Vibe) {
   const t = card.text
   const n = words(t).length
 
@@ -104,12 +160,21 @@ function checkText(card: Card, pool: Pool) {
   for (const [re, why] of VAGUE) if (re.test(t)) fail('vague', card, why)
   if (VAGUE_IT.test(t)) fail('vague-it', card, 'bare "it" with no antecedent')
 
-  // policy
+  // policy — global, and deliberately NOT relaxed for Boys
   for (const [re, why] of POLICY) if (re.test(t)) fail('policy', card, why)
+
+  // tone — per shelf
+  for (const [re, why] of TONE[vibe].rules) if (re.test(t)) fail(`tone:${vibe}`, card, why)
 }
 
-function checkPool({ name, cards }: { name: Pool; cards: Card[] }) {
-  for (const card of cards) checkText(card, name)
+function checkPool({ vibe, name, cards }: { vibe: Vibe; name: Pool; cards: Card[] }) {
+  for (const card of cards) checkText(card, name, vibe)
+
+  if (cards.length < MIN_CARDS[name]) {
+    violations.push(
+      `[volume] ${vibe}/${name} — only ${cards.length} cards (min ${MIN_CARDS[name]})`,
+    )
+  }
 
   // duplicate text within the pool
   const seen = new Map<string, string>()
@@ -132,7 +197,7 @@ function checkPool({ name, cards }: { name: Pool; cards: Card[] }) {
       fail(
         'template',
         group[0],
-        `"${key} …" opens ${group.length} of ${cards.length} ${name}s (cap ${cap}) — e.g. ${group
+        `"${key} …" opens ${group.length} of ${cards.length} ${vibe} ${name}s (cap ${cap}) — e.g. ${group
           .slice(0, 3)
           .map((c) => c.id)
           .join(', ')}`,
@@ -140,15 +205,38 @@ function checkPool({ name, cards }: { name: Pool; cards: Card[] }) {
     }
   }
 
-  stats.push(`  ${name.padEnd(12)} ${String(cards.length).padStart(3)} cards`)
+  stats.push(
+    `  ${vibe.padEnd(8)} ${name.padEnd(9)} ${String(cards.length).padStart(3)} cards   ${TONE[vibe].label}`,
+  )
+}
+
+// ---- cross-shelf duplicates -------------------------------------------------
+/**
+ * A card must live on exactly one shelf. The same text on two shelves is not a
+ * style issue: it means one of them was copy-pasted instead of written, and the
+ * shelf that got the copy is almost always the wrong tone.
+ */
+function checkCrossShelf() {
+  const seen = new Map<string, string>()
+  for (const { vibe, name, cards } of pools) {
+    for (const c of cards) {
+      const k = norm(c.text)
+      const prior = seen.get(k)
+      if (prior) fail('cross-shelf', c, `also on ${prior} (duplicate across vibes)`)
+      else seen.set(k, `${vibe}/${name}`)
+    }
+  }
 }
 
 // ---- run --------------------------------------------------------------------
 for (const pool of pools) checkPool(pool)
+checkCrossShelf()
 
 // ---- commentator voice ------------------------------------------------------
 // The host's barks are content too, and fail the same ways: empty, typo'd,
-// duplicated, or quoting a mood the UI has no styling for.
+// duplicated, or quoting a mood the UI has no styling for. They are also the one
+// piece of copy the player cannot escape, so they must be shelf-neutral: scrubbed
+// against the strictest tone gate (Family), not the loosest.
 const QUIP_MIN = 3
 const QUIP_MAX = 90
 const QUIP_END = /[.!?]$/
@@ -165,6 +253,9 @@ function checkQuip(where: string, quip: Quip) {
   if (/\s{2,}/.test(t)) violations.push(`[quip-space] ${where} — double space: "${t}"`)
   if (!MOODS.includes(quip.mood))
     violations.push(`[quip-mood] ${where} — unknown mood "${quip.mood}"`)
+  if (PROFANITY.test(t) || ADULT.test(t)) {
+    violations.push(`[quip-tone] ${where} — the host speaks to every shelf: "${t}"`)
+  }
   const key = t.toLowerCase()
   const prior = quipSeen.get(key)
   if (prior) violations.push(`[quip-dupe] ${where} — same as ${prior}: "${t}"`)
@@ -176,12 +267,12 @@ for (const [event, quips] of Object.entries(EVENT_QUIPS)) {
   if (quips.length < 3) violations.push(`[quip-pool] ${event} — only ${quips.length} event quips (min 3)`)
   for (const quip of quips) checkQuip(`event:${event}`, quip)
 }
-stats.push(`  ${'commentator'.padEnd(12)} ${String(quipCount).padStart(3)} quips`)
+stats.push(`  ${'commentator'.padEnd(18)} ${String(quipCount).padStart(3)} quips`)
 
 console.log('content lint')
 console.log(stats.join('\n'))
 console.log(
-  `\n${pools.length} pools · ${pools.reduce((n, p) => n + p.cards.length, 0)} cards`,
+  `\n${pools.length} pools · ${pools.reduce((n, p) => n + p.cards.length, 0)} cards · ${VIBES.length} vibes`,
 )
 
 if (violations.length === 0) {

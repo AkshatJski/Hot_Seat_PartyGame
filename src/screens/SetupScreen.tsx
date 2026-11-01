@@ -1,17 +1,19 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { Plus, X } from 'lucide-react'
+import { Flame, HeartHandshake, Plus, Users, X } from 'lucide-react'
 import { playerPalette } from '../data/playerColors'
+import { contentCounts } from '../data/decks'
 import { useGameStore } from '../store/gameStore'
+import type { Vibe } from '../types'
 
 const MAX_PLAYERS = 10
 
 /**
  * How long a game runs, in turns PER PLAYER.
  *
- * `null` is Endless: the deck reshuffles forever and the only ways out are the
+ * `null` is Endless: the queue reshuffles forever and the only ways out are the
  * End button or the Burn Book. The fixed options exist because the previous only
- * ending was "all 135 cards are gone", which is 40 minutes into a night and
+ * ending was "the whole deck is gone", which is 30 minutes into a night and
  * always arrives as a surprise.
  */
 const LENGTHS: { value: number | null; label: string }[] = [
@@ -21,16 +23,64 @@ const LENGTHS: { value: number | null; label: string }[] = [
   { value: 8, label: '8' },
 ]
 
+/**
+ * THE VIBE PICKER.
+ *
+ * This replaced a Free Play / Classic Circle switch. It is the single most
+ * important control on the screen, because it decides which of three completely
+ * separate content libraries the whole night draws from - so it gets a full row
+ * per option, a plain-language description, and its own colour instead of a
+ * cramped segmented toggle.
+ *
+ * Class strings are written out in full rather than composed (`bg-${x}` does not
+ * survive Tailwind's scanner).
+ */
+const VIBE_META: {
+  value: Vibe
+  label: string
+  blurb: string
+  Icon: typeof Users
+  active: string
+  dot: string
+}[] = [
+  {
+    value: 'family',
+    label: 'Family',
+    blurb: 'Mum, dad, cousins. Nothing that needs explaining in a whisper.',
+    Icon: HeartHandshake,
+    active: 'border-mint bg-mint/10',
+    dot: 'bg-mint text-white',
+  },
+  {
+    value: 'friends',
+    label: 'Friends',
+    blurb: 'The class group, the office, the group chat. Roasty but safe.',
+    Icon: Users,
+    active: 'border-sky bg-sky/10',
+    dot: 'bg-sky text-white',
+  },
+  {
+    value: 'boys',
+    label: 'Boys',
+    blurb: '18+. No guardrails. Crude, profane, unhinged.',
+    Icon: Flame,
+    active: 'border-berry bg-berry/10',
+    dot: 'bg-berry text-white',
+  },
+]
+
 export function SetupScreen() {
   const startGame = useGameStore((s) => s.startGame)
 
   const [names, setNames] = useState<string[]>(['', ''])
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [gameMode, setGameMode] = useState<'free' | 'classic'>('free')
+  const [vibe, setVibe] = useState<Vibe>('friends')
   const [turnsEach, setTurnsEach] = useState<number | null>(null)
 
   const cleaned = names.map((n) => n.trim()).filter(Boolean)
+  const counts = contentCounts(vibe)
+  const adult = vibe === 'boys'
 
   /**
    * A rough running time, because "5 turns each" means nothing to a table trying
@@ -67,7 +117,10 @@ export function SetupScreen() {
       setError('Two players have the same name.')
       return
     }
-    startGame(cleaned.map((name) => ({ name })), { gameMode, roundsPerPlayer: turnsEach })
+    startGame(
+      cleaned.map((name) => ({ name })),
+      { vibe, roundsPerPlayer: turnsEach },
+    )
   }
 
   return (
@@ -84,33 +137,66 @@ export function SetupScreen() {
         </p>
       </header>
 
-      {/* Game Mode -----------------------------------------------------------
-          A segmented switch. The selected side is a filled coral pill, so the
-          choice is legible from across a table. */}
+      {/* Who is in the room ---------------------------------------------------
+          Three shelves, not three difficulty settings: each one is a separate
+          set of questions AND dares, so a family night cannot accidentally deal
+          a boys card. */}
       <section className="mb-5">
-        <div className="flex gap-1 rounded-2xl bg-tint p-1">
-          <button
-            type="button"
-            onClick={() => setGameMode('free')}
-            className={`flex-1 rounded-xl py-2 font-display text-[13px] font-semibold transition-colors ${
-              gameMode === 'free' ? 'bg-coral text-white shadow-soft' : 'text-muted active:text-ink'
-            }`}
-          >
-            Free Play
-          </button>
-          <button
-            type="button"
-            onClick={() => setGameMode('classic')}
-            className={`flex-1 rounded-xl py-2 font-display text-[13px] font-semibold transition-colors ${
-              gameMode === 'classic' ? 'bg-coral text-white shadow-soft' : 'text-muted active:text-ink'
-            }`}
-          >
-            Classic Circle
-          </button>
+        <div className="mb-2 flex items-center justify-between px-1">
+          <h2 className="font-display text-[13px] font-semibold text-ink">Who&apos;s playing?</h2>
+          <span className="chip">
+            {counts.questions} Q · {counts.dares} D
+          </span>
         </div>
-        <p className="mt-2 pl-1 text-[11.5px] font-medium text-dim">
-          {gameMode === 'free' ? 'Pass & swipe as usual.' : 'Fixed turn order. Truth or Dare each turn.'}
-        </p>
+        <div className="space-y-1.5">
+          {VIBE_META.map((option) => {
+            const selected = vibe === option.value
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  setVibe(option.value)
+                  setError(null)
+                }}
+                aria-pressed={selected}
+                className={`flex w-full items-center gap-3 rounded-2xl border-2 px-3 py-2.5 text-left transition-colors ${
+                  selected ? option.active : 'border-line bg-tint/50 active:bg-tint'
+                }`}
+              >
+                <span
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${option.dot}`}
+                >
+                  <option.Icon size={17} strokeWidth={2.5} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-display text-[14px] font-semibold text-ink">
+                    {option.label}
+                  </span>
+                  <span className="block text-[11.5px] leading-snug font-medium text-dim">
+                    {option.blurb}
+                  </span>
+                </span>
+                <span
+                  className={`h-4 w-4 shrink-0 rounded-full border-2 ${
+                    selected ? 'border-ink bg-ink' : 'border-line'
+                  }`}
+                />
+              </button>
+            )
+          })}
+        </div>
+        {adult ? (
+          <p className="mt-2 rounded-xl bg-berry/12 px-3 py-2 text-[11.5px] leading-snug font-semibold text-berry-deep">
+            18+ only. This shelf swears, drinks, and asks about your exes. If your mother is in the
+            room, pick Family.
+          </p>
+        ) : (
+          <p className="mt-2 pl-1 text-[11.5px] font-medium text-dim">
+            {counts.callouts} Call Out punishments on this shelf. Only this shelf&apos;s cards are
+            dealt.
+          </p>
+        )}
       </section>
 
       {/* How long -------------------------------------------------------------
@@ -231,12 +317,12 @@ export function SetupScreen() {
       )}
 
       <button type="button" onClick={begin} className="btn btn-coral mt-auto h-14 w-full text-[17px]">
-        Start the game
+        {adult ? 'Start the 18+ game' : 'Start the game'}
       </button>
 
       {cleaned.length > 0 && (
         <p className="mt-2.5 text-center font-display text-[11.5px] font-medium text-dim">
-          {cleaned.length} in the room
+          {cleaned.length} in the room · {VIBE_META.find((v) => v.value === vibe)?.label} edition
         </p>
       )}
     </div>

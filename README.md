@@ -41,9 +41,11 @@ something? The group can **Call You Out**.
 > Both are fixed in the current release. The live links above are always current.
 
 1. Open the app on one phone and hand it around. That's the whole setup.
-2. Add 2–10 players and hit start. No decks to pick.
-3. Play until the cards run out — **137 questions** means the game decides how
-   long it lasts.
+2. Add 2-10 players, pick a shelf, and hit start. **Family**, **Friends** or
+   **Boys** (18+) - the shelf is the whole content library, so nothing from
+   another shelf can ever be dealt.
+3. Play until the card counter runs out, or set "5 turns each" and let the Burn
+   Book decide the length.
 4. Survive the Burn Book.
 
 **Install it.** Add to Home Screen and it launches fullscreen with no browser
@@ -164,12 +166,23 @@ Share the whole thing to the group chat.
 
 ## Content
 
-No categories, no deck picking. **135 questions, 85 dares, 33 Call Out dares** —
-one flat pool of fun, quirky and roasty questions, dealt at random.
+Three shelves, chosen once on Setup, never mixed. Each one is a complete set of
+questions, dares **and** Call Out punishments, so a family game cannot draw a
+boys card by accident.
 
-Because the whole set is shuffled into one queue and dealt without replacement,
-**no question repeats within a pass**. When the queue is empty it reshuffles and
-play continues — set a turn limit if you want a definite ending.
+| Shelf | Cards | Written for |
+| --- | --- | --- |
+| **Family** | 84 q · 48 d · 22 c | parents, siblings, cousins. Zero profanity, zero sex, zero booze, no dating questions, no dare that needs a prop or leaves the room. |
+| **Friends** | 135 q · 85 d · 33 c | the class group, the office, female friends. Roasty, a bit too honest, never explicit and never a hard swear. |
+| **Boys** (18+) | 88 q · 48 d · 22 c | 18+. Crude, profane, unhinged - exes, hangovers, betrayal, bad decisions at 2am. |
+
+Within a shelf the whole set is shuffled into one queue and dealt without
+replacement, so **no question repeats within a pass**. When the queue is empty it
+reshuffles *the same shelf* and play continues - set a turn limit if you want a
+definite ending.
+
+Ids are unique across all three shelves (`fam-`, `frn-`, `boy-`), and a saved
+game remembers which shelf it belongs to.
 
 ### The host
 
@@ -182,10 +195,11 @@ Call Out, a verdict. It's **all text, all offline, zero image assets**:
 - **Deterministic per card.** The line is picked by hashing the card id, so it
   never changes while the player is holding the phone still. (React re-renders
   constantly; a random pick would flicker between two lines under a thumb.)
-- **One flat voice.** Every card draws from the same quip pool, so the host
-  reads the same no matter what it's reviewing.
-- **Mood-driven.** Every line carries a mood — hype, judgy, spicy, chaos,
-  sympathy, deadpan or suspicious — which picks its emoji face, its colour block
+- **One shared voice.** Every shelf draws from the same quip pool, so the host
+  reads the same in a family game as it does at 1am on the boys shelf - which is
+  why the linter screens the host's lines against the strictest (family) gate.
+- **Mood-driven.** Every line carries a mood - hype, judgy, spicy, chaos,
+  sympathy, deadpan or suspicious - which picks its emoji face, its colour block
   and its accent.
 - **The bubble is `pointer-events-none`** on purpose: it sits over a drag-to-swipe
   card, and anything that captures a pointer there eats the gesture.
@@ -195,22 +209,30 @@ Call Out, a verdict. It's **all text, all offline, zero image assets**:
 
 ### Content policy
 
-These are product decisions, not accident — they're written into the code:
+These are product decisions, not accident - they're written into the code:
 
-1. **Questions carry the heat. Dares stay doable.** A dare's intensity is a
-   *difficulty* hint, never a risk level — nothing here should hurt anyone.
-2. **Fun, quirky and roasty only.** Questions keep it light and point at the
+1. **The shelf is the age rating.** Family is checked to be completely clean;
+   Friends may not swear or get explicit; Boys is 18+ and unrestricted. The
+   check is a tone gate in `scripts/lint-content.ts`, not a promise in a README.
+2. **Questions carry the heat. Dares stay doable.** A dare's intensity is a
+   *difficulty* hint, never a risk level - nothing here should hurt anyone.
+3. **Fun, quirky and roasty only.** Questions keep it light and point at the
    people in the room, written for an Indian context. Anything that asks for
    deep thinking, regret, confession or intimacy is out.
-3. **Nobody gets targeted on something they can't choose.** No cards about a
-   player's name, identity, health, body, trauma, or finances.
-4. **Dares may involve mild physical actions, silly props, or the player's own
+4. **Nobody gets targeted on something they can't choose.** No cards about a
+   player's name, identity, health, body, trauma, or finances. That rule holds on
+   **every** shelf, including Boys - it protects the person, not the mood.
+5. **"No guardrails" on Boys still means no slurs, no casteism, no religious
+   targeting, nothing sexual involving anyone who is not in the room and
+   consenting, nothing about a minor, and no dare that gets someone arrested,
+   injured or fired.** Swearing, drinking, exes and shame are all fair game.
+6. **Dares may involve mild physical actions, silly props, or the player's own
    phone and social media** — and that is a deliberate change from earlier
    versions. What stays off the table: anything that risks real injury, spills
    something messy, involves strangers, animals or property damage, or posts
    publicly without the player doing it themselves. Safety tags like
    "(gently!)" and "(safely!)" mark the risky edges on purpose.
-5. **The real risk is social, not technical.** A party game can humiliate
+7. **The real risk is social, not technical.** A party game can humiliate
    someone having a bad week. That's why the punishments are the game's, and
    why Call Out is resolved by the room rather than by an algorithm.
 
@@ -310,14 +332,17 @@ src/
 ├─ components/CountUp.tsx        roll-up numbers for the Burn Book
 ├─ store/gameStore.ts            turn machine, scoring, persistence
 ├─ screens/
-│  ├─ SetupScreen.tsx            players + game mode
+│  ├─ SetupScreen.tsx            players + vibe picker
 │  ├─ GameScreen.tsx             card stack, Call Out window, verdict
 │  └─ BurnBookScreen.tsx         awards, tie handling, share, colophon
 ├─ data/
-│  ├─ questions.ts               content — one flat question pool
-│  ├─ dares.ts                   content — dares + Call Out dares
+│  ├─ packs/family.ts            content — the family shelf (clean by construction)
+│  ├─ packs/friends.ts           content — the friends shelf
+│  ├─ packs/boys.ts              content — the 18+ shelf
 │  ├─ commentary.ts              host quips + event barks, deterministic picker
-│  └─ decks.ts                   aggregation, Coward ladder, dare picker
+│  ├─ verdicts.ts                Burn Book archetypes
+│  ├─ playerColors.ts            seat palette
+│  └─ decks.ts                   shelf lookup, queue, Coward ladder, dare picker
 ├─ types.ts                      the vocabulary
 ├─ App.tsx                       phase router
 └─ index.css                     Tailwind @theme — palette, the one shadow, grain
@@ -339,7 +364,7 @@ with one job each:
 | --- | --- |
 | coral | the thing you came here to do — start, done, share |
 | sky | move on / neutral secondary |
-| sun | dare, intensity, wildcard |
+| sun | dare, intensity |
 | mint | answered, completed, brave |
 | berry | refusal, punishment, a wrong call |
 | grape | identity only — seat avatars, never a button |
@@ -347,7 +372,7 @@ with one job each:
 The host is a drawn face in a speech bubble, one expression per mood. No emoji
 anywhere: they render in five different styles on five phones.
 
-Three easter eggs, and no more: the card prints its own number (`42 / 135`),
+Three easter eggs, and no more: the card prints its own number (`42 / 84`),
 holding the Burn Book title for half a second reveals a colophon, and the console
 says something on boot.
 
@@ -364,7 +389,7 @@ Being straight about these:
   request, so on a phone a drag is the only way to commit a card — the keyboard
   arrows only help a desktop user. That's a deliberate trade for the gesture-first
   feel the game is named after, but it is a real accessibility gap.
-- **The host's voice is finite.** 84 authored lines in one flat pool, so a
+- **The host's voice is finite.** 84 authored lines in one shared pool, so a
   long session will hear the same bark twice. The pool is cheap to extend — and
   `npm run lint:content` will refuse a duplicate line.
 - **`preserve-3d` on the card is load-bearing.** Anything that flattens the 3D

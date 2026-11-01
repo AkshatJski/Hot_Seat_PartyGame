@@ -6,6 +6,7 @@ node_modules
 decision.md
 Flow.md
 learn.md
+report.md
 
 # Generated content dump (regenerate with scripts/dump-content.ts).
 # The script is committed; the 250+ line output is not.

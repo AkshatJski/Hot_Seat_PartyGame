@@ -1,12 +1,12 @@
 /**
- * Dumps every card in the app to CONTENT-DUMP.txt — questions, dares,
- * call-out dares and wildcards. Throwaway utility for eyeballing the content.
+ * Dumps every card on every shelf to CONTENT-DUMP.txt — questions, dares and
+ * call-out dares, grouped by vibe. Throwaway utility for eyeballing content
+ * (and for printing a shelf to proofread it away from the editor).
  *
  *   npx tsx --tsconfig tsconfig.scripts.json scripts/dump-content.ts
  */
 import { writeFileSync } from 'node:fs'
-import { ALL_CALL_OUT_DARES, ALL_DARES, ALL_QUESTIONS } from '../src/data/decks'
-import { WILDCARDS } from '../src/data/wildcards'
+import { VIBES, poolFor } from '../src/data/decks'
 
 const lines: string[] = []
 const rule = (c = '-') => lines.push(c.repeat(64))
@@ -16,32 +16,35 @@ lines.push('TRUTH OR SWIPE — FULL CONTENT DUMP')
 rule('=')
 lines.push('')
 
-lines.push(`QUESTIONS (${ALL_QUESTIONS.length})`)
-rule()
-ALL_QUESTIONS.forEach((q, i) => lines.push(`${i + 1}. ${q.text}   [intensity ${q.intensity}]`))
-lines.push('')
+let total = 0
 
-lines.push(`DARES (${ALL_DARES.length})`)
-rule()
-ALL_DARES.forEach((d, i) => lines.push(`${i + 1}. ${d.text}   [intensity ${d.intensity}]`))
-lines.push('')
+for (const vibe of VIBES) {
+  const pack = poolFor(vibe)
+  const count = pack.questions.length + pack.dares.length + pack.callouts.length
+  total += count
 
-lines.push(`CALL OUT DARES (${ALL_CALL_OUT_DARES.length})`)
-rule()
-ALL_CALL_OUT_DARES.forEach((c, i) => lines.push(`${i + 1}. ${c.text}   [intensity ${c.intensity}]`))
-lines.push('')
+  lines.push('')
+  rule('=')
+  lines.push(`${vibe.toUpperCase()} (${count} cards)`)
+  rule('=')
 
-lines.push(`WILDCARDS (${WILDCARDS.length})`)
-rule()
-WILDCARDS.forEach((w, i) => lines.push(`${i + 1}. ${w}`))
-lines.push('')
+  lines.push(`\nQUESTIONS (${pack.questions.length})`)
+  rule()
+  pack.questions.forEach((q, i) => lines.push(`${i + 1}. ${q.text}   [intensity ${q.intensity}]`))
+
+  lines.push(`\nDARES (${pack.dares.length})`)
+  rule()
+  pack.dares.forEach((d, i) => lines.push(`${i + 1}. ${d.text}   [intensity ${d.intensity}]`))
+
+  lines.push(`\nCALL OUT DARES (${pack.callouts.length})`)
+  rule()
+  pack.callouts.forEach((c, i) => lines.push(`${i + 1}. ${c.text}   [intensity ${c.intensity}]`))
+  lines.push('')
+}
 
 rule('=')
-lines.push(
-  `TOTAL: ${ALL_QUESTIONS.length} questions + ${ALL_DARES.length} dares + ` +
-    `${ALL_CALL_OUT_DARES.length} call-out dares + ${WILDCARDS.length} wildcards`,
-)
+lines.push(`TOTAL: ${total} cards across ${VIBES.length} vibes`)
 rule('=')
 
 writeFileSync('CONTENT-DUMP.txt', lines.join('\n') + '\n', 'utf8')
-console.log(`Wrote CONTENT-DUMP.txt (${lines.length} lines)`)
+console.log(`Wrote CONTENT-DUMP.txt (${lines.length} lines, ${total} cards)`)

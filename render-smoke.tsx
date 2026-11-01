@@ -47,7 +47,7 @@ const { act } = await import('react')
 const React = await import('react')
 const { default: App } = await import('./src/App')
 const { useGameStore } = await import('./src/store/gameStore')
-const { contentCounts, ALL_QUESTIONS } = await import('./src/data/decks')
+const { contentCounts, poolFor } = await import('./src/data/decks')
 const { quipForCard } = await import('./src/data/commentary')
 
 // lowercase name so oxlint doesn't mistake this for a component
@@ -169,7 +169,7 @@ check(
 console.log('\ncommentator quip on the card')
 // Drive a real card so this asserts the rendered host line, not "a quip existed
 // somewhere". The quip is deterministic, so the expected text is knowable.
-const quipCard = ALL_QUESTIONS[0]
+const quipCard = poolFor('friends').questions[0]
 check('found a card to commentate', Boolean(quipCard))
 if (quipCard) {
   const expected = quipForCard(quipCard.id)
@@ -429,118 +429,84 @@ check('duplicate names keep you on setup', store().phase === 'setup', `phase=${s
 check('duplicate message shown', container.innerHTML.includes('same name'))
 
 // ---------------------------------------------------------------------------
-// Classic Circle. This flow shipped once with a dead "Start Turn" button and a
-// hooks-order crash, so it gets its own end-to-end pass: intro -> choice ->
-// play -> next-up, the free-dare rule, and the 3-truths-in-a-row lock.
+// VIBES. The picker is the only content switch in the game, and it replaced a
+// whole mode. It gets an end-to-end pass: the three shelves render, Boys carries
+// its warning, and the chosen shelf is what actually gets dealt - checked against
+// the pack, not just against the label.
 // ---------------------------------------------------------------------------
-console.log('\nclassic circle: turn flow, free dares, truth-streak lock, wildcard')
+console.log('\nvibe picker')
+const buttonWith = (label: string) =>
+  Array.from(container.querySelectorAll('button')).find((b) =>
+    (b.textContent ?? '').includes(label),
+  ) as HTMLButtonElement | undefined
 
-/** Drive exactly one full Classic turn for whoever is currently up. */
-async function classicTurn(choice: 'truth' | 'dare') {
-  await act(async () => {
-    store().classicNextUp() // no-op at the very first turn; routes next-up -> intro otherwise
-  })
-  await flush()
-  await act(async () => {
-    store().beginClassicTurn()
-  })
-  await flush()
-  await act(async () => {
-    if (choice === 'truth') store().classicChooseTruth()
-    else store().classicChooseDare()
-  })
-  await flush()
-  await act(async () => {
-    if (choice === 'truth') {
-      store().answer()
-    } else {
-      // A dare is now two steps: the claim, then the table's ruling.
-      store().completeDare()
-      store().confirmDare()
-    }
-  })
-  await flush()
-  if (choice === 'truth') {
-    await act(async () => {
-      store().acceptCallOut()
-    })
-    await flush()
-  }
-}
+check(
+  'three shelves offered',
+  ['Family', 'Friends', 'Boys'].every((label) => buttonWith(label)),
+)
+check('friends is the default shelf', store().vibe === 'friends')
+check('no 18+ warning while on friends', !container.innerHTML.includes('18+ only'))
 
 await act(async () => {
+  buttonWith('Boys')?.click()
+})
+await flush()
+check('boys shows its 18+ warning', container.innerHTML.includes('18+ only'))
+check(
+  'the start button says 18+ out loud',
+  container.innerHTML.includes('Start the 18+ game'),
+)
+
+await act(async () => {
+  buttonWith('Family')?.click()
+})
+await flush()
+check('switching away clears the warning', !container.innerHTML.includes('18+ only'))
+
+console.log('\nthe chosen vibe is the one that gets dealt')
+// Rescue the two name rows from the duplicate-name test above.
+await act(async () => {
+  nativeValue.call(nameInputs[0], 'Ada')
+  nameInputs[0].dispatchEvent(new dom.window.Event('input', { bubbles: true }))
+  nativeValue.call(nameInputs[1], 'Bo')
+  nameInputs[1].dispatchEvent(new dom.window.Event('input', { bubbles: true }))
+})
+await flush()
+await act(async () => {
+  buttonWith('Family')?.click()
+})
+await flush()
+await act(async () => {
+  buttonWith('Start the game')?.click()
+})
+await flush()
+check('game started', store().phase === 'playing', `phase=${store().phase}`)
+check('family is the vibe in state', store().vibe === 'family', `got ${store().vibe}`)
+check('the header names the shelf', container.innerHTML.includes('Family'))
+const familyIds = new Set(poolFor('family').questions.map((q) => q.id))
+check(
+  'the card on screen is a family question',
+  familyIds.has(store().currentQuestion!.id),
+  `got ${store().currentQuestion!.id}`,
+)
+check(
+  'and its text is the text on screen',
+  (container.textContent ?? '').includes(store().currentQuestion!.text.slice(0, 30)),
+)
+
+console.log('\nboys game carries the 18+ badge')
+await act(async () => {
   store().startGame(
-    [{ name: 'Ada' }, { name: 'Bo' }],
-    { gameMode: 'classic', roundsPerPlayer: null },
+    [{ name: 'A' }, { name: 'B' }],
+    { vibe: 'boys', roundsPerPlayer: null },
   )
 })
 await flush()
-check('classic game is playing', store().phase === 'playing')
-check('gameMode is classic', store().gameMode === 'classic')
-check('classic opens on the turn intro', store().classicStage === 'intro')
-check(
-  'a wildcard is drawn for the round',
-  typeof store().wildcard === 'string' && (store().wildcard ?? '').length > 0,
-)
-check('roundsPerPlayer defaults to null (pool-limited)', store().roundsPerPlayer === null)
-
-await act(async () => {
-  store().beginClassicTurn()
-})
-await flush()
-check('choice screen shown', store().classicStage === 'choice')
-check('Truth or Dare prompt rendered', container.innerHTML.includes('Truth or Dare'))
-
-const adaId = store().players[0]!.id
-const boId = store().players[1]!.id
-
-// Ada takes three truths in a row (her turns are 0, 2, 4); Bo takes dares to
-// reset nothing and to prove a dare is free.
-await classicTurn('truth')
-check('streak incremented to 1', store().players.find((p) => p.id === adaId)!.truthStreak === 1)
-check('turn passed to Bo', store().players[store().turnIndex]!.id === boId)
-await classicTurn('dare')
-check('dare choice charges no Coward', store().players.find((p) => p.id === boId)!.coward === 0)
-check('dare resets the streak', store().players.find((p) => p.id === boId)!.truthStreak === 0)
-await classicTurn('truth')
-await classicTurn('dare')
-await classicTurn('truth')
-check(
-  'Ada reached a 3-truth streak',
-  store().players.find((p) => p.id === adaId)!.truthStreak === 3,
-  `streak=${store().players.find((p) => p.id === adaId)!.truthStreak}`,
-)
-
-// Reach Ada's turn again and assert the lock is visible in the real UI.
-await classicTurn('dare')
-await act(async () => {
-  store().classicNextUp()
-})
-await flush()
-await act(async () => {
-  store().beginClassicTurn()
-})
-await flush()
-check('back on the choice screen for Ada', store().classicStage === 'choice' && store().players[store().turnIndex]!.id === adaId)
-check('UI announces the forced dare', container.innerHTML.includes('Dare is mandatory'))
-const truthBtn = Array.from(container.querySelectorAll('button')).find((b) =>
-  (b.textContent ?? '').includes('TRUTH'),
-)
-check('TRUTH button is disabled', truthBtn?.hasAttribute('disabled') === true)
-const streakBeforeForcedDare = store().players.find((p) => p.id === adaId)!.truthStreak
-await act(async () => {
-  store().classicChooseTruth() // must be rejected by the store guard
-})
-await flush()
-check('store rejects a locked truth', store().players.find((p) => p.id === adaId)!.truthStreak === streakBeforeForcedDare)
-
-await act(async () => {
-  store().classicChooseDare()
-})
-await flush()
-check('forced dare charges no Coward', store().players.find((p) => p.id === adaId)!.coward === 0)
-check('forced dare resets the streak', store().players.find((p) => p.id === adaId)!.truthStreak === 0)
-check('forced dare loaded', store().pendingDare !== null)
+check('boys vibe in state', store().vibe === 'boys', `got ${store().vibe}`)
+check('header badge says 18+ Boys', container.innerHTML.includes('18+ Boys'))
+const boysIds = new Set(poolFor('boys').questions.map((q) => q.id))
+check('the dealt card is from the boys shelf', boysIds.has(store().currentQuestion!.id))
+check('nothing from family leaked in', !familyIds.has(store().currentQuestion!.id))
 
 console.log('\nno react errors/warnings captured')
 const real = errors.filter((e) => !e.includes('persist middleware'))

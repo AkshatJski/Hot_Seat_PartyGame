@@ -1,31 +1,55 @@
-import type { CallOutDare, Dare, Intensity, Question } from '../types'
-import { QUESTIONS } from './questions'
-import { DARES, CALL_OUT_DARES } from './dares'
+import type { Dare, Intensity, Question, Vibe, VibePack } from '../types'
+import { BOYS } from './packs/boys'
+import { FAMILY } from './packs/family'
+import { FRIENDS } from './packs/friends'
 
 /**
- * CONTENT POLICY (agreed 2026-10-04, restated 2026-10-19, dares revised 2026-10-21)
- * - Questions carry the heat: funny, quirky, roasty.
- * - Dares are comedic and embarrassing, never dangerous: mild physical action
- *   (silly poses, holding something, going to another room), the player's own
- *   phone or social media, and zero humiliation of anyone outside the room.
- *   There is deliberately no "dark" tier of dare.
- * - Intensity on a dare is a difficulty hint for the player, not a risk level.
+ * CONTENT POLICY (agreed 2026-10-04, restated 2026-10-19, dares revised
+ * 2026-10-21, rebuilt around vibes 2026-11-01)
  *
- * Categories are gone. There is ONE flat question pool and ONE flat dare pool,
- * dealt at random with no repeats until the pool runs dry.
+ * There is no per-card category. Ever. Cards are dealt from ONE queue at a time
+ * so a night never repeats a question until that queue is exhausted.
+ *
+ * The thing that replaced categories is the VIBE: three complete, separate
+ * libraries, chosen once at setup, never mixed. Mixing was the actual bug in the
+ * old category system - a spicy card could surface in a family room. A vibe
+ * cannot, because the pool is swapped *before* the first card is dealt.
+ *
+ * - Questions carry the heat: funny, quirky, roasty.
+ * - Dares are comedic and embarrassing, never dangerous, and never humiliate
+ *   anyone who is not in the room and playing.
+ * - Intensity on a dare is a difficulty hint for the player, not a risk level.
  */
 
-export const ALL_QUESTIONS: Question[] = QUESTIONS
-export const ALL_DARES: Dare[] = DARES
-export const ALL_CALL_OUT_DARES: CallOutDare[] = CALL_OUT_DARES
+const PACKS: Record<Vibe, VibePack> = {
+  family: FAMILY,
+  friends: FRIENDS,
+  boys: BOYS,
+}
 
 /**
- * The whole question pool, shuffled into a queue. The game ends when this queue
- * runs dry ("play until cards run out"), which is also the natural
- * anti-repetition mechanism — you can never see a card twice.
+ * The three shelves, in escalation order. This is the only array the UI needs:
+ * setup renders it, the store validates against it, and the linter walks it.
  */
-export function buildQuestionQueue(): Question[] {
-  return shuffle(ALL_QUESTIONS)
+export const VIBES: Vibe[] = ['family', 'friends', 'boys']
+
+export function isVibe(value: unknown): value is Vibe {
+  return typeof value === 'string' && (VIBES as string[]).includes(value)
+}
+
+/** One complete content library. The returned arrays are the pack's own. */
+export function poolFor(vibe: Vibe): VibePack {
+  return PACKS[vibe] ?? FRIENDS
+}
+
+/**
+ * The chosen vibe's question pool, shuffled into a queue.
+ *
+ * The queue, not the deck, is the anti-repetition mechanism: a player can never
+ * see the same question twice before the vibe's whole pool has been dealt.
+ */
+export function buildQuestionQueue(vibe: Vibe): Question[] {
+  return shuffle(poolFor(vibe).questions)
 }
 
 /** Fisher-Yates. Returns a new array; does not mutate the input. */
@@ -74,10 +98,12 @@ export function pickDare<T extends Dare>(
   return usable[Math.floor(Math.random() * usable.length)]
 }
 
-export function contentCounts() {
+/** Totals for the setup screen. Per-vibe, because the counts differ a lot. */
+export function contentCounts(vibe: Vibe = 'friends') {
+  const pack = poolFor(vibe)
   return {
-    questions: ALL_QUESTIONS.length,
-    dares: ALL_DARES.length,
-    callOuts: ALL_CALL_OUT_DARES.length,
+    questions: pack.questions.length,
+    dares: pack.dares.length,
+    callouts: pack.callouts.length,
   }
 }

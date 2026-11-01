@@ -1,5 +1,33 @@
-/** 1 = light, 2 = spicy, 3 = philosophical / no-go-there-deep. */
+/**
+ * 1 = light, 2 = spicy, 3 = philosophical / no-go-there-deep.
+ *
+ * Intensity is a DIFFICULTY hint within a vibe, not an age rating. The age rating
+ * is the vibe itself (see `Vibe`).
+ */
 export type Intensity = 1 | 2 | 3
+
+/**
+ * WHO IS IN THE ROOM.
+ *
+ * This is the only content switch in the game, and it is deliberately coarse:
+ * three shelves, chosen once, never mixed. Picking a vibe swaps the *entire*
+ * content library - questions, dares and Call Out dares - because a family dare
+ * shown next to a boys question would be a worse failure than either one alone.
+ *
+ *  family  - siblings, parents, cousins. Nothing that needs explaining to a
+ *            seven-year-old, and nothing that makes a parent uncomfortable.
+ *  friends - the class group, the office, female friends. Roasty and honest,
+ *            no sexual content, nothing that gets someone in trouble.
+ *  boys    - 18+. Crude, profane, unhinged. Never shown without a warning.
+ */
+export type Vibe = 'family' | 'friends' | 'boys'
+
+/** One complete content library for one vibe. */
+export interface VibePack {
+  questions: Question[]
+  dares: Dare[]
+  callouts: CallOutDare[]
+}
 
 export type SwipeDirection = 'left' | 'right'
 
@@ -29,16 +57,16 @@ export interface Player {
   coward: number
   /**
    * Hidden escalation counter. Separate from `coward` on purpose: taking a dare
-   * is now free (no Coward), so the *score* can no longer double as the
-   * difficulty driver. This only ever rises, and only chicken-outs feed it, so
-   * a chronic dodger still gets harder dares without the score changing shape.
+   * is free (no Coward), so the *score* can no longer double as the difficulty
+   * driver. This only ever rises, and only chicken-outs feed it, so a chronic
+   * dodger still gets harder dares without the score changing shape.
    * Deliberately NOT rendered on the player rail.
    */
   flinchCount: number
   daresCompleted: number
   /**
    * Times this player was called out by the group. Named `callOutsMade` before
-   * 2026-10-19, which read as the opposite — the caller is never identified
+   * 2026-10-19, which read as the opposite - the caller is never identified
    * (the increment was always on the accused). Feeds "Public Enemy" / "Sus".
    */
   timesCalledOut: number
@@ -48,12 +76,6 @@ export interface Player {
   bestStreak: number
   /** Current unbroken run of answers, reset by a skip. Only ever feeds `bestStreak`. */
   answerStreak: number
-  /**
-   * Classic Circle only. Consecutive truths taken without a dare in between.
-   * At TRUTH_STREAK_LIMIT the player must take a dare; any dare resets it to 0.
-   * Optional so older persisted games rehydrate cleanly (read via `?? 0`).
-   */
-  truthStreak?: number
   /** Highest question intensity this player actually answered. Feeds "Went Nuclear". */
   deepestAnswered: Intensity
   /** Highest dare intensity this player actually performed. Feeds "The Reckless". */

@@ -7,11 +7,11 @@ import {
   useGameStore,
 } from './src/store/gameStore'
 import {
-  ALL_CALL_OUT_DARES,
-  ALL_DARES,
-  ALL_QUESTIONS,
-  dareTier,
+  VIBES,
   contentCounts,
+  dareTier,
+  isVibe,
+  poolFor,
 } from './src/data/decks'
 import {
   CARD_QUIPS,
@@ -22,7 +22,7 @@ import {
 } from './src/data/commentary'
 import { PLAYER_PALETTE, playerPalette } from './src/data/playerColors'
 import { verdictFor } from './src/data/verdicts'
-import type { Player } from './src/types'
+import type { Player, Vibe } from './src/types'
 
 const S = () => useGameStore.getState()
 let failures = 0
@@ -37,11 +37,15 @@ function check(label: string, cond: boolean, extra = '') {
 }
 
 console.log('content volumes')
-const c = contentCounts()
-console.log(`   flat pool q=${c.questions} d=${c.dares} c=${c.callOuts}`)
-check('flat pool has > 40 questions', c.questions > 40)
-check('flat pool has > 10 dares', c.dares > 10)
-check('flat pool has > 5 call-outs', c.callOuts > 5)
+for (const vibe of VIBES) {
+  const c = contentCounts(vibe)
+  console.log(`   ${vibe.padEnd(8)} q=${c.questions} d=${c.dares} c=${c.callouts}`)
+  check(`${vibe} has > 40 questions`, c.questions > 40)
+  check(`${vibe} has > 10 dares`, c.dares > 10)
+  check(`${vibe} has > 5 call-outs`, c.callouts > 5)
+}
+check('every vibe is a known shelf', VIBES.every(isVibe))
+check('isVibe rejects junk', !isVibe('classic') && !isVibe('') && !isVibe(null))
 
 console.log('\ncontent integrity')
 function duplicates(items: { id: string; text: string }[]): string[] {
@@ -52,15 +56,20 @@ function duplicates(items: { id: string; text: string }[]): string[] {
   }
   return [...seen.values()].filter((ids) => ids.length > 1).map((ids) => ids.join(' | '))
 }
-const allQ = ALL_QUESTIONS
-const allD = ALL_DARES
-const allC = ALL_CALL_OUT_DARES
-const qDupes = duplicates(allQ)
-const dDupes = duplicates(allD)
-const cDupes = duplicates(allC)
-check('no duplicate question text', qDupes.length === 0, qDupes.slice(0, 5).join(' / '))
-check('no duplicate dare text', dDupes.length === 0, dDupes.slice(0, 5).join(' / '))
-check('no duplicate call-out text', cDupes.length === 0, cDupes.slice(0, 5).join(' / '))
+const allQ = VIBES.flatMap((v) => poolFor(v).questions)
+const allD = VIBES.flatMap((v) => poolFor(v).dares)
+const allC = VIBES.flatMap((v) => poolFor(v).callouts)
+for (const vibe of VIBES) {
+  const pack = poolFor(vibe)
+  check(`no duplicate ${vibe} question text`, duplicates(pack.questions).length === 0)
+  check(`no duplicate ${vibe} dare text`, duplicates(pack.dares).length === 0)
+  check(`no duplicate ${vibe} call-out text`, duplicates(pack.callouts).length === 0)
+}
+check(
+  'no card is shared between vibes',
+  duplicates([...allQ, ...allD, ...allC]).length === 0,
+  duplicates([...allQ, ...allD, ...allC]).slice(0, 3).join(' / '),
+)
 const allIds = [...allQ, ...allD, ...allC].map((x) => x.id)
 check('no duplicate ids', new Set(allIds).size === allIds.length, `total=${allIds.length} unique=${new Set(allIds).size}`)
 check('every card has text', [...allQ, ...allD, ...allC].every((x) => x.text.trim().length > 0))
@@ -126,7 +135,12 @@ console.log('\nsetup + first draw')
 S().startGame([{ name: 'A' }, { name: 'B' }, { name: 'C' }])
 check('phase is playing', S().phase === 'playing')
 check('three players created', S().players.length === 3)
+check('no vibe given defaults to friends', S().vibe === 'friends', `got ${S().vibe}`)
 check('a question is dealt', S().currentQuestion !== null)
+check(
+  'the dealt card belongs to the chosen vibe',
+  poolFor(S().vibe).questions.some((q) => q.id === S().currentQuestion!.id),
+)
 check('stage is question', S().stage === 'question')
 const firstQuestion = S().currentQuestion!.id
 
@@ -410,11 +424,10 @@ const save = {
   round: live.round,
   poolIds: live.pool.map((q) => q.id),
   poolIndex: live.poolIndex,
-  gameMode: live.gameMode,
-  turnOrder: live.turnOrder,
+  deckPass: live.deckPass,
+  vibe: live.vibe,
   turnsTaken: live.turnsTaken,
   roundsPerPlayer: live.roundsPerPlayer,
-  wildcard: live.wildcard,
 }
 const restored = mergePersisted(save, { ...live, phase: 'setup', players: [], pool: [], poolIndex: 0 })
 check('pool is rebuilt from saved ids', restored.pool.length === live.pool.length, `got ${restored.pool.length}`)
@@ -434,14 +447,84 @@ check(
 )
 check('a non-playing save is ignored', mergePersisted({ phase: 'setup' }, S()).phase === S().phase)
 
-console.log('\nclassic: chicken out breaks the truth streak')
+console.log('\nvibe isolation: the shelves never mix')
+type Shelf = 'questions' | 'dares' | 'callouts'
+const idsOf = (vibe: Vibe, shelf: Shelf) => new Set(poolFor(vibe)[shelf].map((card) => card.id))
+
 S().restart()
-S().startGame([{ name: 'A' }, { name: 'B' }], { gameMode: 'classic' })
-S().beginClassicTurn()
-S().classicChooseTruth()
-check('truth streak is 1', S().players[0].truthStreak === 1, `got ${S().players[0].truthStreak}`)
-S().chickenOut()
-check('chicken out resets truthStreak', S().players[0].truthStreak === 0, `got ${S().players[0].truthStreak}`)
+S().startGame([{ name: 'A' }, { name: 'B' }], { vibe: 'boys' })
+check('boys vibe sticks for the game', S().vibe === 'boys', `got ${S().vibe}`)
+check(
+  'the dealt question is a boys question',
+  idsOf('boys', 'questions').has(S().currentQuestion!.id),
+  `got ${S().currentQuestion!.id}`,
+)
+check(
+  'the queue is drawn from boys only',
+  S().pool.every((q) => idsOf('boys', 'questions').has(q.id)),
+  `queue=${S().pool.length}`,
+)
+S().skip()
+check(
+  'the dare is a boys dare',
+  idsOf('boys', 'dares').has(S().pendingDare!.id),
+  `got ${S().pendingDare!.id}`,
+)
+const boysDareBeforeReroll = S().pendingDare!.id
+S().reroll()
+check(
+  'a dare reroll stays on the boys shelf',
+  S().pendingDare!.id !== boysDareBeforeReroll && idsOf('boys', 'dares').has(S().pendingDare!.id),
+)
+
+S().restart()
+S().startGame([{ name: 'A' }, { name: 'B' }], { vibe: 'family' })
+S().answer()
+S().callOut()
+check(
+  'a family Call Out cannot draw a boys punishment',
+  idsOf('family', 'callouts').has(S().pendingDare!.id),
+  `got ${S().pendingDare!.id}`,
+)
+check('still flagged as a call out', S().pendingIsCallOut === true)
+
+console.log('\nvibe survives a reshuffle')
+S().restart()
+S().startGame([{ name: 'A' }, { name: 'B' }], { vibe: 'family' })
+let shelfGuard = 0
+while (S().deckPass === 1 && shelfGuard++ < S().pool.length * 3) playFullTurn()
+check('the family deck came round again', S().deckPass >= 2, `deckPass=${S().deckPass}`)
+check(
+  'the reshuffled queue is still family-only',
+  S().pool.every((q) => idsOf('family', 'questions').has(q.id)),
+)
+check('the vibe itself did not change', S().vibe === 'family', `got ${S().vibe}`)
+
+console.log('\na nonsense vibe falls back instead of crashing')
+S().restart()
+S().startGame([{ name: 'A' }, { name: 'B' }], { vibe: 'classic' as never })
+check('unknown vibe falls back to friends', S().vibe === 'friends', `got ${S().vibe}`)
+check('and still deals a card', S().currentQuestion !== null)
+
+console.log('\nrestoring a pre-vibe save')
+S().restart()
+S().startGame([{ name: 'A' }, { name: 'B' }])
+const legacySave = {
+  phase: 'playing' as const,
+  players: S().players,
+  turnIndex: 0,
+  round: 1,
+  // The old pool's ids no longer exist anywhere, exactly like a real v1 save.
+  poolIds: ['q1', 'q2', 'q3'],
+  poolIndex: 2,
+  turnsTaken: {},
+  roundsPerPlayer: null,
+}
+const revived = mergePersisted(legacySave, { ...S(), phase: 'setup', players: [], pool: [], poolIndex: 0 })
+check('vibe defaults to friends', revived.vibe === 'friends', `got ${revived.vibe}`)
+check('dead ids are dropped', revived.pool.length === 0, `got ${revived.pool.length}`)
+check('the cursor cannot point past the queue', revived.poolIndex === 0, `got ${revived.poolIndex}`)
+check('scores still survive', revived.players.length === 2)
 
 console.log('\nburn book verdict ladder')
 const mk = (over: Partial<Player>): Player => ({
@@ -455,7 +538,6 @@ const mk = (over: Partial<Player>): Player => ({
   falseAccusations: 0,
   bestStreak: 0,
   answerStreak: 0,
-  truthStreak: 0,
   deepestAnswered: 1,
   worstDare: 1,
   ...over,

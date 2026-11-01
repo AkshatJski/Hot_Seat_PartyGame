@@ -1,15 +1,13 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import {
-  ALL_CALL_OUT_DARES,
-  ALL_DARES,
-  ALL_QUESTIONS,
   buildQuestionQueue,
   dareTier,
+  isVibe,
   pickDare,
+  poolFor,
 } from '../data/decks'
-import type { Dare, GamePhase, Intensity, Player, Question } from '../types'
-import { pickWildcard } from '../data/wildcards'
+import type { Dare, GamePhase, Intensity, Player, Question, Vibe } from '../types'
 
 /**
  * Where a turn currently is.
@@ -48,14 +46,15 @@ export interface GameStore {
    */
   deckPass: number
 
-  // ---- Classic Circle mode --------------------------------------------------
-  gameMode: 'free' | 'classic'
-  turnOrder: string[]
+  // ---- content + length -----------------------------------------------------
+  /**
+   * The chosen shelf. Fixed for the whole game: changing it mid-game would swap
+   * the dare pool under a player who already saw the old one, so the only way to
+   * change vibe is to start again.
+   */
+  vibe: Vibe
   turnsTaken: Record<string, number>
   roundsPerPlayer: number | null
-  classicStage: 'intro' | 'choice' | 'playing' | 'nextup' | null
-  /** Classic Circle only. The modifier drawn for the current round. */
-  wildcard: string | null
   currentQuestion: Question | null
   pendingDare: Dare | null
   pendingIsCallOut: boolean
@@ -72,7 +71,7 @@ export interface GameStore {
   rerollUsed: boolean
 
   // ---- actions --------------------------------------------------------------
-  startGame: (names: NewPlayer[], options?: { gameMode?: 'free' | 'classic'; roundsPerPlayer?: number | null }) => void
+  startGame: (names: NewPlayer[], options?: { vibe?: Vibe; roundsPerPlayer?: number | null }) => void
   drawQuestion: () => void
   answer: () => void
   skip: () => void
@@ -93,11 +92,6 @@ export interface GameStore {
   dismissBanner: () => void
   restart: () => void
   quitToBurnBook: () => void
-  // Classic Circle
-  beginClassicTurn: () => void
-  classicChooseTruth: () => void
-  classicChooseDare: () => void
-  classicNextUp: () => void
 }
 
 interface PersistedSlice {
@@ -110,23 +104,15 @@ interface PersistedSlice {
   poolIndex: number
   /** Absent in saves written before the reshuffle existed; defaults to 1. */
   deckPass: number
-  gameMode: 'free' | 'classic'
-  turnOrder: string[]
+  /** Absent in saves written before vibes existed; defaults to 'friends'. */
+  vibe: Vibe
   turnsTaken: Record<string, number>
   roundsPerPlayer: number | null
-  wildcard: string | null
 }
 
 const uid = () => Math.random().toString(36).slice(2, 10)
 
 const RECENT_LIMIT = 6
-
-/**
- * Classic Circle: truths taken in a row before a dare is forced. Picking DARE
- * is always free — this counter is what keeps the mode from becoming an endless
- * truth-only loop, instead of taxing the (perfectly valid) dare choice.
- */
-export const TRUTH_STREAK_LIMIT = 3
 
 function makePlayer(name: string): Player {
   return {
@@ -140,7 +126,6 @@ function makePlayer(name: string): Player {
     falseAccusations: 0,
     bestStreak: 0,
     answerStreak: 0,
-    truthStreak: 0,
     /** Highest intensity question this player actually answered. */
     deepestAnswered: 1,
     /** Highest intensity dare this player actually performed. */
@@ -188,7 +173,15 @@ function blankTurn() {
 export function mergePersisted(persisted: unknown, current: GameStore): GameStore {
   const p = persisted as PersistedSlice | undefined
   if (!p || p.phase !== 'playing' || !Array.isArray(p.poolIds)) return current
-  const byId = new Map(ALL_QUESTIONS.map((q) => [q.id, q]))
+  /**
+   * Saves written before vibes existed have no `vibe` and their `poolIds` refer
+   * to the old single pool, so none of those ids resolve. That is survivable by
+   * design: the pool rebuilds empty, `poolIndex` clamps to 0, and the first
+   * `drawQuestion()` reshuffles the new pool. Scores survive; only the in-flight
+   * queue is replaced, which is exactly what a refresh already does to the card.
+   */
+  const vibe: Vibe = isVibe(p.vibe) ? p.vibe : 'friends'
+  const byId = new Map(poolFor(vibe).questions.map((q) => [q.id, q]))
   const pool = p.poolIds.map((id) => byId.get(id)).filter((q): q is Question => Boolean(q))
   return {
     ...current,
@@ -203,7 +196,6 @@ export function mergePersisted(persisted: unknown, current: GameStore): GameStor
         falseAccusations: legacy.falseAccusations ?? 0,
         bestStreak: legacy.bestStreak ?? 0,
         answerStreak: legacy.answerStreak ?? 0,
-        truthStreak: legacy.truthStreak ?? 0,
         // Games saved before this field existed: seed the hidden escalator from
         // the old visible counter, which is what used to drive it.
         flinchCount: legacy.flinchCount ?? pl.coward ?? 0,
@@ -217,11 +209,9 @@ export function mergePersisted(persisted: unknown, current: GameStore): GameStor
     // and would otherwise leave the cursor past the end (and `cardsLeft` negative).
     poolIndex: Math.min(Math.max(0, p.poolIndex ?? 0), pool.length),
     deckPass: Math.max(1, p.deckPass ?? 1),
-    gameMode: p.gameMode ?? 'free',
-    turnOrder: p.turnOrder ?? [],
+    vibe,
     turnsTaken: p.turnsTaken ?? {},
     roundsPerPlayer: p.roundsPerPlayer ?? null,
-    wildcard: p.wildcard ?? null,
   }
 }
 
@@ -231,21 +221,16 @@ export const useGameStore = create<GameStore>()(
       /**
        * Rotate to the next player, then deal the next card.
        *
-       * Two endings live here, checked in this order:
+       * The only ending is the per-player turn limit, if one was chosen. There is
+       * no "deck exhausted" ending: the queue reshuffles instead (see
+       * `drawQuestion`), so "Endless" genuinely means endless.
        *
-       *  1. The per-player turn limit, if one was chosen. Checked for BOTH modes
-       *     and before anything mode-specific — it used to sit inside the Classic
-       *     branch, which is why free play could only end by exhausting 135 cards
-       *     or pressing End.
-       *  2. Nothing else. The queue reshuffles instead of ending the game (see
-       *     `drawQuestion`), so "Endless" genuinely means endless.
-       *
-       * Turns are recorded in free mode now too. `turnsTaken` only ever fed the
-       * round limit, so not recording them made the limit unreachable there: a
-       * limit of 3 would have been checking a table of zeroes.
+       * Turns are recorded for every mode. `turnsTaken` only ever feeds the round
+       * limit, so not recording them makes the limit unreachable: a limit of 3
+       * would be checking a table of zeroes.
        */
       const advanceTurn = () => {
-        const { players, turnIndex, round, gameMode, turnsTaken, roundsPerPlayer } = get()
+        const { players, turnIndex, round, turnsTaken, roundsPerPlayer } = get()
         if (players.length === 0) return
         const next = (turnIndex + 1) % players.length
         const wrapped = next === 0
@@ -264,20 +249,6 @@ export const useGameStore = create<GameStore>()(
           set({
             turnsTaken: nextTurnsTaken,
             phase: 'burnbook',
-            classicStage: null,
-            ...blankTurn(),
-          })
-          return
-        }
-
-        // Classic Circle routes through the "Next up" screen rather than dealing
-        // straight away, and re-draws a wildcard at the top of each round.
-        if (gameMode === 'classic') {
-          set({
-            turnIndex: next,
-            turnsTaken: nextTurnsTaken,
-            ...(wrapped ? { round: round + 1, wildcard: pickWildcard(get().wildcard) } : {}),
-            classicStage: 'nextup',
             ...blankTurn(),
           })
           return
@@ -314,14 +285,18 @@ export const useGameStore = create<GameStore>()(
       }
 
       const drawDare = (isCallOut: boolean) => {
-        const { players, turnIndex, recentDareIds } = get()
+        const { players, turnIndex, recentDareIds, vibe } = get()
         const player = players[turnIndex]
         if (!player) return false
         // Reads the *current* flinch count, so a chicken-out already counted
         // above escalates this dare's difficulty tier immediately. Dares are
         // free to take now, so the visible `coward` score no longer drives this.
         const tier = dareTier(player.flinchCount)
-        const pool = isCallOut ? ALL_CALL_OUT_DARES : ALL_DARES
+        // The vibe's own pools. There is deliberately no fallback to another
+        // vibe's dares: a missing dare must fail loudly-ish (advance the turn),
+        // never leak a boys dare into a family game.
+        const pack = poolFor(vibe)
+        const pool = isCallOut ? pack.callouts : pack.dares
         const dare = pickDare(pool, tier, recentDareIds)
         if (!dare) return false
         set({
@@ -342,56 +317,11 @@ turnIndex: 0,
         poolIndex: 0,
         deckPass: 1,
 
-        gameMode: 'free',
-        turnOrder: [],
+        vibe: 'friends',
         turnsTaken: {},
         roundsPerPlayer: null,
-        classicStage: null,
-        wildcard: null,
 
         currentQuestion: null,
-        beginClassicTurn: () => set({ classicStage: 'choice' }),
-        classicChooseTruth: () => {
-          const { gameMode, players, turnIndex } = get()
-          if (gameMode !== 'classic' || !players[turnIndex]) return
-          const player = players[turnIndex]
-          // Guard the streak here too, not just in the UI: three truths in a row
-          // makes a dare mandatory until a dare resets the counter.
-          if ((player.truthStreak ?? 0) >= TRUTH_STREAK_LIMIT) return
-          set({
-            players: editPlayers(players, [
-              { id: player.id, fn: (p) => void (p.truthStreak = (p.truthStreak ?? 0) + 1) },
-            ]),
-            classicStage: 'playing',
-          })
-          get().drawQuestion()
-        },
-        classicChooseDare: () => {
-          const { gameMode, players, turnIndex } = get()
-          if (gameMode !== 'classic' || !players[turnIndex]) return
-          const player = players[turnIndex]
-          // Choosing a dare is FREE — no Coward penalty. Taking a dare resets
-          // the truth streak.
-          set({
-            players: editPlayers(players, [{ id: player.id, fn: (p) => void (p.truthStreak = 0) }]),
-            classicStage: 'playing',
-          })
-          if (!drawDare(false)) {
-            // No dares in the chosen decks — deal a question instead so the turn
-            // still resolves rather than dead-ending.
-            get().drawQuestion()
-            return
-          }
-          set({ stage: 'dare', banner: 'Dare revealed — hit Done when finished.' })
-        },
-        classicNextUp: () => {
-          const { gameMode } = get()
-          if (gameMode !== 'classic') return
-          // advanceTurn() already ran when the turn completed (it advanced
-          // turnIndex and set classicStage to 'nextup'). All that is left is to
-          // show the next player's turn intro.
-          set({ classicStage: 'intro' })
-        },
         pendingDare: null,
         pendingIsCallOut: false,
         flipped: false,
@@ -402,58 +332,49 @@ turnIndex: 0,
         rerollUsed: false,
 
         startGame: (names, options) => {
-          const gameMode = options?.gameMode ?? 'free'
+          const vibe: Vibe = options?.vibe && isVibe(options.vibe) ? options.vibe : 'friends'
           const roundsPerPlayer = options?.roundsPerPlayer ?? null
           const players = names.map((n) => makePlayer(n.name))
-          const turnOrder = gameMode === 'classic' ? players.map((p) => p.id) : []
           set({
             phase: 'playing',
             players,
             turnIndex: 0,
             round: 1,
-            pool: buildQuestionQueue(),
+            pool: buildQuestionQueue(vibe),
             poolIndex: 0,
             deckPass: 1,
             recentDareIds: [],
             lastAnsweredText: null,
-            gameMode,
-            turnOrder,
+            vibe,
             turnsTaken: {},
             roundsPerPlayer,
-            classicStage: gameMode === 'classic' ? 'intro' : null,
-            wildcard: gameMode === 'classic' ? pickWildcard() : null,
             ...blankTurn(),
           })
-          if (gameMode === 'classic') {
-            // Classic deals the question only after the player picks Truth, so
-            // skip the pre-draw here (avoids burning an extra card per turn).
-            set({ stage: 'question', currentQuestion: null, pendingDare: null, flipped: false })
-            return
-          }
           get().drawQuestion()
         },
 
         /**
          * Deal the next card, reshuffling when the queue is dry.
          *
-         * The queue looping here (rather than the game ending) is deliberate: 135
-         * cards is roughly 40 minutes with six players, so "cards run out = game
-         * over" was really "the game quietly stops in the middle of the night".
-         * Endless should mean endless, and the turn limit is the honest way to
-         * stop.
+         * The queue looping here (rather than the game ending) is deliberate: a
+         * vibe's pool is roughly 90 cards, which is 30-40 minutes with six
+         * players, so "cards run out = game over" was really "the game quietly
+         * stops in the middle of the night". Endless should mean endless, and the
+         * turn limit is the honest way to stop.
          *
          * Re-shuffled on each pass, not replayed in order, so a repeat is not
-         * obvious — the second pass is exactly when the jokes have worn off.
+         * obvious — the second pass is exactly when the jokes have worn off. The
+         * reshuffle is built from the SAME vibe, so a restart can never leak a
+         * card from another shelf.
          *
          * This is the single place the queue is consumed, which is why the
-         * reshuffle lives here: a reroll, a Classic truth and a normal turn all
-         * funnel through it, and all three need the same "there is always a card"
-         * guarantee.
+         * reshuffle lives here: a reroll and a normal turn both funnel through
+         * it, and both need the same "there is always a card" guarantee.
          */
         drawQuestion: () => {
-          let { pool, poolIndex, deckPass } = get()
+          let { pool, poolIndex, deckPass, vibe } = get()
           if (poolIndex >= pool.length) {
-            pool = buildQuestionQueue()
+            pool = buildQuestionQueue(vibe)
             poolIndex = 0
             deckPass += 1
           }
@@ -495,27 +416,24 @@ turnIndex: 0,
         },
 
         skip: () => {
-          const { players, turnIndex, gameMode } = get()
+          const { players, turnIndex } = get()
           const player = players[turnIndex]
           if (!player) return
-          // Taking a dare is now FREE in both modes — it is the *incentive*. The
-          // harsher chicken-out is what costs a point, so the app rewards doing
-          // something over refusing everything. Classic still just resets the
-          // truth streak, same as before.
-          const classic = gameMode === 'classic'
+          // Taking a dare is FREE - it is the *incentive*. The harsher
+          // chicken-out is what costs a point, so the app rewards doing
+          // something over refusing everything.
           set({
             players: editPlayers(players, [
               {
                 id: player.id,
                 fn: (p) => {
-                  if (classic) p.truthStreak = 0
                   p.answerStreak = 0
                 },
               },
             ]),
           })
           if (!drawDare(false)) {
-            // No dares in the chosen decks. Fall back to a normal answer so the
+            // No dares in this vibe's pack. Fall back to a normal answer so the
             // turn still advances instead of dead-ending.
             get().answer()
             return
@@ -540,11 +458,12 @@ turnIndex: 0,
           if (rerollUsed) return
 
           if (stage === 'dare') {
-            const { players, turnIndex, recentDareIds, pendingDare, pendingIsCallOut } = get()
+            const { players, turnIndex, recentDareIds, pendingDare, pendingIsCallOut, vibe } = get()
             const player = players[turnIndex]
             if (!player || !pendingDare) return
             const tier = dareTier(player.flinchCount)
-            const source = pendingIsCallOut ? ALL_CALL_OUT_DARES : ALL_DARES
+            const pack = poolFor(vibe)
+            const source = pendingIsCallOut ? pack.callouts : pack.dares
             // Exclude the dare on screen as well as the recent list, so the reroll
             // visibly changes the card instead of silently re-dealing it.
             const dare = pickDare(source, tier, [pendingDare.id, ...recentDareIds])
@@ -590,7 +509,7 @@ turnIndex: 0,
          * changed when taking a dare became free.
          */
         chickenOut: () => {
-          const { players, turnIndex, gameMode, stage } = get()
+          const { players, turnIndex, stage } = get()
           const player = players[turnIndex]
           if (!player) return
           set({
@@ -601,9 +520,6 @@ turnIndex: 0,
                   p.coward += 1
                   p.flinchCount += 1
                   p.answerStreak = 0
-                  // Classic only: refusing everything is not a truth, so the
-                  // truth streak breaks here exactly as it does in skip().
-                  if (gameMode === 'classic') p.truthStreak = 0
                 },
               },
             ]),
@@ -675,7 +591,7 @@ turnIndex: 0,
          * earlier in the turn, and that point was honest.
          */
         fudgeDare: () => {
-          const { players, turnIndex, gameMode } = get()
+          const { players, turnIndex } = get()
           const player = players[turnIndex]
           if (!player) return
           set({
@@ -686,7 +602,6 @@ turnIndex: 0,
                   p.coward += 1
                   p.flinchCount += 1
                   p.answerStreak = 0
-                  if (gameMode === 'classic') p.truthStreak = 0
                 },
               },
             ]),
@@ -776,19 +691,15 @@ turnIndex: 0,
           set({
             phase: 'setup',
             players: [],
-        turnIndex: 0,
+            turnIndex: 0,
             round: 1,
             pool: [],
             poolIndex: 0,
             deckPass: 1,
             banner: null,
             lastAnsweredText: null,
-            gameMode: 'free',
-            turnOrder: [],
             turnsTaken: {},
             roundsPerPlayer: null,
-            classicStage: null,
-            wildcard: null,
             ...blankTurn(),
           }),
 
@@ -811,11 +722,9 @@ turnIndex: 0,
         poolIds: s.pool.map((q) => q.id),
         poolIndex: s.poolIndex,
         deckPass: s.deckPass,
-        gameMode: s.gameMode,
-        turnOrder: s.turnOrder,
+        vibe: s.vibe,
         turnsTaken: s.turnsTaken,
         roundsPerPlayer: s.roundsPerPlayer,
-        wildcard: s.wildcard,
       }),
       merge: mergePersisted,
     },
@@ -860,7 +769,3 @@ export const selectAwaitingCallOutDare = (s: GameStore): boolean => s.stage === 
 
 export const selectShowVerdict = (s: GameStore): boolean =>
   s.stage === 'calloutVerdict'
-
-/** Classic Circle: truths left before a dare is forced (0 → must dare now). */
-export const selectTruthsLeft = (s: GameStore): number =>
-  Math.max(0, TRUTH_STREAK_LIMIT - (s.players[s.turnIndex]?.truthStreak ?? 0))
