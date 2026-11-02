@@ -174,7 +174,7 @@ boys card by accident.
 | --- | --- | --- |
 | **Family** | 130 q - 56 d - 30 c | parents, siblings, cousins. Zero profanity, zero sex, zero booze, no dating questions. Dares stay in the room: ring a relative, swap phones for a round, admit a petty thing. |
 | **Friends** | 129 q - 59 d - 40 c | the class group, the office, female friends. Roasty, a bit too honest, never explicit and never a hard swear. |
-| **Boys** (18+) | 148 q - 58 d - 30 c | 18+. Crude, profane, unhinged - the worst thing you did to a friend, who folds under pressure, what you would deny under oath. Crime as a story, never as an instruction. |
+| **Boys** (18+) | 217 q - 97 d - 36 c | 18+. Out of the box and deliberately hostile: hide a body, found a cult, cast a heist, pick who gets eaten, then name the person you trust least to their face. Crime is always a story or a hypothetical, never an instruction. |
 
 Every question is one of six **answer shapes** - nominate a person, rank the
 room, tell a story, perform something now, predict what would happen, pick between

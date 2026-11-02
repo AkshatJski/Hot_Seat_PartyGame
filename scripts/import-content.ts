@@ -31,6 +31,7 @@ import {
   WORD_MAX,
   WORD_MIN,
   isEmbodied,
+  isImperative,
   norm,
   words,
 } from './content-rules'
@@ -116,7 +117,11 @@ function check(c: Candidate): string | null {
   if (!/^[A-Z0-9"]/.test(t)) return 'does not start with a capital'
 
   if (c.kind === 'question') {
-    if (!t.includes('?')) return 'a question must contain a "?"'
+    // Same rule as the gate: a question is "asks something" OR an imperative
+    // prompt ("Rank the room by…"). Requiring a literal "?" rejected cards the
+    // gate accepts — that drift is BUG-014 in report.md.
+    if (!t.includes('?') && !isImperative(t))
+      return 'asks nothing — no "?" and not an imperative prompt'
     if (isEmbodied(t)) return 'opens with a performance verb — that is a dare, not a question'
     if (LAZY_OPENER.test(t)) return 'lazy opener ("the most X you have ever Y")'
     if (NOMINATE_OPENER.test(t) && !FOLLOW_UP.test(t))

@@ -38,6 +38,13 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      # The importer must accept everything the gate accepts. Running it against the
+      # sample batch catches a rules drift here instead of at a writer's submission
+      # (report.md BUG-014).
+      - name: Content importer (sample batch)
+        run: npm run import:content content/inbox/_example.json
+
+
       # Store + content suite.
       - name: Test (store)
         run: npm test

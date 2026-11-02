@@ -20,5 +20,12 @@
     "stage": 1,
     "text": "Redo the answer with your hands flat on the table.",
     "why": "physical constraint, finishes inside the same turn"
+  },
+  {
+    "shelf": "boys",
+    "kind": "question",
+    "stage": 2,
+    "text": "Rank the room by who would last longest in a cult.",
+    "why": "imperative question, no \"?\" - the path the importer used to reject (BUG-014)"
   }
 ]

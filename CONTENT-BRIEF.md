@@ -154,23 +154,47 @@ someone said the thing out loud. Dark, funny, occasionally uncomfortable — the
 kind of card that gets a laugh and then a silence.
 
 **Allowed:** profanity, betrayal, cowardice, jealousy, crime *as story or
-hypothetical*, death jokes, friendship debt, humiliation with consent, phones,
-secrets.
+hypothetical*, death jokes, cannibalism as a hypothetical, funeral speeches,
+friendship debt, humiliation with consent, phones, secrets.
 
 **Banned:** explicit sex, slurs, instructions to injure or break the law, real
-threats, anything about a player's body, health or income.
+threats, anything about a player's body, health or income. ("No guardrails" means
+*no cosy cards* — it does not mean removing these three.)
 
-**This shelf is the one that is currently weakest.** It is too polite. Target:
-confession, betrayal, what you did and never admitted, who would fold, who would
-talk, what you would trade, what you know about someone in this room.
+**The shelf has two registers and needs both.** A shelf of nothing but confessions
+becomes a therapy circle; a shelf of nothing but absurdity becomes a comedy night.
+Write roughly half of each:
+
+1. **Invent, together.** High-concept scenarios the group has to cast and decide:
+   hide a body and assign jobs, found a cult and name the first heretic, turn the
+   group into a country and ban something, cast a heist including the fall guy,
+   survive a zombie room and pick who is bitten first, decide who gets eaten. This
+   register spreads the answer across the table instead of pinning one person, and
+   it makes people say true things they would dodge if asked directly.
+2. **Confess, alone.** The darkest register: the worst thing done to someone in
+   this room and never admitted, the lie still being told, who you secretly wrote
+   off, whose trust you are betraying right now, the funeral speech you would never
+   give, who you would abandon in a crisis.
+
+**Nothing on this shelf may be safe.** If a card could appear on the Friends shelf,
+it belongs there. The test: would somebody at this table hesitate for half a second
+before answering? If not, cut it.
+
+**Still off the table even here:** explicit sex, slurs, and any instruction that
+could injure a player or get them arrested. Crime is always hypothetical or
+narrated — *"you have one hour to hide a body, what is your job?"* is a game;
+*"steal something from the shop"* is a police report.
+
+**Volume:** 217 questions · 97 dares · 36 call-outs as of 2026-11-02 23:32. Next
+target 250 / 110 / 40, and the priority is judging the batch that exists (run it
+with a real group, cut what dies) rather than writing more blind.
 
 **Themes with room left:**
-- the worst thing done to a friend, kept quiet for years
-- who talks first under pressure, who takes the fall, who volunteers
-- the night you have never told this group about
-- the promise that mattered and the person who broke it
-- the funeral you would speak at, and what you would actually say
-- what you have borrowed, broken, hidden or sold and never mentioned
+- group-level chaos: founding a religion, a country, a cult, a criminal enterprise
+- the vote with a real cost: who gets left behind, who takes the blame, who is eaten
+- what you owe someone here and will never repay
+- the thing you would do if you knew you would never be caught
+- the worst version of you, and who here has met it
 
 **Dare ceiling:** name the person you trust least and say it to their face; admit
 what you would deny under oath; call someone and ask what they really think;
@@ -222,11 +246,16 @@ All of these are **already shipped** and passed the gate. Match this level.
 ### Boys
 | Stage | Kind | Card | Why it works |
 |---|---|---|---|
+| 1 | question | Everyone here gets a warning label. What is yours, and who ignores theirs? | cheap, funny, and quietly a roast |
 | 1 | question | Would you rather be feared or liked? | short, icebreaker, still loaded |
+| 2 | question | Give everyone here a criminal alias and the crime they are known for, starting with yourself. | crime as story, and you go first |
 | 3 | question | Name the worst thing you have done to a friend behind their back. One sentence, no softening. | the shelf's thesis |
+| 3 | question | You are all in a Saw trap. Who solves it, who sacrifices themselves, who is the traitor? | three roles, and the traitor is a real accusation |
+| 3 | question | If this group had to eat one person here to survive, who cooks, who refuses, who asks for seconds? | the seconds answer is the whole game |
 | 2 | question | Who here is the reason a plan fell through, and what did they say happened instead? | accuses the room, not a person |
 | 3 | question | What do you know about someone in this room that they do not know you know? | silence, then a laugh, then a confession |
 | 3 | dare | Tell the room what you have done that you would deny under oath. | no props required, maximum cost |
+| 3 | dare | Tell the room what you would do if you knew you would never be caught. | the no-guardrails card |
 | 3 | dare | Name the person here you trust least, then say that to their face with one reason. | the room holds its breath |
 | 2 | dare | Tell the person to your left the first impression you had of them, unedited. | warm and dangerous at once |
 
