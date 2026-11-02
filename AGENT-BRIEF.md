@@ -35,9 +35,9 @@ The app is mid-refactor, and this is what an agent must understand before touchi
 2. **What replaced categories is the VIBE.** Three complete, separate content
    libraries — `family`, `friends`, `boys` — chosen once on Setup and never mixed
    during a game:
-   - `src/data/packs/family.ts` → 84 questions / 48 dares / 22 call-outs
-   - `src/data/packs/friends.ts` → 135 / 85 / 33
-   - `src/data/packs/boys.ts` → 88 / 48 / 22 (18+)
+   - `src/data/packs/family.ts` → 140 questions / 70 dares / 30 call-outs
+   - `src/data/packs/friends.ts` → 190 / 110 / 40
+   - `src/data/packs/boys.ts` → 150 / 70 / 30 (18+)
    - `src/data/decks.ts` owns `VIBES`, `poolFor(vibe)`, `buildQuestionQueue(vibe)`,
      `dareTier`, `pickDare` and `contentCounts(vibe)`. The name is kept for
      history; it no longer has anything to do with decks.
@@ -54,9 +54,21 @@ The app is mid-refactor, and this is what an agent must understand before touchi
    because the same voice speaks to every shelf. If you add content, this gate
    must stay green.
 
-4. **Questions are intentionally fun / quirky / roasty.** Deep-thinking, regret,
-   confession and intimate questions were deliberately stripped out. The roasty
-   questions point at the people in the room and are deliberately punchy.
+3b. **Content QUALITY is gated too, not just content legality.** `scripts/content-shapes.ts`
+   classifies every question into one of six answer shapes
+   (`nominate | rank | story | perform | predict | choose`, plus `other`) and the
+   linter enforces: no shape above 35% of a pool, `nominate` at most 25% **and**
+   every nominate card must carry a second clause, tier 3 ≥8% and tier 2 ≥20%,
+   cards of ≤8 words and ≥18 words each ≥8%, one dare opener ≤25% of dares and one
+   call-out opener ≤30%. `npm run audit:content` prints those numbers per shelf
+   (it never fails the build - it is the measuring instrument, not the gate).
+
+4. **Questions are fun / quirky / roasty, but no longer one shape on loop.** The
+   roasty "point at whoever" card still exists - it is capped at a quarter of a
+   shelf and always demands evidence, an action or a consequence, never just a
+   name. Tier 3 exists on every shelf and means something different on each:
+   warmth on Family, uncomfortable honesty on Friends, loyalty and regret on Boys.
+   Crude-for-the-sake-of-crude is not the goal; the shape spread is.
 
 5. **Dares, Call Out, the Coward ladder and the turn limit are KEPT.** Only the
    second game mode and the question categories were removed.
@@ -163,6 +175,10 @@ npm run check   # typecheck + lint + lint:content + smoke + render-smoke + build
 
 Individually: `npm run typecheck`, `npm run lint`, `npm run lint:content`,
 `npm test` (store suite), `npm run test:render` (jsdom DOM suite), `npm run build`.
+
+To *see* the content mix rather than pass/fail it: `npm run audit:content`
+(shape bar chart, intensity split, length spread, idea duplicates, dare verbs per
+shelf). To read every card as plain text: `npm run dump:content` → `CONTENT-DUMP.txt`.
 
 ---
 

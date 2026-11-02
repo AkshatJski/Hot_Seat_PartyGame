@@ -172,9 +172,15 @@ boys card by accident.
 
 | Shelf | Cards | Written for |
 | --- | --- | --- |
-| **Family** | 84 q · 48 d · 22 c | parents, siblings, cousins. Zero profanity, zero sex, zero booze, no dating questions, no dare that needs a prop or leaves the room. |
-| **Friends** | 135 q · 85 d · 33 c | the class group, the office, female friends. Roasty, a bit too honest, never explicit and never a hard swear. |
-| **Boys** (18+) | 88 q · 48 d · 22 c | 18+. Crude, profane, unhinged - exes, hangovers, betrayal, bad decisions at 2am. |
+| **Family** | 140 q · 70 d · 30 c | parents, siblings, cousins. Zero profanity, zero sex, zero booze, no dating questions, no dare that needs a prop or leaves the room. |
+| **Friends** | 190 q · 110 d · 40 c | the class group, the office, female friends. Roasty, a bit too honest, never explicit and never a hard swear. |
+| **Boys** (18+) | 150 q · 70 d · 30 c | 18+. Crude, profane, unhinged - exes, hangovers, betrayal, bad decisions at 2am. |
+
+Every question is one of six **answer shapes** - nominate a person, rank the
+room, tell a story, perform something now, predict what would happen, pick between
+two options - and no single shape may take more than a third of a shelf. A
+"point at whoever" card always carries a second clause (evidence, action or
+consequence), because a name on its own is a two-second turn.
 
 Within a shelf the whole set is shuffled into one queue and dealt without
 replacement, so **no question repeats within a pass**. When the queue is empty it
@@ -372,7 +378,7 @@ with one job each:
 The host is a drawn face in a speech bubble, one expression per mood. No emoji
 anywhere: they render in five different styles on five phones.
 
-Three easter eggs, and no more: the card prints its own number (`42 / 84`),
+Three easter eggs, and no more: the card prints its own number (`42 / 140`),
 holding the Burn Book title for half a second reveals a colophon, and the console
 says something on boot.
 
