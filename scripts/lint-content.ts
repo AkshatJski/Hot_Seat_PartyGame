@@ -12,6 +12,7 @@
 import { VIBES, poolFor } from '../src/data/decks'
 import { CARD_QUIPS, EVENT_QUIPS, MOODS, type Quip } from '../src/data/commentary'
 import type { Vibe } from '../src/types'
+import { ideaOverlap, shapeOf, type Shape } from './content-shapes'
 
 type Pool = 'question' | 'dare' | 'callout'
 
@@ -41,6 +42,36 @@ const TEMPLATE_SHARE = 0.12
 const TEMPLATE_FLOOR = 4
 /** A shelf nobody can play for an evening is a broken shelf. */
 const MIN_CARDS = { question: 60, dare: 40, callout: 18 } as const
+
+/**
+ * MIX THRESHOLDS — the rules that make "is this any good?" measurable.
+ *
+ * These are deliberately generous. A gate that cries wolf gets switched off,
+ * which is worse than no gate. Each one encodes a defect that actually shipped:
+ *
+ *   shape-share  one answer shape is most of a shelf. Friends was 67% "pick a
+ *                person". Six shapes means a healthy shelf sits near 17%.
+ *   nominate     the specific monoculture: the answer is a name, the turn ends,
+ *                nobody reacts. Capped harder than the general shape cap.
+ *   follow-up    a nominate card with no second clause is a one-word turn.
+ *   intensity    the ladder the UI promises (pips, dare tiers, "deepest
+ *                answered") has to exist in the data. Friends had 0 tier-3s.
+ *   length       uniform card length is the strongest "written all at once"
+ *                tell. Some cards must be a stab, some a scene.
+ *   verb-spread  one dare opener doing a quarter of the work.
+ */
+const SHAPE_SHARE = 0.35
+const NOMINATE_SHARE = 0.25
+const FOLLOW_UP = /,\s+\S+\s+\S+| then \S+/i
+const TIER3_SHARE = 0.08
+const TIER2_SHARE = 0.2
+const SHORT_SHARE = 0.08
+const LONG_SHARE = 0.08
+const SHORT_WORDS = 8
+const LONG_WORDS = 18
+const DARE_VERB_SHARE = 0.25
+const CALLOUT_VERB_SHARE = 0.3
+const NOMINATE_OPENER = /^(point at|who here|who in this room|which of us|name the person)\b/i
 // ---- card shapes ------------------------------------------------------------
 // A card is a valid prompt if it asks something (contains "?") or opens with an
 // imperative verb: "Describe your ideal Sunday." is a card, not a broken question.
@@ -54,6 +85,11 @@ const IMPERATIVE = new Set([
   // shape in the game. It is an imperative, so it belongs here — it used to fail
   // the shape gate unless the card also ended in a question mark.
   'point',
+  // Verbs the shape work added. A card that opens with one of these is an
+  // instruction: it must end in a period, never a question mark.
+  'sing', 'hum', 'mime', 'mimic', 'impersonate', 'recite', 'copy', 'hold',
+  'stand', 'text', 'call', 'count', 'pretend', 'whisper', 'tap', 'dance',
+  'speak', 'put', 'open', 'prove', 'sort', 'do', 'recreate', 'play', 'sell',
 ])
 const isImperative = (t: string) => IMPERATIVE.has(firstWord(t))
 
@@ -156,6 +192,11 @@ function checkText(card: Card, pool: Pool, vibe: Vibe) {
     fail('shape', card, 'a dare/call-out must be an instruction, not a question')
   }
 
+  // punctuation — an instruction is not a question. 38 Friends cards ended in
+  // "?" purely because "point at" used to fail the shape gate without one.
+  if (isImperative(t) && t.trim().endsWith('?'))
+    fail('punct', card, 'an instruction ending in "?" — end it with a period')
+
   // vague language
   for (const [re, why] of VAGUE) if (re.test(t)) fail('vague', card, why)
   if (VAGUE_IT.test(t)) fail('vague-it', card, 'bare "it" with no antecedent')
@@ -208,6 +249,111 @@ function checkPool({ vibe, name, cards }: { vibe: Vibe; name: Pool; cards: Card[
   stats.push(
     `  ${vibe.padEnd(8)} ${name.padEnd(9)} ${String(cards.length).padStart(3)} cards   ${TONE[vibe].label}`,
   )
+
+  // ---- idea duplicates ------------------------------------------------------
+  // Text-level dedupe misses the real repeats: three Boys cards were all "the
+  // most embarrassing thing you have done to impress someone", differing only
+  // in the noun. Compare the ideas, not the strings.
+  for (let i = 0; i < cards.length; i++) {
+    for (let j = i + 1; j < cards.length; j++) {
+      const { score, shared } = ideaOverlap(cards[i].text, cards[j].text)
+      if (score >= 0.6 && shared >= 4)
+        fail('idea-dup', cards[i], `same idea as ${cards[j].id} (overlap ${score.toFixed(2)})`)
+    }
+  }
+
+  // ---- verb spread ----------------------------------------------------------
+  // "Let the group…" was a quarter of the Friends dares. Same joke, same verb.
+  const verbCap =
+    name === 'dare'
+      ? Math.ceil(cards.length * DARE_VERB_SHARE)
+      : name === 'callout'
+        ? Math.ceil(cards.length * CALLOUT_VERB_SHARE)
+        : Infinity
+  if (Number.isFinite(verbCap)) {
+    const byVerb = new Map<string, Card[]>()
+    for (const c of cards) {
+      const v = firstWord(c.text)
+      byVerb.set(v, [...(byVerb.get(v) ?? []), c])
+    }
+    for (const [verb, group] of byVerb) {
+      if (group.length > verbCap)
+        fail(
+          'verb-spread',
+          group[0],
+          `"${verb} …" opens ${group.length} of ${cards.length} ${vibe} ${name}s (cap ${verbCap})`,
+        )
+    }
+  }
+
+  if (name !== 'question') return
+
+  // ---- answer-shape mix -----------------------------------------------------
+  const byShape = new Map<Shape, Card[]>()
+  for (const c of cards) {
+    const s = shapeOf(c.text)
+    byShape.set(s, [...(byShape.get(s) ?? []), c])
+  }
+  const shapeCap = Math.ceil(cards.length * SHAPE_SHARE)
+  for (const [shape, group] of byShape) {
+    if (group.length > shapeCap)
+      fail(
+        'shape-share',
+        group[0],
+        `${shape} is ${group.length} of ${cards.length} ${vibe} questions (cap ${shapeCap}) — the table plays the same round twice`,
+      )
+  }
+
+  // ---- the nominate monoculture --------------------------------------------
+  const nominate = cards.filter((c) => NOMINATE_OPENER.test(c.text.trim()))
+  const nominateCap = Math.ceil(cards.length * NOMINATE_SHARE)
+  if (nominate.length > nominateCap)
+    fail(
+      'nominate-share',
+      nominate[0],
+      `${nominate.length} of ${cards.length} ${vibe} questions answer with a name (cap ${nominateCap})`,
+    )
+  for (const c of nominate) {
+    if (!FOLLOW_UP.test(c.text))
+      fail(
+        'follow-up',
+        c,
+        'a nominate card with no second clause — the answer is one name and the turn is over',
+      )
+  }
+
+  // ---- intensity ladder -----------------------------------------------------
+  const tier3 = cards.filter((c) => (c.intensity ?? 1) === 3).length
+  const tier2 = cards.filter((c) => (c.intensity ?? 1) === 2).length
+  if (tier3 < cards.length * TIER3_SHARE)
+    fail(
+      'intensity-spread',
+      cards[0],
+      `only ${tier3} of ${cards.length} ${vibe} questions are tier 3 (need ${Math.ceil(cards.length * TIER3_SHARE)}) — the escalation is fiction`,
+    )
+  if (tier2 < cards.length * TIER2_SHARE)
+    fail(
+      'intensity-spread',
+      cards[0],
+      `only ${tier2} of ${cards.length} ${vibe} questions are tier 2 (need ${Math.ceil(cards.length * TIER2_SHARE)})`,
+    )
+
+  // ---- length spread --------------------------------------------------------
+  const lens = cards.map((c) => words(c.text).length)
+  const short = lens.filter((n) => n <= SHORT_WORDS).length
+  const long = lens.filter((n) => n >= LONG_WORDS).length
+  if (short < cards.length * SHORT_SHARE)
+    fail(
+      'length-spread',
+      cards[0],
+      `only ${short} of ${cards.length} ${vibe} questions are ${SHORT_WORDS} words or fewer — no punch, one rhythm`,
+    )
+  if (long < cards.length * LONG_SHARE)
+    fail(
+      'length-spread',
+      cards[0],
+      `only ${long} of ${cards.length} ${vibe} questions are ${LONG_WORDS}+ words — no scene-setters, one rhythm`,
+    )
 }
 
 // ---- cross-shelf duplicates -------------------------------------------------
