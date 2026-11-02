@@ -2,6 +2,7 @@ import {
   mergePersisted,
   selectAwaitingCallOutDare,
   selectAwaitingDare,
+  selectCurrentDareTier,
   selectDareOffer,
   selectShowDareVerdict,
   useGameStore,
@@ -160,6 +161,22 @@ for (const vibe of VIBES) {
     new Set(queue.map((q) => q.id)).size === queue.length,
   )
 }
+
+// The dare tier is floored by how far through the evening the table is, not only
+// by chicken-outs. A clean table (flinchCount 0) at the end of the deck must still
+// be offered the hardest tier - that is BUG-011 in report.md.
+console.log('\ndares escalate with the evening')
+S().startGame([{ name: 'A' }, { name: 'B' }], { vibe: 'boys', roundsPerPlayer: null })
+check('a clean table at the start of the deck gets tier 1', selectCurrentDareTier(S()) === 1)
+const lateDeck = {
+  ...S(),
+  poolIndex: 9,
+  pool: Array.from({ length: 10 }, () => S().currentQuestion!),
+}
+check(
+  'late in the deck, a zero-coward table still gets tier 3',
+  selectCurrentDareTier(lateDeck) === 3,
+)
 
 console.log('\nsetup + first draw')
 S().startGame([{ name: 'A' }, { name: 'B' }, { name: 'C' }])
