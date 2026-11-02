@@ -65,7 +65,7 @@ for (const vibe of VIBES as Vibe[]) {
   // ---- intensity ----------------------------------------------------------
   const tiers = [1, 2, 3].map((i) => qs.filter((q) => (q.intensity ?? 1) === i).length)
   console.log(
-    `\n   intensity 1/2/3      ${tiers.map((n, i) => `${n} (${pct(n, qs.length).trim()})`).join(' / ')}`,
+    `\n   intensity 1/2/3      ${tiers.map((n) => `${n} (${pct(n, qs.length).trim()})`).join(' / ')}`,
   )
 
   // ---- length -------------------------------------------------------------

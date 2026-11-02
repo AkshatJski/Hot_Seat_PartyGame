@@ -58,7 +58,8 @@ The app is mid-refactor, and this is what an agent must understand before touchi
    classifies every question into one of six answer shapes
    (`nominate | rank | story | perform | predict | choose`, plus `other`) and the
    linter enforces: no shape above 35% of a pool, `nominate` at most 25% **and**
-   every nominate card must carry a second clause, tier 3 ≥8% and tier 2 ≥20%,
+   every nominate card must carry a second clause, tier 1 ≥10% and tier 3 ≥8% and
+   tier 2 ≥20%,
    cards of ≤8 words and ≥18 words each ≥8%, one dare opener ≤25% of dares and one
    call-out opener ≤30%. `npm run audit:content` prints those numbers per shelf
    (it never fails the build - it is the measuring instrument, not the gate).

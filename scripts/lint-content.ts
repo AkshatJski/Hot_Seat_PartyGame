@@ -63,6 +63,7 @@ const MIN_CARDS = { question: 60, dare: 40, callout: 18 } as const
 const SHAPE_SHARE = 0.35
 const NOMINATE_SHARE = 0.25
 const FOLLOW_UP = /,\s+\S+\s+\S+| then \S+/i
+const TIER1_SHARE = 0.1
 const TIER3_SHARE = 0.08
 const TIER2_SHARE = 0.2
 const SHORT_SHARE = 0.08
@@ -325,6 +326,13 @@ function checkPool({ vibe, name, cards }: { vibe: Vibe; name: Pool; cards: Card[
   // ---- intensity ladder -----------------------------------------------------
   const tier3 = cards.filter((c) => (c.intensity ?? 1) === 3).length
   const tier2 = cards.filter((c) => (c.intensity ?? 1) === 2).length
+  const tier1 = cards.length - tier2 - tier3
+  if (tier1 < cards.length * TIER1_SHARE)
+    fail(
+      'intensity-spread',
+      cards[0],
+      `only ${tier1} of ${cards.length} ${vibe} questions are tier 1 (need ${Math.ceil(cards.length * TIER1_SHARE)}) — the shelf starts at maximum heat`,
+    )
   if (tier3 < cards.length * TIER3_SHARE)
     fail(
       'intensity-spread',
