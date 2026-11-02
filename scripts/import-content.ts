@@ -30,7 +30,6 @@ import {
   VAGUE_IT,
   WORD_MAX,
   WORD_MIN,
-  firstWord,
   isEmbodied,
   norm,
   words,
