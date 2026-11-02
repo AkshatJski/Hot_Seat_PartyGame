@@ -36,3 +36,6 @@ Thumbs.db
 
 # Generated reading sheets from scripts/import-content.ts
 content/review/
+
+# Scratch file for git commit -F (see the commit-message convention).
+commit.tmp.txt
