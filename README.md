@@ -172,9 +172,9 @@ boys card by accident.
 
 | Shelf | Cards | Written for |
 | --- | --- | --- |
-| **Family** | 140 q · 70 d · 30 c | parents, siblings, cousins. Zero profanity, zero sex, zero booze, no dating questions, no dare that needs a prop or leaves the room. |
-| **Friends** | 190 q · 110 d · 40 c | the class group, the office, female friends. Roasty, a bit too honest, never explicit and never a hard swear. |
-| **Boys** (18+) | 150 q · 70 d · 30 c | 18+. Crude, profane, unhinged - exes, hangovers, betrayal, bad decisions at 2am. |
+| **Family** | 130 q - 56 d - 30 c | parents, siblings, cousins. Zero profanity, zero sex, zero booze, no dating questions. Dares stay in the room: ring a relative, swap phones for a round, admit a petty thing. |
+| **Friends** | 129 q - 59 d - 40 c | the class group, the office, female friends. Roasty, a bit too honest, never explicit and never a hard swear. |
+| **Boys** (18+) | 148 q - 58 d - 30 c | 18+. Crude, profane, unhinged - the worst thing you did to a friend, who folds under pressure, what you would deny under oath. Crime as a story, never as an instruction. |
 
 Every question is one of six **answer shapes** - nominate a person, rank the
 room, tell a story, perform something now, predict what would happen, pick between
@@ -182,13 +182,37 @@ two options - and no single shape may take more than a third of a shelf. A
 "point at whoever" card always carries a second clause (evidence, action or
 consequence), because a name on its own is a two-second turn.
 
-Within a shelf the whole set is shuffled into one queue and dealt without
-replacement, so **no question repeats within a pass**. When the queue is empty it
-reshuffles *the same shelf* and play continues - set a turn limit if you want a
-definite ending.
+Within a shelf the deck is dealt **as an evening, not as a bag of cards**. Each
+card's intensity is its stage - 1 is the warm-up, 2 is the middle, 3 is the late
+game - and the queue is built stage 1, then 2, then 3, shuffled inside each
+stage. So a pass escalates instead of jumping from a warm-up to the heaviest card
+on the shelf. No question repeats within a pass; when the queue empties it
+reshuffles *the same shelf* and play continues.
+
+Dares escalate too. A dare's difficulty tier is the higher of your chicken-out
+count and **where you are in the evening** (how far through the queue the table
+is), so the last third of the deck never serves a warm-up dare. That progress
+signal is used instead of the round counter, because an endless game never
+increments the round.
 
 Ids are unique across all three shelves (`fam-`, `frn-`, `boy-`), and a saved
 game remembers which shelf it belongs to.
+
+
+### Writing content
+
+Content is written against [`CONTENT-BRIEF.md`](CONTENT-BRIEF.md) - voice per shelf,
+hard limits, the stage ladder, worked exemplars and the JSON schema. New batches go
+through the importer rather than straight into a pack:
+
+```bash
+npm run import:content content/inbox/boys-01.json
+```
+
+It applies the same rules as `npm run lint:content` (both read
+`scripts/content-rules.ts`), rejects duplicates against every shipped shelf, and
+writes a reading sheet to `content/review/`. It never edits a pack: curation is a
+decision, not a side effect. Expect to cut about half of any batch.
 
 ### The host
 
@@ -270,6 +294,10 @@ it's the only way to actually test the swipe physics and haptics.
 | `npm test` | Store + content suite (turn machine, scoring, full playthrough) |
 | `npm run test:render` | Mounts the real React tree in jsdom, asserts the DOM at every stage |
 | `npm run check` | **Everything above, plus build.** Run this before any commit. |
+| `npm run lint:content` | The content gate: tone, shape mix, stage ladder, length, duplicates |
+| `npm run audit:content` | Human-readable content report: shapes, stages, dare stakes, idea duplicates |
+| `npm run import:content <file>` | Validate an outside writer's JSON batch and emit a reading sheet |
+| `npm run dump:content` | Regenerate `CONTENT-DUMP.txt` (local-only) |
 | `npm run icons` | Regenerate PWA icons from `public/icon.svg` |
 
 ### Deploying your own copy
@@ -356,7 +384,11 @@ src/
 smoke.ts                         store suite
 render-smoke.tsx                 jsdom DOM suite
 scripts/lint-content.ts          the content + host-voice quality gate
+scripts/audit-content.ts         content report: shapes, stages, stakes, dupes
+scripts/import-content.ts        outside-writer intake -> reading sheet
+scripts/content-rules.ts         one source of truth for every content rule
 scripts/make-icons.ts            icon.svg → PNGs
+CONTENT-BRIEF.md                 the writer brief + exemplars + JSON schema
 ```
 
 ### Look and feel

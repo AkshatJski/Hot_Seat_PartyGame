@@ -6,6 +6,7 @@ import {
   isVibe,
   pickDare,
   poolFor,
+  stageFromProgress,
 } from '../data/decks'
 import type { Dare, GamePhase, Intensity, Player, Question, Vibe } from '../types'
 
@@ -285,13 +286,19 @@ export const useGameStore = create<GameStore>()(
       }
 
       const drawDare = (isCallOut: boolean) => {
-        const { players, turnIndex, recentDareIds, vibe } = get()
+        const { players, turnIndex, recentDareIds, vibe, pool: queue, poolIndex } = get()
         const player = players[turnIndex]
         if (!player) return false
         // Reads the *current* flinch count, so a chicken-out already counted
         // above escalates this dare's difficulty tier immediately. Dares are
         // free to take now, so the visible `coward` score no longer drives this.
-        const tier = dareTier(player.flinchCount)
+        //
+        // Floored by the stage of the evening: a timid table three quarters of
+        // the way through the deck should not still be doing warm-up dares.
+        const tier = Math.max(
+          dareTier(player.flinchCount),
+          stageFromProgress(queue.length ? poolIndex / queue.length : 1),
+        ) as Intensity
         // The vibe's own pools. There is deliberately no fallback to another
         // vibe's dares: a missing dare must fail loudly-ish (advance the turn),
         // never leak a boys dare into a family game.
@@ -461,7 +468,10 @@ turnIndex: 0,
             const { players, turnIndex, recentDareIds, pendingDare, pendingIsCallOut, vibe } = get()
             const player = players[turnIndex]
             if (!player || !pendingDare) return
-            const tier = dareTier(player.flinchCount)
+            const tier = Math.max(
+              dareTier(player.flinchCount),
+              stageFromProgress(pool.length ? poolIndex / pool.length : 1),
+            ) as Intensity
             const pack = poolFor(vibe)
             const source = pendingIsCallOut ? pack.callouts : pack.dares
             // Exclude the dare on screen as well as the recent list, so the reroll
@@ -737,7 +747,10 @@ export const selectCurrentPlayer = (s: GameStore): Player | undefined =>
   s.players[s.turnIndex]
 
 export const selectCurrentDareTier = (s: GameStore): Intensity =>
-  dareTier(s.players[s.turnIndex]?.flinchCount ?? 0)
+  Math.max(
+    dareTier(s.players[s.turnIndex]?.flinchCount ?? 0),
+    stageFromProgress(s.pool.length ? s.poolIndex / s.pool.length : 1),
+  ) as Intensity
 
 export const selectCardsLeft = (s: GameStore): number =>
   Math.max(0, s.pool.length - s.poolIndex)

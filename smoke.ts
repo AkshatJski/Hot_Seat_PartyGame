@@ -8,10 +8,12 @@ import {
 } from './src/store/gameStore'
 import {
   VIBES,
+  buildQuestionQueue,
   contentCounts,
   dareTier,
   isVibe,
   poolFor,
+  stageFromProgress,
 } from './src/data/decks'
 import {
   CARD_QUIPS,
@@ -130,6 +132,34 @@ check('2 cowards-> tier 2', dareTier(2) === 2)
 check('3 cowards-> tier 2', dareTier(3) === 2)
 check('4 cowards-> tier 3', dareTier(4) === 3)
 check('99 cowards->tier 3', dareTier(99) === 3)
+
+console.log('\nstaged evening')
+check('stage 0% -> 1', stageFromProgress(0) === 1)
+check('stage 32% -> 1', stageFromProgress(0.32) === 1)
+check('stage 34% -> 2', stageFromProgress(0.34) === 2)
+check('stage 66% -> 2', stageFromProgress(0.66) === 2)
+check('stage 67% -> 3', stageFromProgress(0.67) === 3)
+check('stage 100% -> 3', stageFromProgress(1) === 3)
+check('an empty queue reads as the end of the night', stageFromProgress(0) === 1)
+for (const vibe of VIBES) {
+  const queue = buildQuestionQueue(vibe)
+  const tiers = queue.map((q) => q.intensity ?? 1)
+  const ordered = tiers.every((t, i) => i === 0 || t >= tiers[i - 1]!)
+  check(
+    `${vibe}: the deal order is the ladder (1 -> 2 -> 3)`,
+    ordered,
+    `tiers=${tiers.join('')}`,
+  )
+  check(
+    `${vibe}: staging keeps every card`,
+    queue.length === poolFor(vibe).questions.length,
+    `${queue.length} vs ${poolFor(vibe).questions.length}`,
+  )
+  check(
+    `${vibe}: staging keeps ids unique`,
+    new Set(queue.map((q) => q.id)).size === queue.length,
+  )
+}
 
 console.log('\nsetup + first draw')
 S().startGame([{ name: 'A' }, { name: 'B' }, { name: 'C' }])

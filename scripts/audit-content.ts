@@ -95,6 +95,23 @@ for (const vibe of VIBES as Vibe[]) {
   console.log(`   idea duplicates      ${pairs.length} pair(s) at Jaccard ≥ 0.6`)
   for (const p of pairs.slice(0, 6)) console.log(`     ${p}`)
 
+  // ---- dare stakes ---------------------------------------------------------
+  // The v2.1 dares were all "say/read/speak in a voice": a performance with no
+  // target, no consequence and nothing revealed. A dare earns its place by
+  // costing something - a real person contacted, a secret admitted, a state that
+  // lasts. This counts the ones that do not.
+  const STAKE =
+    /\b(call|text|phone|message|confess|admit|tell|reveal|show|name|rate|rank|compliment|insult|answer|prove|swap|trade|delete|post|leave|until|for the rest|for \w+ rounds?|everyone|each person|the group|the person|the player)\b/i
+  for (const [name, cards] of [
+    ['dare', pack.dares],
+    ['call-out', pack.callouts],
+  ] as const) {
+    const flat = cards.filter((c) => !STAKE.test(c.text)).length
+    console.log(
+      `   ${name.padEnd(9)} stakes     ${cards.length - flat} cost something · ${flat} pure performance (${pct(flat, cards.length).trim()})`,
+    )
+  }
+
   // ---- verb spread in dares and call-outs ---------------------------------
   for (const [name, cards] of [
     ['dare', pack.dares],

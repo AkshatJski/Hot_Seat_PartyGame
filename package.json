@@ -35,6 +35,7 @@
     "lint:content": "tsx --tsconfig tsconfig.scripts.json scripts/lint-content.ts",
     "audit:content": "tsx --tsconfig tsconfig.scripts.json scripts/audit-content.ts",
     "dump:content": "tsx --tsconfig tsconfig.scripts.json scripts/dump-content.ts",
+    "import:content": "tsx --tsconfig tsconfig.scripts.json scripts/import-content.ts",
     "icons": "tsx --tsconfig tsconfig.scripts.json scripts/make-icons.ts",
     "check": "npm run lint && npm run lint:content && npm run typecheck && npm test && npm run test:render && npm run build"
   },

@@ -33,3 +33,6 @@ Thumbs.db
 ~$*
 .vercel
 .env*
+
+# Generated reading sheets from scripts/import-content.ts
+content/review/

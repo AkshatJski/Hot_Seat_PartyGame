@@ -43,13 +43,41 @@ export function poolFor(vibe: Vibe): VibePack {
 }
 
 /**
- * The chosen vibe's question pool, shuffled into a queue.
+ * The chosen vibe's question pool, ordered as an evening.
  *
- * The queue, not the deck, is the anti-repetition mechanism: a player can never
- * see the same question twice before the vibe's whole pool has been dealt.
+ * A flat shuffle makes a game feel like a bag of cards rather than a night: one
+ * turn is a warm-up, the next is the heaviest card on the shelf, then back to
+ * small talk. So the deck is dealt as three stages, in ascending intensity:
+ *
+ *   stage 1  light     the warm-up, safe to start on
+ *   stage 2  spicy     the middle, where the group has loosened up
+ *   stage 3  deep      the late game, the reason the shelf exists
+ *
+ * Each stage is shuffled internally, so there is still no repeat and no fixed
+ * order — the ladder only constrains *when*, never *what*. Intensity IS the
+ * stage: there is no second field to keep in sync, and a card's pips already
+ * tell the room where it belongs.
+ *
+ * Persistence stays correct for free: the queue is saved as an ordered list of
+ * ids, so a restored game resumes at the same rung of the ladder.
  */
 export function buildQuestionQueue(vibe: Vibe): Question[] {
-  return shuffle(poolFor(vibe).questions)
+  const buckets: Question[][] = [[], [], []]
+  for (const q of poolFor(vibe).questions) buckets[(q.intensity ?? 1) - 1].push(q)
+  return buckets.flatMap((bucket) => shuffle(bucket))
+}
+
+/**
+ * Which third of the evening we are in, from how far through the queue we are.
+ *
+ * Derived from queue progress rather than `round`, because an endless game never
+ * increments `round` — it would pin the whole night to stage 1, which is the bug
+ * this exists to avoid.
+ */
+export function stageFromProgress(progress: number): Intensity {
+  if (progress < 1 / 3) return 1
+  if (progress < 2 / 3) return 2
+  return 3
 }
 
 /** Fisher-Yates. Returns a new array; does not mutate the input. */

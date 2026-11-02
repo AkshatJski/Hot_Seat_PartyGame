@@ -13,6 +13,40 @@ import { VIBES, poolFor } from '../src/data/decks'
 import { CARD_QUIPS, EVENT_QUIPS, MOODS, type Quip } from '../src/data/commentary'
 import type { Vibe } from '../src/types'
 import { ideaOverlap, shapeOf, type Shape } from './content-shapes'
+import {
+  CALLOUT_VERB_SHARE,
+  DARE_VERB_SHARE,
+  FOLLOW_UP,
+  LAZY_OPENER,
+  LAZY_SHARE,
+  LONG_SHARE,
+  LONG_WORDS,
+  MIN_CARDS,
+  NOMINATE_OPENER,
+  NOMINATE_SHARE,
+  POLICY,
+  ADULT,
+  PROFANITY,
+  RANK_SHARE,
+  SHAPE_SHARE,
+  SHORT_SHARE,
+  SHORT_WORDS,
+  TEMPLATE_FLOOR,
+  TEMPLATE_SHARE,
+  TIER1_SHARE,
+  TIER2_SHARE,
+  TIER3_SHARE,
+  TONE,
+  VAGUE,
+  VAGUE_IT,
+  WORD_MAX,
+  WORD_MIN,
+  firstWord,
+  isEmbodied,
+  isImperative,
+  norm,
+  words,
+} from './content-rules'
 
 type Pool = 'question' | 'dare' | 'callout'
 
@@ -27,142 +61,6 @@ const stats: string[] = []
 
 function fail(rule: string, card: Card, why: string) {
   violations.push(`[${rule}] ${card.id} — ${why}\n          "${card.text}"`)
-}
-
-const norm = (t: string) =>
-  t.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim()
-const words = (t: string) => t.trim().split(/\s+/).filter(Boolean)
-const firstWord = (t: string) => words(norm(t))[0] ?? ''
-
-// ---- thresholds -------------------------------------------------------------
-const WORD_MIN = 5
-const WORD_MAX = 30
-/** No single opening-4-words bucket may exceed this share of a pool. */
-const TEMPLATE_SHARE = 0.12
-const TEMPLATE_FLOOR = 4
-/** A shelf nobody can play for an evening is a broken shelf. */
-const MIN_CARDS = { question: 60, dare: 40, callout: 18 } as const
-
-/**
- * MIX THRESHOLDS — the rules that make "is this any good?" measurable.
- *
- * These are deliberately generous. A gate that cries wolf gets switched off,
- * which is worse than no gate. Each one encodes a defect that actually shipped:
- *
- *   shape-share  one answer shape is most of a shelf. Friends was 67% "pick a
- *                person". Six shapes means a healthy shelf sits near 17%.
- *   nominate     the specific monoculture: the answer is a name, the turn ends,
- *                nobody reacts. Capped harder than the general shape cap.
- *   follow-up    a nominate card with no second clause is a one-word turn.
- *   intensity    the ladder the UI promises (pips, dare tiers, "deepest
- *                answered") has to exist in the data. Friends had 0 tier-3s.
- *   length       uniform card length is the strongest "written all at once"
- *                tell. Some cards must be a stab, some a scene.
- *   verb-spread  one dare opener doing a quarter of the work.
- */
-const SHAPE_SHARE = 0.35
-const NOMINATE_SHARE = 0.25
-const FOLLOW_UP = /,\s+\S+\s+\S+| then \S+/i
-const TIER1_SHARE = 0.1
-const TIER3_SHARE = 0.08
-const TIER2_SHARE = 0.2
-const SHORT_SHARE = 0.08
-const LONG_SHARE = 0.08
-const SHORT_WORDS = 8
-const LONG_WORDS = 18
-const DARE_VERB_SHARE = 0.25
-const CALLOUT_VERB_SHARE = 0.3
-const NOMINATE_OPENER = /^(point at|who here|who in this room|which of us|name the person)\b/i
-// ---- card shapes ------------------------------------------------------------
-// A card is a valid prompt if it asks something (contains "?") or opens with an
-// imperative verb: "Describe your ideal Sunday." is a card, not a broken question.
-const IMPERATIVE = new Set([
-  'describe', 'rate', 'pick', 'say', 'tell', 'name', 'rank', 'list', 'invent',
-  'give', 'choose', 'explain', 'imagine', 'act', 'make', 'assign', 'guess',
-  'admit', 'confess', 'pitch', 'write', 'draw', 'roast', 'defend', 'argue',
-  'share', 'read', 'spell', 'design', 'cast', 'create', 'show', 'answer',
-  'deliver', 'announce', 'perform', 'improvise', 'narrate', 'recount', 'swap',
-  // "Point at the person most likely to..." is the single most-used prompt
-  // shape in the game. It is an imperative, so it belongs here — it used to fail
-  // the shape gate unless the card also ended in a question mark.
-  'point',
-  // Verbs the shape work added. A card that opens with one of these is an
-  // instruction: it must end in a period, never a question mark.
-  'sing', 'hum', 'mime', 'mimic', 'impersonate', 'recite', 'copy', 'hold',
-  'stand', 'text', 'call', 'count', 'pretend', 'whisper', 'tap', 'dance',
-  'speak', 'put', 'open', 'prove', 'sort', 'do', 'recreate', 'play', 'sell',
-])
-const isImperative = (t: string) => IMPERATIVE.has(firstWord(t))
-
-const VAGUE: [RegExp, string][] = [
-  [/\bsomething\b/i, 'vague payload "something"'],
-  [/\banything\b/i, 'vague payload "anything"'],
-  [/\ba thing\b/i, 'vague payload "a thing"'],
-  [/\bone thing\b/i, 'vague payload "one thing"'],
-  [/\bstuff\b/i, 'vague payload "stuff"'],
-  [/\bsome thing\b/i, 'vague payload "some thing"'],
-  [/\bkind of thing\b/i, 'vague payload "kind of thing"'],
-]
-
-/** Verb + bare "it" with no antecedent: "want it", "do it", "are you into it". */
-const VAGUE_IT =
-  /\b(do|does|did|done|doing|want|wants|wanted|say|says|said|try|tries|tried|like|likes|liked|into)\s+it\b/i
-
-/** Content policy: never make a player disclose status they cannot choose. */
-const POLICY: [RegExp, string][] = [
-  [
-    /\b(money|salary|salaries|income|wage|wages|net worth|bank balance|bank account|paycheck)\b/i,
-    'policy: a player\u2019s finances',
-  ],
-  [/\b(weight|overweight|obese|body fat|fat shaming)\b/i, 'policy: a player\u2019s body'],
-  [
-    /\b(diagnos\w*|medication|disorder|disabled|autis\w*|schizo\w*)\b/i,
-    'policy: a player\u2019s health',
-  ],
-]
-
-// ---- the tone gate ----------------------------------------------------------
-/**
- * HARD PROFANITY. Banned from Family and Friends outright; allowed on Boys.
- * Word-boundary matched so "class" is not "ass" and "Scunthorpe" is not a bug.
- */
-const PROFANITY =
-  /\b(f+u+c+k\w*|shit\w*|bullshit|bitch\w*|bastard\w*|dick\w*|cock\w*|pussy|cunt\w*|asshole\w*|arsehole\w*|whore\w*|slut\w*|porn\w*|boobs?|tits?|wank\w*)\b/i
-
-/** Sexual content and substance use. Banned from Family; fine for Friends. */
-const ADULT =
-  /\b(sex\w*|horny|hookups?|hook-ups?|one-night stand|drunk\w*|booze|alcohol|vodka|whisky|beer|weed|marijuana|hangover\w*)\b/i
-
-/**
- * Dating and romance. Deliberately absent from the Family shelf.
- *
- * `ex` is spelled out rather than written as `ex-?\w+`: the greedy version
- * matched "escape", "exactly", "excuse", "exit" and "explain", which flagged six
- * perfectly innocent family cards. Word boundaries only.
- */
-const ROMANCE = /\b(dating|crush\w*|girlfriends?|boyfriends?|ex|exes|kiss\w*)\b/i
-
-/**
- * The gate itself. Explicit per vibe rather than a shared "mild" list, so adding
- * a shelf means making a decision rather than inheriting one by accident.
- */
-const TONE: Record<Vibe, { label: string; rules: [RegExp, string][] }> = {
-  family: {
-    label: 'family = zero profanity, zero adult content, no romance',
-    rules: [
-      [PROFANITY, 'family shelf must be completely clean'],
-      [ADULT, 'family shelf must not mention sex or substances'],
-      [ROMANCE, 'family shelf must not mention dating or crushes'],
-    ],
-  },
-  friends: {
-    label: 'friends = no hard profanity, nothing explicit',
-    rules: [
-      [PROFANITY, 'friends shelf must not swear'],
-      [/\b(porn\w*|hookup|hook-up|one-night)\b/i, 'friends shelf must not get explicit'],
-    ],
-  },
-  boys: { label: 'boys = 18+, no tone restriction', rules: [] },
 }
 
 // ---- load -------------------------------------------------------------------
@@ -304,6 +202,38 @@ function checkPool({ vibe, name, cards }: { vibe: Vibe; name: Pool; cards: Card[
         `${shape} is ${group.length} of ${cards.length} ${vibe} questions (cap ${shapeCap}) — the table plays the same round twice`,
       )
   }
+
+  // ---- questions must be answerable sitting down ---------------------------
+  // A question that opens with an embodied verb is a dare wearing a question
+  // mark. It belongs in the dares pool, where the player agreed to perform.
+  for (const c of cards) {
+    if (isEmbodied(c.text))
+      fail(
+        'question-mode',
+        c,
+        'opens with an embodied verb — this is a dare, not a question',
+      )
+  }
+
+  // ---- rank is a vote with a sort, not a game ------------------------------
+  const ranks = byShape.get('rank') ?? []
+  const rankCap = Math.ceil(cards.length * RANK_SHARE)
+  if (ranks.length > rankCap)
+    fail(
+      'rank-share',
+      ranks[0],
+      `${ranks.length} of ${cards.length} ${vibe} questions are "rank the group by…" (cap ${rankCap}) — sorting people is the cheapest turn in the box`,
+    )
+
+  // ---- the laziest opener ---------------------------------------------------
+  const lazy = cards.filter((c) => LAZY_OPENER.test(c.text.trim()))
+  const lazyCap = Math.ceil(cards.length * LAZY_SHARE)
+  if (lazy.length > lazyCap)
+    fail(
+      'lazy-opener',
+      lazy[0],
+      `${lazy.length} of ${cards.length} ${vibe} questions are "the most X you have ever Y" (cap ${lazyCap}) — a superlative is not a scene`,
+    )
 
   // ---- the nominate monoculture --------------------------------------------
   const nominate = cards.filter((c) => NOMINATE_OPENER.test(c.text.trim()))

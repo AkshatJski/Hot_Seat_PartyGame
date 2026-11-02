@@ -1,0 +1,24 @@
+[
+  {
+    "shelf": "boys",
+    "kind": "question",
+    "stage": 3,
+    "text": "What is the worst thing you have watched someone here do and stayed quiet about?",
+    "why": "turns the room into witnesses without naming anyone"
+  },
+  {
+    "shelf": "boys",
+    "kind": "dare",
+    "stage": 2,
+    "text": "Tell the room the last thing you did that you would not repeat in front of your mother.",
+    "needs": "none",
+    "why": "self-implicating, no props, answer costs something"
+  },
+  {
+    "shelf": "family",
+    "kind": "callout",
+    "stage": 1,
+    "text": "Redo the answer with your hands flat on the table.",
+    "why": "physical constraint, finishes inside the same turn"
+  }
+]
